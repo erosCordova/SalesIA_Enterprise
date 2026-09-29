@@ -1,42 +1,12 @@
-from sqlalchemy import Boolean, String
-from sqlalchemy.orm import Mapped, mapped_column
+"""
+Compatibilidad con código que importa:
 
-from app.models.base import Base
+    from app.models.user import User
 
+El modelo real de la tabla public.users se encuentra
+en app.models.security.
+"""
 
-class User(Base):
-    __tablename__ = "users"
+from app.models.security import User
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True,
-        index=True
-    )
-
-    dni: Mapped[str] = mapped_column(
-        String(8),
-        unique=True,
-        nullable=False,
-        index=True
-    )
-
-    full_name: Mapped[str] = mapped_column(
-        String(150),
-        nullable=False
-    )
-
-    password_hash: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
-    )
-
-    role: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        default="VENDEDOR"
-    )
-
-    active: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=True
-    )
+__all__ = ["User"]

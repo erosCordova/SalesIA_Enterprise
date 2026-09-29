@@ -11,9 +11,17 @@ class Settings(BaseSettings):
 
     API_V1_PREFIX: str = "/api/v1"
 
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/salesia"
+    DATABASE_URL: str = (
+        "postgresql+psycopg://postgres:postgres"
+        "@localhost:5432/salesia"
+    )
+
+    SUPABASE_URL: str = ""
+    SUPABASE_PUBLISHABLE_KEY: str = ""
+    SUPABASE_SECRET_KEY: str = ""
 
     SECRET_KEY: str = "cambiar-en-produccion"
+    ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     CORS_ORIGINS: str = "http://localhost:5173"

@@ -1,16 +1,5 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-from sqlalchemy.orm import DeclarativeBase
-
-
-class Base(DeclarativeBase):
-    pass
-=======
-from datetime import datetime
-=======
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
->>>>>>> af5c1ea (Guardar avance local de backend y Supabase)
 
 from sqlalchemy import DateTime, MetaData
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -31,7 +20,9 @@ def utc_now() -> datetime:
 
 
 class Base(DeclarativeBase):
-    metadata = MetaData(naming_convention=NAMING_CONVENTION)
+    metadata = MetaData(
+        naming_convention=NAMING_CONVENTION
+    )
 
 
 class UUIDPrimaryKeyMixin:
@@ -57,4 +48,3 @@ class TimestampMixin(CreatedAtMixin):
         onupdate=utc_now,
         nullable=False,
     )
->>>>>>> 491a911a0b1ea449b899958c0dfccf356d86f6ff

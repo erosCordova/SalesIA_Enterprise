@@ -1,12 +1,5 @@
-<<<<<<< HEAD
 from app.models.base import Base
-from app.models.user import User
 
-__all__ = [
-    "Base",
-    "User",
-]
-=======
 from app.models.analytics import (
     BayesAnalysis,
     Dataset,
@@ -49,6 +42,7 @@ from app.models.security import (
 
 
 __all__ = [
+    "Base",
     "AuditLog",
     "BayesAnalysis",
     "Category",
@@ -74,4 +68,3 @@ __all__ = [
     "StatisticalResult",
     "User",
 ]
->>>>>>> af5c1ea (Guardar avance local de backend y Supabase)
