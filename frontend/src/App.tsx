@@ -1,17 +1,30 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from 'react-router-dom'
 
-import MainLayout from "./layouts/MainLayout";
-import DashboardPage from "./modules/dashboard/DashboardPage";
+import LoginPage from './modules/auth/LoginPage'
+import MainLayout from './layouts/MainLayout'
+import DashboardPage from './modules/dashboard/DashboardPage'
 
 function App() {
   return (
     <Routes>
+      {/* LOGIN */}
+      <Route path="/" element={<LoginPage />} />
+
+      
       <Route element={<MainLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/dashboard"
+          element={<DashboardPage />}
+        />
       </Route>
+
+      {/* Cualquier ruta desconocida vuelve al login */}
+      <Route
+        path="*"
+        element={<Navigate to="/login" replace />}
+      />
     </Routes>
-  );
+  )
 }
 
-export default App;
+export default App
