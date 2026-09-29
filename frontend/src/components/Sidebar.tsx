@@ -4,7 +4,6 @@ import {
   ChevronRight,
   ClipboardList,
   LayoutDashboard,
-  PackageSearch,
   Settings,
   ShieldCheck,
   ShoppingCart,
@@ -12,6 +11,8 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+
+import { NavLink } from "react-router-dom";
 
 interface SidebarProps {
   open: boolean;
@@ -22,34 +23,46 @@ const menuItems = [
   {
     label: "Dashboard",
     icon: LayoutDashboard,
-    active: true,
+    path: "/",
+    end: true,
   },
   {
     label: "Gestión comercial",
     icon: ShoppingCart,
+    path: "/commercial",
   },
   {
     label: "Inventario",
     icon: Boxes,
+    path: "/inventory",
   },
   {
     label: "Analytics",
     icon: BarChart3,
+    path: "/analytics",
   },
   {
     label: "Reportes",
     icon: ClipboardList,
+    path: "/reports",
   },
   {
     label: "Auditoría",
     icon: ShieldCheck,
+    path: "/audit",
   },
 ];
 
 function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
-      {open && <button className="sidebar-overlay" onClick={onClose} />}
+      {open && (
+        <button
+          className="sidebar-overlay"
+          onClick={onClose}
+          aria-label="Cerrar menú"
+        />
+      )}
 
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <div className="sidebar-header">
@@ -62,14 +75,18 @@ function Sidebar({ open, onClose }: SidebarProps) {
             <span>Enterprise</span>
           </div>
 
-          <button className="sidebar-close" onClick={onClose}>
+          <button
+            className="sidebar-close"
+            onClick={onClose}
+            aria-label="Cerrar menú"
+          >
             <X size={20} />
           </button>
         </div>
 
         <div className="sidebar-company">
           <div className="company-icon">
-            <PackageSearch size={20} />
+            <ShoppingCart size={20} />
           </div>
 
           <div>
@@ -85,9 +102,14 @@ function Sidebar({ open, onClose }: SidebarProps) {
             const Icon = item.icon;
 
             return (
-              <button
-                className={`sidebar-item ${item.active ? "active" : ""}`}
+              <NavLink
                 key={item.label}
+                to={item.path}
+                end={item.end}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `sidebar-item ${isActive ? "active" : ""}`
+                }
               >
                 <span className="sidebar-item-left">
                   <Icon size={19} />
@@ -95,20 +117,26 @@ function Sidebar({ open, onClose }: SidebarProps) {
                 </span>
 
                 <ChevronRight size={16} />
-              </button>
+              </NavLink>
             );
           })}
         </nav>
 
         <div className="sidebar-bottom">
-          <button className="sidebar-item">
+          <NavLink
+            to="/access"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `sidebar-item ${isActive ? "active" : ""}`
+            }
+          >
             <span className="sidebar-item-left">
               <UsersRound size={19} />
-              Usuarios
+              Acceso y seguridad
             </span>
 
             <ChevronRight size={16} />
-          </button>
+          </NavLink>
 
           <button className="sidebar-item">
             <span className="sidebar-item-left">
