@@ -1,12 +1,18 @@
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
 
 import {
+  Building2,
+  CheckCircle2,
   Mail,
   Pencil,
   Phone,
   Trash2,
   UserRound,
   UsersRound,
+  UserX,
 } from "lucide-react";
 
 import DataTable, {
@@ -16,7 +22,9 @@ import DataTable, {
 import Modal from "../../components/ui/Modal";
 import ModuleState from "../../components/ui/ModuleState";
 import Pagination from "../../components/ui/Pagination";
+import StatCard from "../../components/ui/StatCard";
 import TableToolbar from "../../components/ui/TableToolbar";
+
 
 interface Customer {
   id: number;
@@ -24,8 +32,10 @@ interface Customer {
   document: string;
   email: string;
   phone: string;
+  address: string;
   status: "Activo" | "Inactivo";
 }
+
 
 const initialCustomers: Customer[] = [
   {
@@ -34,6 +44,7 @@ const initialCustomers: Customer[] = [
     document: "20601234567",
     email: "ventas@rivera.pe",
     phone: "987 654 321",
+    address: "Lima, Perú",
     status: "Activo",
   },
   {
@@ -42,6 +53,7 @@ const initialCustomers: Customer[] = [
     document: "20607654321",
     email: "contacto@sanmartin.pe",
     phone: "966 221 458",
+    address: "Lima, Perú",
     status: "Activo",
   },
   {
@@ -50,6 +62,7 @@ const initialCustomers: Customer[] = [
     document: "20505557842",
     email: "ventas@norte.pe",
     phone: "955 843 120",
+    address: "Piura, Perú",
     status: "Activo",
   },
   {
@@ -58,33 +71,66 @@ const initialCustomers: Customer[] = [
     document: "20401124578",
     email: "contacto@inversioneslima.pe",
     phone: "944 118 902",
+    address: "Lima, Perú",
     status: "Inactivo",
   },
 ];
 
+
 function CommercialPage() {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] =
+    useState("");
 
-  const customers = useMemo(() => {
-    const query = search.toLowerCase().trim();
+  const [page, setPage] =
+    useState(1);
 
-    if (!query) {
-      return initialCustomers;
-    }
+  const [modalOpen, setModalOpen] =
+    useState(false);
 
-    return initialCustomers.filter((customer) =>
-      [
-        customer.name,
-        customer.document,
-        customer.email,
-        customer.phone,
-      ].some((value) =>
-        value.toLowerCase().includes(query)
-      )
-    );
-  }, [search]);
+
+  const customers = useMemo(
+    () => {
+      const query = search
+        .toLowerCase()
+        .trim();
+
+      if (!query) {
+        return initialCustomers;
+      }
+
+      return initialCustomers.filter(
+        (customer) =>
+          [
+            customer.name,
+            customer.document,
+            customer.email,
+            customer.phone,
+            customer.address,
+          ].some(
+            (value) =>
+              value
+                .toLowerCase()
+                .includes(query),
+          ),
+      );
+    },
+    [search],
+  );
+
+
+  const activeCustomers =
+    initialCustomers.filter(
+      (customer) =>
+        customer.status === "Activo",
+    ).length;
+
+
+  const inactiveCustomers =
+    initialCustomers.filter(
+      (customer) =>
+        customer.status === "Inactivo",
+    ).length;
+
 
   const columns: DataTableColumn<Customer>[] = [
     {
@@ -93,22 +139,27 @@ function CommercialPage() {
       render: (customer) => (
         <div className="customer-cell">
           <div className="customer-avatar">
-            <UserRound size={17} />
+            <Building2 size={17} />
           </div>
 
           <div>
-            <strong>{customer.name}</strong>
-            <span>{customer.document}</span>
+            <strong>
+              {customer.name}
+            </strong>
+
+            <span>
+              RUC {customer.document}
+            </span>
           </div>
         </div>
       ),
     },
     {
       key: "email",
-      label: "Correo",
+      label: "Correo electrónico",
       render: (customer) => (
         <span className="table-detail">
-          <Mail size={14} />
+          <Mail size={13} />
           {customer.email}
         </span>
       ),
@@ -118,8 +169,17 @@ function CommercialPage() {
       label: "Teléfono",
       render: (customer) => (
         <span className="table-detail">
-          <Phone size={14} />
+          <Phone size={13} />
           {customer.phone}
+        </span>
+      ),
+    },
+    {
+      key: "address",
+      label: "Ubicación",
+      render: (customer) => (
+        <span>
+          {customer.address}
         </span>
       ),
     },
@@ -143,17 +203,24 @@ function CommercialPage() {
       label: "Acciones",
       render: () => (
         <div className="row-actions">
-          <button title="Editar">
-            <Pencil size={16} />
+          <button
+            type="button"
+            title="Editar cliente"
+          >
+            <Pencil size={15} />
           </button>
 
-          <button title="Eliminar">
-            <Trash2 size={16} />
+          <button
+            type="button"
+            title="Eliminar cliente"
+          >
+            <Trash2 size={15} />
           </button>
         </div>
       ),
     },
   ];
+
 
   return (
     <section className="module-page">
@@ -163,17 +230,76 @@ function CommercialPage() {
             GESTIÓN COMERCIAL
           </span>
 
-          <h1>Clientes</h1>
+          <h1>
+            Clientes
+          </h1>
 
           <p>
-            Registro, consulta y administración de clientes
-            asociados a la operación comercial.
+            Administra la información de los
+            clientes vinculados a las operaciones
+            comerciales de SalesIA Enterprise.
           </p>
         </div>
 
         <div className="module-main-icon">
           <UsersRound size={27} />
         </div>
+      </div>
+
+      <div className="stats-grid">
+        <StatCard
+          title="Clientes registrados"
+          value={String(
+            initialCustomers.length,
+          )}
+          change="100%"
+          caption="base comercial actual"
+          icon={UsersRound}
+        />
+
+        <StatCard
+          title="Clientes activos"
+          value={String(
+            activeCustomers,
+          )}
+          change={`${Math.round(
+            (
+              activeCustomers /
+              initialCustomers.length
+            ) * 100,
+          )}%`}
+          caption="con estado activo"
+          icon={CheckCircle2}
+        />
+
+        <StatCard
+          title="Clientes inactivos"
+          value={String(
+            inactiveCustomers,
+          )}
+          change={`${Math.round(
+            (
+              inactiveCustomers /
+              initialCustomers.length
+            ) * 100,
+          )}%`}
+          caption="requieren seguimiento"
+          icon={UserX}
+        />
+
+        <StatCard
+          title="Contactos registrados"
+          value={String(
+            initialCustomers.filter(
+              (customer) =>
+                customer.email &&
+                customer.phone,
+            ).length,
+          )}
+          change="100%"
+          caption="con datos de contacto"
+          icon={UserRound}
+        />
       </div>
 
       <article className="panel enterprise-data-panel">
@@ -184,7 +310,9 @@ function CommercialPage() {
             setPage(1);
           }}
           createLabel="Nuevo cliente"
-          onCreate={() => setModalOpen(true)}
+          onCreate={() =>
+            setModalOpen(true)
+          }
         />
 
         {customers.length === 0 ? (
@@ -198,7 +326,9 @@ function CommercialPage() {
             <DataTable
               columns={columns}
               data={customers}
-              getRowKey={(customer) => customer.id}
+              getRowKey={(customer) =>
+                customer.id
+              }
             />
 
             <Pagination
@@ -212,9 +342,11 @@ function CommercialPage() {
 
       <Modal
         open={modalOpen}
-        title="Registrar cliente"
-        description="Completa los datos principales del cliente."
-        onClose={() => setModalOpen(false)}
+        title="Registrar nuevo cliente"
+        description="Completa la información principal del cliente."
+        onClose={() =>
+          setModalOpen(false)
+        }
       >
         <form
           className="enterprise-form"
@@ -225,39 +357,58 @@ function CommercialPage() {
         >
           <div className="form-grid">
             <label>
-              <span>Nombre o razón social</span>
+              <span>
+                Nombre o razón social
+              </span>
+
               <input
                 type="text"
                 placeholder="Ej. Comercial Rivera"
+                required
               />
             </label>
 
             <label>
-              <span>Documento</span>
+              <span>
+                Documento
+              </span>
+
               <input
                 type="text"
                 placeholder="RUC o DNI"
+                required
               />
             </label>
 
             <label>
-              <span>Correo electrónico</span>
+              <span>
+                Correo electrónico
+              </span>
+
               <input
                 type="email"
                 placeholder="correo@empresa.com"
+                required
               />
             </label>
 
             <label>
-              <span>Teléfono</span>
+              <span>
+                Teléfono
+              </span>
+
               <input
                 type="text"
                 placeholder="999 999 999"
+                required
               />
             </label>
 
             <label className="form-full">
-              <span>Dirección</span>
+              <span>
+                Dirección
+              </span>
+
               <input
                 type="text"
                 placeholder="Dirección comercial"
@@ -269,7 +420,9 @@ function CommercialPage() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => setModalOpen(false)}
+              onClick={() =>
+                setModalOpen(false)
+              }
             >
               Cancelar
             </button>
@@ -286,5 +439,6 @@ function CommercialPage() {
     </section>
   );
 }
+
 
 export default CommercialPage;

@@ -19,7 +19,7 @@ function AuditPage() {
         {
           title: "Acciones de usuarios",
           description:
-            "Identifica quién realizó cada operación relevante.",
+            "Identifica qué usuario realizó cada operación relevante.",
           icon: UserRoundCheck,
         },
         {
@@ -31,13 +31,13 @@ function AuditPage() {
         {
           title: "Fecha y hora",
           description:
-            "Mantiene trazabilidad temporal de cada evento registrado.",
+            "Conserva trazabilidad temporal para los eventos registrados.",
           icon: Clock3,
         },
         {
           title: "Consulta de auditoría",
           description:
-            "Permite localizar eventos mediante filtros de búsqueda.",
+            "Permite localizar eventos mediante criterios de búsqueda.",
           icon: SearchCheck,
         },
       ]}

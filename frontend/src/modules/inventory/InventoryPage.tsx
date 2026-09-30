@@ -4,6 +4,7 @@ import {
   ArrowUpFromLine,
   Boxes,
   History,
+  PackageSearch,
 } from "lucide-react";
 
 import ModulePage from "../../components/ui/ModulePage";
@@ -13,37 +14,44 @@ function InventoryPage() {
     <ModulePage
       eyebrow="CONTROL OPERATIVO"
       title="Gestión de inventario"
-      description="Supervisa existencias, movimientos y disponibilidad de los productos de la empresa."
+      description="Supervisa existencias, movimientos y disponibilidad de los productos de SalesIA Enterprise."
       icon={Boxes}
       features={[
         {
           title: "Stock actual",
           description:
-            "Consulta las existencias disponibles de todos los productos.",
+            "Consulta las existencias disponibles y el nivel actual de cada producto.",
           icon: Boxes,
         },
         {
           title: "Entradas",
           description:
-            "Registra incrementos de inventario y reposiciones.",
+            "Registra reposiciones e incrementos de inventario.",
           icon: ArrowDownToLine,
         },
         {
           title: "Salidas",
           description:
-            "Controla las disminuciones de stock y sus motivos.",
+            "Controla las disminuciones de stock generadas por ventas y movimientos.",
           icon: ArrowUpFromLine,
         },
         {
           title: "Alertas de stock",
           description:
-            "Detecta productos por debajo del stock mínimo configurado.",
+            "Identifica productos por debajo del nivel mínimo configurado.",
           icon: AlertTriangle,
         },
         {
-          title: "Historial",
+          title: "Productos",
           description:
-            "Consulta la trazabilidad completa de movimientos.",
+            "Consulta la información comercial de los productos almacenados.",
+          icon: PackageSearch,
+          path: "/products",
+        },
+        {
+          title: "Historial de movimientos",
+          description:
+            "Consulta la trazabilidad de entradas, salidas y modificaciones.",
           icon: History,
         },
       ]}

@@ -17,11 +17,11 @@ function AnalyticsPage() {
     <ModulePage
       eyebrow="INTELIGENCIA COMERCIAL"
       title="Analytics"
-      description="Transforma los datos generados por las operaciones comerciales en estadísticas, probabilidades, gráficos e insights."
+      description="Convierte los datos comerciales en estadísticas, probabilidades, indicadores e información útil para la toma de decisiones."
       icon={BrainCircuit}
       features={[
         {
-          title: "Resumen",
+          title: "Resumen analítico",
           description:
             "Indicadores generales de ventas, ingresos, transacciones y clientes.",
           icon: ChartNoAxesCombined,
@@ -29,44 +29,49 @@ function AnalyticsPage() {
         {
           title: "Ventas",
           description:
-            "Evolución temporal, ticket promedio, media y mediana.",
+            "Analiza evolución temporal, ticket promedio, media y mediana.",
           icon: BarChart3,
+          path: "/sales",
         },
         {
           title: "Productos",
           description:
-            "Cantidad vendida, ingresos y participación comercial.",
+            "Estudia cantidades vendidas, ingresos y participación comercial.",
           icon: PackageSearch,
+          path: "/products",
         },
         {
           title: "Clientes",
           description:
-            "Compras, frecuencia y comportamiento comercial.",
+            "Analiza frecuencia, compras y comportamiento de los clientes.",
           icon: ContactRound,
+          path: "/commercial",
         },
         {
           title: "Vendedores",
           description:
-            "Ventas, ingresos y promedios por vendedor.",
+            "Compara ventas, ingresos y promedios obtenidos por vendedor.",
           icon: UsersRound,
         },
         {
-          title: "Variables",
+          title: "Variables estadísticas",
           description:
-            "Clasificación, distribución y estadísticas de variables.",
+            "Clasifica y analiza las variables generadas por la operación comercial.",
           icon: Sigma,
         },
         {
           title: "Probabilidad",
           description:
-            "Eventos, probabilidades y aplicación del Teorema de Bayes.",
+            "Trabaja eventos, variables aleatorias, probabilidades y Teorema de Bayes.",
           icon: Percent,
+          path: "/probability",
         },
         {
           title: "Insights",
           description:
-            "Observaciones explicables generadas desde resultados numéricos.",
+            "Consulta observaciones empresariales respaldadas por resultados numéricos.",
           icon: Lightbulb,
+          path: "/insights",
         },
       ]}
     />

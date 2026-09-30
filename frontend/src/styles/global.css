@@ -2,21 +2,64 @@
 
 :root {
   font-family:
-    Inter,
+    "Inter",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
 
-  color: #172033;
-  background: #f6f8fc;
+  --navy-950: #08172f;
+  --navy-900: #0f2344;
+  --navy-800: #16345f;
+
+  --blue-700: #1d4ed8;
+  --blue-600: #2563eb;
+  --blue-500: #3b82f6;
+  --blue-100: #dbeafe;
+  --blue-50: #eff6ff;
+
+  --cyan-600: #0891b2;
+  --cyan-500: #06b6d4;
+  --cyan-100: #cffafe;
+  --cyan-50: #ecfeff;
+
+  --white: #ffffff;
+  --canvas: #f4f7fb;
+  --surface-soft: #f8fafc;
+
+  --slate-950: #0f172a;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+
+  --success: #059669;
+  --success-soft: #ecfdf5;
+
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+
+  color: var(--slate-950);
+  background: var(--canvas);
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html,
@@ -30,17 +73,15 @@ body,
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at 75% 0%,
-      rgba(14, 165, 233, 0.06),
-      transparent 30%
-    ),
-    #f6f8fc;
+  color: var(--slate-950);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -53,15 +94,41 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
-button {
+button:not(:disabled) {
   cursor: pointer;
+}
+
+a {
+  color: inherit;
 }
 
 h1,
 h2,
 h3,
+h4,
 p {
   margin: 0;
+}
+
+input,
+select,
+textarea,
+button {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.2);
+  outline-offset: 2px;
+}
+
+::selection {
+  color: white;
+  background: var(--blue-600);
 }
 
 ::-webkit-scrollbar {

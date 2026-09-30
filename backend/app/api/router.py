@@ -4,10 +4,18 @@ from app.api.routes import (
     analytics,
     audit,
     auth,
+    categories,
     commercial,
+    customers,
     dashboard,
+    insights,
     inventory,
+    probability,
+    products,
+    random_variables,
     reports,
+    sales,
+    statistics,
     users,
 )
 
@@ -25,6 +33,30 @@ api_router.include_router(
     users.router,
     prefix="/users",
     tags=["Usuarios"],
+)
+
+api_router.include_router(
+    customers.router,
+    prefix="/customers",
+    tags=["Clientes"],
+)
+
+api_router.include_router(
+    categories.router,
+    prefix="/categories",
+    tags=["Categorías"],
+)
+
+api_router.include_router(
+    products.router,
+    prefix="/products",
+    tags=["Productos"],
+)
+
+api_router.include_router(
+    sales.router,
+    prefix="/sales",
+    tags=["Ventas"],
 )
 
 api_router.include_router(
@@ -49,6 +81,30 @@ api_router.include_router(
     analytics.router,
     prefix="/analytics",
     tags=["Analytics"],
+)
+
+api_router.include_router(
+    statistics.router,
+    prefix="/statistics",
+    tags=["Estadística"],
+)
+
+api_router.include_router(
+    probability.router,
+    prefix="/probability",
+    tags=["Probabilidad"],
+)
+
+api_router.include_router(
+    random_variables.router,
+    prefix="/random-variables",
+    tags=["Variables Aleatorias"],
+)
+
+api_router.include_router(
+    insights.router,
+    prefix="/insights",
+    tags=["Insights"],
 )
 
 api_router.include_router(

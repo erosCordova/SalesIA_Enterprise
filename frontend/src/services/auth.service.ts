@@ -1,39 +1,88 @@
-import { apiFetch } from './api'
-import type { LoginRequest, LoginResponse } from '../types/auth'
+import { apiFetch } from "./api";
+
+import type {
+  AuthUser,
+  LoginRequest,
+  LoginResponse,
+} from "../types/auth";
+
+
+const TOKEN_KEY = "access_token";
+const USER_KEY = "user";
+
 
 export async function login(
-    credentials: LoginRequest
+  credentials: LoginRequest,
 ): Promise<LoginResponse> {
-    const response = await apiFetch<LoginResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-    })
+  const response = await apiFetch<LoginResponse>(
+    "/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    },
+  );
 
-    localStorage.setItem('access_token', response.access_token)
-    localStorage.setItem('user', JSON.stringify(response.user))
+  localStorage.setItem(
+    TOKEN_KEY,
+    response.access_token,
+  );
 
-    return response
+  localStorage.setItem(
+    USER_KEY,
+    JSON.stringify(response.user),
+  );
+
+  return response;
 }
 
-export function logout(): void {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('user')
+
+export async function getCurrentUser(): Promise<AuthUser> {
+  const user = await apiFetch<AuthUser>(
+    "/auth/me",
+  );
+
+  localStorage.setItem(
+    USER_KEY,
+    JSON.stringify(user),
+  );
+
+  return user;
 }
 
-export function getStoredUser() {
-    const user = localStorage.getItem('user')
 
-    if (!user) {
-        return null
-    }
+export function getStoredUser(): AuthUser | null {
+  const storedUser = localStorage.getItem(
+    USER_KEY,
+  );
 
-    try {
-        return JSON.parse(user)
-    } catch {
-        return null
-    }
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(
+      storedUser,
+    ) as AuthUser;
+  } catch {
+    localStorage.removeItem(USER_KEY);
+    return null;
+  }
 }
+
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
 
 export function isAuthenticated(): boolean {
-    return Boolean(localStorage.getItem('access_token'))
+  return Boolean(
+    localStorage.getItem(TOKEN_KEY),
+  );
+}
+
+
+export function logout(): void {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }

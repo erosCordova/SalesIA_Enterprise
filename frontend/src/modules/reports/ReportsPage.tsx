@@ -16,49 +16,53 @@ function ReportsPage() {
     <ModulePage
       eyebrow="INFORMACIÓN EMPRESARIAL"
       title="Reportes"
-      description="Consulta, filtra y prepara información comercial y estadística para la toma de decisiones."
+      description="Consulta y prepara información comercial y estadística para presentación, análisis y toma de decisiones."
       icon={FileText}
       features={[
         {
-          title: "Ventas",
+          title: "Reporte de ventas",
           description:
-            "Reporte detallado de ventas por periodo y estado.",
+            "Consulta operaciones comerciales por periodo, estado y responsable.",
           icon: ShoppingBag,
+          path: "/sales",
         },
         {
-          title: "Estadística",
+          title: "Reporte estadístico",
           description:
-            "Resultados de análisis estadísticos realizados por SalesIA.",
+            "Presenta resultados obtenidos desde el módulo Analytics.",
           icon: BarChart3,
+          path: "/analytics",
         },
         {
-          title: "Productos",
+          title: "Reporte de productos",
           description:
-            "Información comercial y comportamiento de productos.",
+            "Consulta información comercial y comportamiento de productos.",
           icon: PackageSearch,
+          path: "/products",
         },
         {
-          title: "Clientes",
+          title: "Reporte de clientes",
           description:
-            "Actividad e historial comercial de clientes.",
+            "Consulta actividad e historial comercial de los clientes.",
           icon: ContactRound,
+          path: "/commercial",
         },
         {
-          title: "Vendedores",
+          title: "Reporte de vendedores",
           description:
-            "Rendimiento comercial por vendedor.",
+            "Presenta indicadores asociados al rendimiento comercial.",
           icon: UsersRound,
         },
         {
           title: "Exportación",
           description:
-            "Preparación de información para descarga y distribución.",
+            "Prepara información para descarga y distribución.",
           icon: FileDown,
         },
         {
           title: "Vista imprimible",
           description:
-            "Formato optimizado para impresión de documentos.",
+            "Genera una presentación preparada para impresión.",
           icon: Printer,
         },
       ]}

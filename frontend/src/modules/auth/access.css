@@ -1,0 +1,576 @@
+.access-page {
+  display: flex;
+
+  max-width: 1580px;
+  margin: 0 auto;
+
+  flex-direction: column;
+  gap: 20px;
+}
+
+.access-header {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 24px;
+}
+
+.access-header h1 {
+  margin: 7px 0 7px;
+
+  color: #0f172a;
+
+  font-size: clamp(25px, 3vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.access-header p {
+  max-width: 700px;
+
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.access-eyebrow {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  color: #0891b2;
+
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.access-primary-button,
+.access-secondary-button {
+  display: inline-flex;
+
+  min-height: 39px;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 0 14px;
+
+  border-radius: 8px;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.access-primary-button {
+  color: white;
+  background: #2563eb;
+
+  box-shadow:
+    0 5px 14px rgba(37, 99, 235, 0.16);
+}
+
+.access-primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #1d4ed8;
+}
+
+.access-secondary-button {
+  border: 1px solid #e2e8f0;
+
+  color: #475569;
+  background: white;
+}
+
+.access-secondary-button:hover:not(:disabled) {
+  color: #2563eb;
+
+  border-color: #dbeafe;
+
+  background: #eff6ff;
+}
+
+.access-primary-button:disabled,
+.access-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.access-summary {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 240px));
+
+  gap: 14px;
+}
+
+.access-summary-card {
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+  padding: 16px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+
+  color: #2563eb;
+  background: white;
+
+  box-shadow:
+    0 5px 20px rgba(15, 23, 42, 0.03);
+}
+
+.access-summary-card > svg {
+  width: 39px;
+  height: 39px;
+
+  padding: 9px;
+
+  border-radius: 9px;
+
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.access-summary-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.access-summary-card span {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.access-summary-card strong {
+  color: #0f172a;
+  font-size: 19px;
+}
+
+.access-panel {
+  overflow: hidden;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  background: white;
+
+  box-shadow:
+    0 6px 22px rgba(15, 23, 42, 0.035);
+}
+
+.access-toolbar {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+  padding: 17px 19px;
+
+  border-bottom: 1px solid #edf1f5;
+}
+
+.access-search {
+  display: flex;
+
+  width: min(480px, 100%);
+  height: 40px;
+
+  align-items: center;
+
+  gap: 9px;
+  padding: 0 12px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.access-search:focus-within {
+  border-color: #93c5fd;
+
+  background: white;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.07);
+}
+
+.access-search input {
+  width: 100%;
+
+  border: 0;
+  outline: 0;
+
+  color: #334155;
+  background: transparent;
+
+  font-size: 11px;
+}
+
+.access-table-wrapper {
+  overflow-x: auto;
+}
+
+.access-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.access-table th,
+.access-table td {
+  padding: 13px 17px;
+
+  border-bottom: 1px solid #edf1f5;
+
+  text-align: left;
+}
+
+.access-table th {
+  color: #64748b;
+
+  background: #f8fafc;
+
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.access-table td {
+  color: #475569;
+
+  font-size: 10px;
+}
+
+.access-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.access-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.access-user-cell {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.access-user-cell > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.access-user-cell span {
+  color: #94a3b8;
+  font-size: 8px;
+}
+
+.access-avatar {
+  display: grid;
+
+  width: 35px;
+  height: 35px;
+
+  place-items: center;
+
+  border-radius: 9px;
+
+  color: #2563eb;
+  background: #eff6ff;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.access-role {
+  display: inline-flex;
+
+  padding: 5px 8px;
+
+  border-radius: 999px;
+
+  color: #1d4ed8;
+  background: #eff6ff;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.access-status {
+  display: inline-flex;
+
+  padding: 5px 8px;
+
+  border-radius: 999px;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.access-status.active {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.access-status.inactive {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.access-state {
+  padding: 48px 20px;
+
+  color: #64748b;
+
+  text-align: center;
+
+  font-size: 11px;
+}
+
+.access-message {
+  padding: 11px 13px;
+
+  border-radius: 8px;
+
+  font-size: 10px;
+}
+
+.access-message.error {
+  border: 1px solid #fecaca;
+
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.access-message.success {
+  border: 1px solid #a7f3d0;
+
+  color: #047857;
+  background: #ecfdf5;
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.access-modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+
+  display: grid;
+
+  padding: 24px;
+
+  place-items: center;
+
+  background: rgba(8, 23, 47, 0.48);
+
+  backdrop-filter: blur(4px);
+}
+
+.access-modal {
+  width: min(720px, 100%);
+  max-height: 92vh;
+
+  overflow-y: auto;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+
+  background: white;
+
+  box-shadow:
+    0 30px 80px rgba(8, 23, 47, 0.22);
+}
+
+.access-modal-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 20px;
+  padding: 20px 22px;
+
+  border-bottom: 1px solid #edf1f5;
+}
+
+.access-modal-header > div:first-child {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+.access-modal-header h2 {
+  margin: 0 0 4px;
+
+  color: #1e293b;
+
+  font-size: 16px;
+}
+
+.access-modal-header p {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 9px;
+}
+
+.access-modal-icon {
+  display: grid;
+
+  width: 40px;
+  height: 40px;
+
+  place-items: center;
+
+  border-radius: 9px;
+
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.access-close {
+  color: #64748b;
+  background: transparent;
+}
+
+.access-form {
+  padding: 22px;
+}
+
+.access-form-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 15px;
+}
+
+.access-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.access-form label span {
+  color: #475569;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.access-form input,
+.access-form select {
+  width: 100%;
+  min-height: 41px;
+
+  padding: 0 12px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  color: #0f172a;
+  background: #fbfcfe;
+
+  font: inherit;
+  font-size: 10px;
+}
+
+.access-form input:focus,
+.access-form select:focus {
+  border-color: #93c5fd;
+
+  background: white;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.07);
+}
+
+.access-form-info {
+  margin-top: 17px;
+  padding: 11px 13px;
+
+  border: 1px solid #cffafe;
+  border-radius: 8px;
+
+  color: #0e7490;
+  background: #ecfeff;
+
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.access-modal-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 9px;
+  margin-top: 22px;
+}
+
+.access-spin {
+  animation: access-spin 0.8s linear infinite;
+}
+
+@keyframes access-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .access-header {
+    flex-direction: column;
+  }
+
+  .access-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .access-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .access-search {
+    width: 100%;
+  }
+
+  .access-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
