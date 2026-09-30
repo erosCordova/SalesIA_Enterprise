@@ -1,0 +1,287 @@
+.analytics-workspace {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(320px, 0.72fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.analytics-form-panel,
+.analytics-result-panel {
+  min-width: 0;
+}
+
+.analytics-section-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 18px;
+}
+
+.analytics-section-title h2 {
+  margin: 0;
+  color: var(--slate-900);
+  font-size: 16px;
+}
+
+.analytics-section-title p {
+  margin: 5px 0 0;
+  color: var(--slate-500);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.analytics-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.analytics-field > span {
+  color: var(--slate-600);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.analytics-field input,
+.analytics-field textarea,
+.analytics-field select {
+  width: 100%;
+  padding: 10px 11px;
+
+  border: 1px solid var(--slate-200);
+  border-radius: 9px;
+
+  color: var(--slate-800);
+  background: #fff;
+
+  font: inherit;
+  outline: none;
+}
+
+.analytics-field input {
+  min-height: 42px;
+}
+
+.analytics-field textarea {
+  min-height: 125px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.analytics-field input:focus,
+.analytics-field textarea:focus,
+.analytics-field select:focus {
+  border-color: #93c5fd;
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.07);
+}
+
+.analytics-help {
+  margin-top: 7px;
+  color: var(--slate-500);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.analytics-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.analytics-result-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analytics-metric {
+  padding: 15px;
+
+  border: 1px solid var(--slate-200);
+  border-radius: 10px;
+
+  background: var(--slate-50);
+}
+
+.analytics-metric span {
+  display: block;
+  color: var(--slate-500);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.analytics-metric strong {
+  display: block;
+  margin-top: 7px;
+
+  color: var(--slate-900);
+  font-size: 20px;
+}
+
+.analytics-interpretation {
+  margin-top: 15px;
+  padding: 15px;
+
+  border: 1px solid var(--slate-200);
+  border-radius: 10px;
+
+  background: #fff;
+}
+
+.analytics-interpretation span {
+  display: block;
+  margin-bottom: 6px;
+
+  color: var(--slate-500);
+
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.analytics-interpretation p {
+  margin: 0;
+
+  color: var(--slate-700);
+
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.analytics-form-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.analytics-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.analytics-probability-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analytics-formula {
+  margin-top: 14px;
+  padding: 14px;
+
+  border: 1px solid var(--slate-200);
+  border-radius: 10px;
+
+  color: var(--primary);
+  background: var(--slate-50);
+
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.analytics-block-gap {
+  margin-top: 20px;
+}
+
+.analytics-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-top: 12px;
+
+  color: var(--slate-500);
+
+  font-size: 10px;
+}
+
+.analytics-result-empty {
+  display: grid;
+  min-height: 210px;
+  place-items: center;
+
+  padding: 24px;
+
+  border: 1px dashed var(--slate-200);
+  border-radius: 10px;
+
+  color: var(--slate-500);
+  background: var(--slate-50);
+
+  text-align: center;
+}
+
+.analytics-result-empty strong {
+  display: block;
+  margin-top: 8px;
+
+  color: var(--slate-700);
+
+  font-size: 12px;
+}
+
+.analytics-result-empty p {
+  margin: 5px 0 0;
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.analytics-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  margin-top: 14px;
+  padding: 12px;
+
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  color: #b91c1c;
+  background: #fef2f2;
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.analytics-success {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-bottom: 14px;
+
+  color: #047857;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 1050px) {
+  .analytics-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .analytics-form-grid,
+  .analytics-probability-grid,
+  .analytics-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-form-grid .full {
+    grid-column: auto;
+  }
+}

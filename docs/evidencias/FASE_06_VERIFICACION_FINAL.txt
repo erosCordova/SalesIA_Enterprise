@@ -1,0 +1,128 @@
+
+==============================================================
+1. ARQUITECTURA FRONTEND
+==============================================================
+[OK] frontend/src/main.tsx
+[OK] frontend/src/App.tsx
+[OK] frontend/src/app/App.tsx
+[OK] frontend/src/app/providers.tsx
+[OK] frontend/src/app/router/AppRouter.tsx
+[OK] frontend/src/layouts/MainLayout.tsx
+[OK] frontend/src/components/Sidebar.tsx
+[OK] frontend/src/components/Topbar.tsx
+[OK] frontend/src/services/api.ts
+[OK] frontend/src/services/auth.service.ts
+[OK] frontend/src/services/auth.context.tsx
+[OK] frontend/src/types/auth.ts
+
+==============================================================
+2. AUTENTICACION Y SESION
+==============================================================
+[OK] frontend/src/services/auth.service.ts integrado
+[OK] frontend/src/services/auth.context.tsx integrado
+[OK] Router centralizado y protegido
+
+==============================================================
+3. MODULOS FASE 06
+==============================================================
+[OK] Dashboard: módulo implementado
+[OK] Ventas: módulo implementado
+[OK] Nueva venta: módulo implementado
+[OK] Productos: módulo implementado
+[OK] Inventario: módulo implementado
+[OK] Clientes: módulo implementado
+[OK] Categorias: módulo implementado
+[OK] Analytics: módulo implementado
+[OK] Reportes: módulo implementado
+[OK] Insights: módulo implementado
+[OK] Probabilidad: módulo implementado
+[OK] Auditoria: módulo implementado
+[OK] Empresa: módulo implementado
+[OK] Sucursales: módulo implementado
+
+==============================================================
+4. SERVICIOS FRONTEND
+==============================================================
+[OK] frontend/src/services/api.ts
+[OK] frontend/src/services/auth.service.ts
+[OK] frontend/src/services/commercial.service.ts
+[OK] frontend/src/services/analytics.service.ts
+[OK] frontend/src/services/reporting.service.ts
+[OK] frontend/src/services/organization.service.ts
+[OK] frontend/src/services/organization.service.ts integrado
+
+==============================================================
+5. BACKEND
+==============================================================
+[OK] Backend compila correctamente
+
+==============================================================
+6. OPENAPI
+==============================================================
+[OK] OpenAPI: /api/v1/auth/login
+[OK] OpenAPI: /api/v1/auth/me
+[OK] OpenAPI: /api/v1/users
+[OK] OpenAPI: /api/v1/customers
+[OK] OpenAPI: /api/v1/categories
+[OK] OpenAPI: /api/v1/products
+[OK] OpenAPI: /api/v1/sales
+[OK] OpenAPI: /api/v1/inventory
+[OK] OpenAPI: /api/v1/dashboard/summary
+[OK] OpenAPI: /api/v1/analytics/status
+[OK] OpenAPI: /api/v1/statistics/mean
+[OK] OpenAPI: /api/v1/statistics/median
+[OK] OpenAPI: /api/v1/statistics/compare
+[OK] OpenAPI: /api/v1/probability/bayes
+[OK] OpenAPI: /api/v1/random-variables/analyze
+[OK] OpenAPI: /api/v1/insights
+[OK] OpenAPI: /api/v1/reports
+[OK] OpenAPI: /api/v1/audit/status
+[OK] OpenAPI: /api/v1/company
+[OK] OpenAPI: /api/v1/branches
+[OK] OpenAPI: /api/v1/branches/{branch_id}
+
+==============================================================
+7. POSTGRESQL ORGANIZACIONAL
+==============================================================
+[ERROR] Error PostgreSQL: OperationalError: (psycopg.errors.ConnectionTimeout) connection timeout expired
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: 5432, hostaddr: '::1': connection timeout expired
+- host: 'localhost', port: 5432, hostaddr: '127.0.0.1': connection timeout expired
+(Background on this error at: https://sqlalche.me/e/21/e3q8)
+
+==============================================================
+8. BUILD FRONTEND
+==============================================================
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v8.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+âœ“ 2553 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.47 kB â”‚ gzip:   0.29 kB
+dist/assets/index-7Mat7i2g.css   48.16 kB â”‚ gzip:   9.02 kB
+dist/assets/index-DVaVVSeH.js   766.54 kB â”‚ gzip: 221.57 kB
+
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32mâœ“ built in 446ms[39m
+
+[OK] Frontend compila para producción
+
+==============================================================
+RESULTADO FINAL FASE 06
+==============================================================
+ERRORES=1
+1. Error PostgreSQL: OperationalError: (psycopg.errors.ConnectionTimeout) connection timeout expired
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: 5432, hostaddr: '::1': connection timeout expired
+- host: 'localhost', port: 5432, hostaddr: '127.0.0.1': connection timeout expired
+(Background on this error at: https://sqlalche.me/e/21/e3q8)
+
+FASE 06 = AUN NO CERRADA

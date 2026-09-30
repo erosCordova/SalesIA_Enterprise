@@ -1,26 +1,27 @@
 import { apiFetch } from "./api";
 
 import type {
-  AuthUser,
   LoginRequest,
   LoginResponse,
+  AuthUser,
 } from "../types/auth";
-
 
 const TOKEN_KEY = "access_token";
 const USER_KEY = "user";
 
-
 export async function login(
   credentials: LoginRequest,
 ): Promise<LoginResponse> {
-  const response = await apiFetch<LoginResponse>(
-    "/auth/login",
-    {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    },
-  );
+  const response =
+    await apiFetch<LoginResponse>(
+      "/auth/login",
+      {
+        method: "POST",
+        body: JSON.stringify(
+          credentials,
+        ),
+      },
+    );
 
   localStorage.setItem(
     TOKEN_KEY,
@@ -35,11 +36,11 @@ export async function login(
   return response;
 }
 
-
 export async function getCurrentUser(): Promise<AuthUser> {
-  const user = await apiFetch<AuthUser>(
-    "/auth/me",
-  );
+  const user =
+    await apiFetch<AuthUser>(
+      "/auth/me",
+    );
 
   localStorage.setItem(
     USER_KEY,
@@ -49,40 +50,45 @@ export async function getCurrentUser(): Promise<AuthUser> {
   return user;
 }
 
-
 export function getStoredUser(): AuthUser | null {
-  const storedUser = localStorage.getItem(
-    USER_KEY,
-  );
+  const raw =
+    localStorage.getItem(USER_KEY);
 
-  if (!storedUser) {
+  if (!raw) {
     return null;
   }
 
   try {
-    return JSON.parse(
-      storedUser,
-    ) as AuthUser;
+    return JSON.parse(raw) as AuthUser;
   } catch {
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(
+      USER_KEY,
+    );
+
     return null;
   }
 }
 
-
-export function getAccessToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-
-export function isAuthenticated(): boolean {
-  return Boolean(
-    localStorage.getItem(TOKEN_KEY),
+export function getToken(): string | null {
+  return localStorage.getItem(
+    TOKEN_KEY,
   );
 }
 
+export function isAuthenticated(): boolean {
+  return Boolean(
+    localStorage.getItem(
+      TOKEN_KEY,
+    ),
+  );
+}
 
 export function logout(): void {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(
+    TOKEN_KEY,
+  );
+
+  localStorage.removeItem(
+    USER_KEY,
+  );
 }

@@ -1,35 +1,37 @@
-import {
-  useState,
-  type FormEvent,
-} from "react";
+import { type FormEvent, useState } from "react";
 
 import {
-  BarChart3,
+  Eye,
+  EyeOff,
   LockKeyhole,
+  LogIn,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
+import {
+  useAuth,
+} from "../../services/auth.context";
 
-import { login } from "../../services/auth.service";
+function LoginPage() {
+  const {
+    login,
+  } = useAuth();
 
-import "./login.css";
+  const [dni, setDni] =
+    useState("");
 
-
-export default function LoginPage() {
-  const navigate = useNavigate();
-
-  const [dni, setDni] = useState("");
   const [password, setPassword] =
     useState("");
+
+  const [showPassword, setShowPassword] =
+    useState(false);
 
   const [loading, setLoading] =
     useState(false);
 
   const [error, setError] =
     useState("");
-
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -38,17 +40,19 @@ export default function LoginPage() {
 
     setError("");
 
-    if (!/^\d{8}$/.test(dni)) {
+    if (!dni.trim()) {
       setError(
-        "El DNI debe contener exactamente 8 números.",
+        "Ingresa tu DNI.",
       );
+
       return;
     }
 
-    if (password.length < 8) {
+    if (!password) {
       setError(
-        "La contraseña debe tener al menos 8 caracteres.",
+        "Ingresa tu contraseña.",
       );
+
       return;
     }
 
@@ -56,185 +60,231 @@ export default function LoginPage() {
 
     try {
       await login({
-        dni,
+        dni: dni.trim(),
         password,
       });
-
-      navigate(
-        "/dashboard",
-        {
-          replace: true,
-        },
-      );
-    } catch (loginError) {
+    } catch (err) {
       setError(
-        loginError instanceof Error
-          ? loginError.message
-          : "DNI o contraseña incorrectos.",
+        err instanceof Error
+          ? err.message
+          : "No fue posible iniciar sesión.",
       );
     } finally {
       setLoading(false);
     }
   }
 
-
-  function handleDniChange(
-    value: string,
-  ) {
-    const onlyNumbers = value
-      .replace(/\D/g, "")
-      .slice(0, 8);
-
-    setDni(onlyNumbers);
-  }
-
-
   return (
     <div className="login-page">
-      <div className="login-container">
-        <section className="login-brand">
-          <div className="login-brand-content">
-            <div className="login-logo">
-              <BarChart3 size={34} />
+      <div className="login-background-shape login-background-shape-one" />
+      <div className="login-background-shape login-background-shape-two" />
+
+      <main className="login-container">
+        <section className="login-brand-panel">
+          <div className="login-brand">
+            <div className="login-brand-mark">
+              S
             </div>
 
+            <div>
+              <strong>
+                SalesIA
+              </strong>
+
+              <span>
+                Enterprise
+              </span>
+            </div>
+          </div>
+
+          <div className="login-brand-content">
+            <span className="login-eyebrow">
+              PLATAFORMA EMPRESARIAL
+            </span>
+
             <h1>
-              SalesIA Enterprise
+              Gestión comercial
+              <br />
+              basada en datos.
             </h1>
 
             <p>
-              Plataforma empresarial para
-              gestionar ventas, inventario y
-              análisis de datos.
+              Administra ventas, inventario,
+              indicadores y análisis desde
+              una plataforma centralizada.
             </p>
+          </div>
 
-            <div className="login-features">
-              <div className="login-feature">
-                <span className="login-feature-icon">
-                  <ShieldCheck size={18} />
-                </span>
+          <div className="login-security">
+            <ShieldCheck size={18} />
 
-                Acceso seguro por roles
-              </div>
+            <div>
+              <strong>
+                Acceso protegido
+              </strong>
 
-              <div className="login-feature">
-                <span className="login-feature-icon">
-                  <UserRound size={18} />
-                </span>
-
-                Usuarios administrados por la empresa
-              </div>
-
-              <div className="login-feature">
-                <span className="login-feature-icon">
-                  <BarChart3 size={18} />
-                </span>
-
-                Analytics y estadísticas
-              </div>
+              <span>
+                Autenticación mediante DNI
+                y contraseña.
+              </span>
             </div>
           </div>
         </section>
 
-        <section className="login-form-wrapper">
-          <form
-            className="login-form"
-            onSubmit={handleSubmit}
-          >
-            <div className="login-header">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginBottom: "8px",
-                }}
-              >
-                <LockKeyhole size={24} />
+        <section className="login-form-panel">
+          <div className="login-form-wrapper">
+            <div className="login-form-header">
+              <span className="login-form-icon">
+                <LockKeyhole size={22} />
+              </span>
+
+              <div>
+                <span className="login-form-eyebrow">
+                  ACCESO AL SISTEMA
+                </span>
 
                 <h2>
                   Iniciar sesión
                 </h2>
               </div>
-
-              <p>
-                Ingresa el DNI y la contraseña
-                asignados por el administrador.
-              </p>
             </div>
 
-            {error && (
-              <div className="login-error">
-                {error}
-              </div>
-            )}
+            <p className="login-form-description">
+              Ingresa tus credenciales para
+              acceder a SalesIA Enterprise.
+            </p>
 
-            <div className="login-field">
-              <label htmlFor="dni">
-                DNI
-              </label>
-
-              <div className="login-input-wrapper">
-                <input
-                  id="dni"
-                  name="dni"
-                  type="text"
-                  inputMode="numeric"
-                  className="login-input"
-                  placeholder="Ej. 87654321"
-                  value={dni}
-                  onChange={(event) =>
-                    handleDniChange(
-                      event.target.value,
-                    )
-                  }
-                  maxLength={8}
-                  autoComplete="username"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div className="login-field">
-              <label htmlFor="password">
-                Contraseña
-              </label>
-
-              <div className="login-input-wrapper">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  className="login-input"
-                  placeholder="Ingresa tu contraseña"
-                  value={password}
-                  onChange={(event) =>
-                    setPassword(
-                      event.target.value,
-                    )
-                  }
-                  autoComplete="current-password"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="login-button"
-              disabled={loading}
+            <form
+              className="login-form"
+              onSubmit={handleSubmit}
             >
-              {loading
-                ? "Ingresando..."
-                : "Iniciar sesión"}
-            </button>
+              <label
+                className="login-field"
+                htmlFor="dni"
+              >
+                <span>
+                  DNI
+                </span>
+
+                <div className="login-input-wrapper">
+                  <UserRound size={18} />
+
+                  <input
+                    id="dni"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="username"
+                    placeholder="Ingresa tu DNI"
+                    value={dni}
+                    maxLength={20}
+                    disabled={loading}
+                    onChange={(event) =>
+                      setDni(
+                        event.target.value,
+                      )
+                    }
+                  />
+                </div>
+              </label>
+
+              <label
+                className="login-field"
+                htmlFor="password"
+              >
+                <span>
+                  Contraseña
+                </span>
+
+                <div className="login-input-wrapper">
+                  <LockKeyhole size={18} />
+
+                  <input
+                    id="password"
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    autoComplete="current-password"
+                    placeholder="Ingresa tu contraseña"
+                    value={password}
+                    disabled={loading}
+                    onChange={(event) =>
+                      setPassword(
+                        event.target.value,
+                      )
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    className="login-password-toggle"
+                    aria-label={
+                      showPassword
+                        ? "Ocultar contraseña"
+                        : "Mostrar contraseña"
+                    }
+                    onClick={() =>
+                      setShowPassword(
+                        (value) =>
+                          !value,
+                      )
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+                </div>
+              </label>
+
+              {error && (
+                <div className="login-error">
+                  <strong>
+                    No se pudo iniciar sesión
+                  </strong>
+
+                  <span>
+                    {error}
+                  </span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="login-submit"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className="login-spinner" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} />
+                    Iniciar sesión
+                  </>
+                )}
+              </button>
+            </form>
 
             <div className="login-footer">
-              SalesIA Enterprise · 2026
+              <span>
+                SalesIA Enterprise
+              </span>
+
+              <span>
+                Sistema empresarial
+              </span>
             </div>
-          </form>
+          </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 }
+
+export default LoginPage;

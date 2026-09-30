@@ -4,6 +4,8 @@ from app.api.routes import (
     analytics,
     audit,
     auth,
+    branches,
+    company,
     categories,
     commercial,
     customers,
@@ -33,6 +35,19 @@ api_router.include_router(
     users.router,
     prefix="/users",
     tags=["Usuarios"],
+)
+
+
+api_router.include_router(
+    company.router,
+    prefix="/company",
+    tags=["Empresa"],
+)
+
+api_router.include_router(
+    branches.router,
+    prefix="/branches",
+    tags=["Sucursales"],
 )
 
 api_router.include_router(

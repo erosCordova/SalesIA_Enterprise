@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Banknote,
   CalendarDays,
-  Boxes,
   Package,
   ReceiptText,
   ShoppingBag,
@@ -14,8 +13,6 @@ import {
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -23,80 +20,82 @@ import {
   YAxis,
 } from "recharts";
 
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import StatCard from "../../components/ui/StatCard";
+import { apiFetch } from "../../services/api";
 
+interface DashboardSummary {
+  sales_count?: number | null;
+  revenue?: number | null;
+  active_customers?: number | null;
+  average_ticket?: number | null;
+  growth_percentage?: number | null;
 
-const salesData = [
-  { day: "Lun", sales: 8200 },
-  { day: "Mar", sales: 9800 },
-  { day: "Mié", sales: 8600 },
-  { day: "Jue", sales: 12300 },
-  { day: "Vie", sales: 11200 },
-  { day: "Sáb", sales: 14700 },
-  { day: "Dom", sales: 13200 },
-];
+  sales_by_day?: Array<{
+    day?: string;
+    sales?: number;
+    revenue?: number;
+  }> | null;
 
+  recent_sales?: Array<{
+    id?: string;
+    sale_number?: string;
+    customer?: string;
+    customer_name?: string;
+    date?: string;
+    sale_date?: string;
+    amount?: number;
+    total?: number;
+    status?: string;
+  }> | null;
 
-const categoryData = [
-  { name: "Tecnología", value: 78 },
-  { name: "Oficina", value: 62 },
-  { name: "Hogar", value: 49 },
-  { name: "Accesorios", value: 36 },
-];
+  stock_alerts?: Array<{
+    product?: string;
+    product_name?: string;
+    stock?: number;
+    stock_quantity?: number;
+    level?: string;
+    stock_status?: string;
+  }> | null;
+}
 
+function numberValue(
+  value: unknown,
+): number {
+  const parsed = Number(value);
 
-const recentSales = [
-  {
-    id: "VT-1048",
-    customer: "Comercial Rivera",
-    date: "29 Sep, 08:35",
-    amount: "S/ 2,480.00",
-    status: "Completada",
-  },
-  {
-    id: "VT-1047",
-    customer: "Grupo San Martín",
-    date: "29 Sep, 08:12",
-    amount: "S/ 1,320.00",
-    status: "Completada",
-  },
-  {
-    id: "VT-1046",
-    customer: "Distribuidora Norte",
-    date: "29 Sep, 07:54",
-    amount: "S/ 870.00",
-    status: "Pendiente",
-  },
-  {
-    id: "VT-1045",
-    customer: "Inversiones Lima",
-    date: "28 Sep, 18:28",
-    amount: "S/ 3,640.00",
-    status: "Completada",
-  },
-];
+  return Number.isFinite(parsed)
+    ? parsed
+    : 0;
+}
 
+function formatCurrency(
+  value: unknown,
+) {
+  return new Intl.NumberFormat(
+    "es-PE",
+    {
+      style: "currency",
+      currency: "PEN",
+      minimumFractionDigits: 2,
+    },
+  ).format(numberValue(value));
+}
 
-const stockAlerts = [
-  {
-    product: "Mouse inalámbrico",
-    stock: "4 unidades",
-    level: "Crítico",
-  },
-  {
-    product: "Teclado mecánico",
-    stock: "7 unidades",
-    level: "Bajo",
-  },
-  {
-    product: "Monitor 24 pulgadas",
-    stock: "8 unidades",
-    level: "Bajo",
-  },
-];
+function formatNumber(
+  value: unknown,
+) {
+  return new Intl.NumberFormat(
+    "es-PE",
+  ).format(numberValue(value));
+}
 
-
-function DashboardPage() {
+function DashboardLoading() {
   return (
     <section className="dashboard-page">
       <div className="page-heading">
@@ -110,8 +109,229 @@ function DashboardPage() {
           </h1>
 
           <p>
-            Resumen general de la actividad comercial,
-            ingresos, clientes e inventario de SalesIA Enterprise.
+            Cargando información empresarial...
+          </p>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        {[1, 2, 3, 4].map(
+          (item) => (
+            <div
+              key={item}
+              className="dashboard-skeleton-card"
+            />
+          ),
+        )}
+      </div>
+
+      <div className="dashboard-skeleton-panel" />
+    </section>
+  );
+}
+
+function DashboardError({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <section className="dashboard-page">
+      <div className="dashboard-error-state">
+        <div className="dashboard-error-icon">
+          <AlertTriangle size={24} />
+        </div>
+
+        <h2>
+          No fue posible cargar el dashboard
+        </h2>
+
+        <p>
+          {message}
+        </p>
+
+        <button
+          type="button"
+          className="dashboard-retry-button"
+          onClick={onRetry}
+        >
+          Reintentar
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function DashboardEmpty() {
+  return (
+    <section className="dashboard-page">
+      <div className="dashboard-empty-state">
+        <Package size={30} />
+
+        <h2>
+          Sin información disponible
+        </h2>
+
+        <p>
+          El backend no devolvió información
+          para mostrar en el dashboard.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function DashboardPage() {
+  const [
+    summary,
+    setSummary,
+  ] = useState<DashboardSummary | null>(
+    null,
+  );
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  const loadDashboard =
+    useCallback(async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const data =
+          await apiFetch<DashboardSummary>(
+            "/dashboard/summary",
+          );
+
+        console.log(
+          "SalesIA Dashboard API:",
+          data,
+        );
+
+        setSummary(data || {});
+      } catch (err) {
+        console.error(
+          "Error Dashboard:",
+          err,
+        );
+
+        setSummary(null);
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "No fue posible obtener la información del dashboard.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  if (loading) {
+    return <DashboardLoading />;
+  }
+
+  if (error) {
+    return (
+      <DashboardError
+        message={error}
+        onRetry={loadDashboard}
+      />
+    );
+  }
+
+  if (!summary) {
+    return <DashboardEmpty />;
+  }
+
+  const salesCount =
+    numberValue(
+      summary.sales_count,
+    );
+
+  const revenue =
+    numberValue(
+      summary.revenue,
+    );
+
+  const activeCustomers =
+    numberValue(
+      summary.active_customers,
+    );
+
+  const averageTicket =
+    numberValue(
+      summary.average_ticket,
+    );
+
+  const growth =
+    numberValue(
+      summary.growth_percentage,
+    );
+
+  const salesByDay =
+    Array.isArray(
+      summary.sales_by_day,
+    )
+      ? summary.sales_by_day
+      : [];
+
+  const recentSales =
+    Array.isArray(
+      summary.recent_sales,
+    )
+      ? summary.recent_sales
+      : [];
+
+  const stockAlerts =
+    Array.isArray(
+      summary.stock_alerts,
+    )
+      ? summary.stock_alerts
+      : [];
+
+  const chartData =
+    salesByDay.map(
+      (item, index) => ({
+        day:
+          item.day ||
+          `Día ${index + 1}`,
+        sales: numberValue(
+          item.sales ??
+          item.revenue,
+        ),
+      }),
+    );
+
+  return (
+    <section className="dashboard-page">
+      <div className="page-heading">
+        <div>
+          <span className="page-eyebrow">
+            CENTRO DE CONTROL
+          </span>
+
+          <h1>
+            Dashboard ejecutivo
+          </h1>
+
+          <p>
+            Resumen general de la actividad
+            comercial, ingresos, clientes e
+            inventario de SalesIA Enterprise.
           </p>
         </div>
 
@@ -131,14 +351,14 @@ function DashboardPage() {
           </span>
 
           <h2>
-            La operación comercial mantiene una evolución
-            positiva durante el periodo actual.
+            Resumen actualizado desde
+            el backend empresarial.
           </h2>
 
           <p>
-            Consulta los principales indicadores empresariales
-            y detecta rápidamente situaciones que requieren
-            atención.
+            Los indicadores mostrados
+            corresponden a la información
+            disponible en SalesIA Enterprise.
           </p>
         </div>
 
@@ -147,7 +367,10 @@ function DashboardPage() {
 
           <div>
             <strong>
-              +12.4%
+              {growth >= 0
+                ? "+"
+                : ""}
+              {growth.toFixed(1)}%
             </strong>
 
             <span>
@@ -160,32 +383,44 @@ function DashboardPage() {
       <div className="stats-grid">
         <StatCard
           title="Ventas registradas"
-          value="248"
-          change="8.2%"
+          value={formatNumber(
+            salesCount,
+          )}
+          change={`${growth.toFixed(
+            1,
+          )}%`}
           caption="vs. periodo anterior"
           icon={ShoppingBag}
         />
 
         <StatCard
           title="Ingresos"
-          value="S/ 84,560"
-          change="12.4%"
-          caption="vs. periodo anterior"
+          value={formatCurrency(
+            revenue,
+          )}
+          change={`${growth.toFixed(
+            1,
+          )}%`}
+          caption="periodo actual"
           icon={Banknote}
         />
 
         <StatCard
           title="Clientes activos"
-          value="186"
-          change="5.7%"
-          caption="14 clientes nuevos"
+          value={formatNumber(
+            activeCustomers,
+          )}
+          change="—"
+          caption="clientes registrados"
           icon={UsersRound}
         />
 
         <StatCard
           title="Ticket promedio"
-          value="S/ 341"
-          change="2.1%"
+          value={formatCurrency(
+            averageTicket,
+          )}
+          change="—"
           caption="promedio por venta"
           icon={ReceiptText}
         />
@@ -210,96 +445,96 @@ function DashboardPage() {
               </span>
 
               <strong>
-                S/ 78,000
+                {formatCurrency(
+                  revenue,
+                )}
               </strong>
             </div>
           </div>
 
           <div className="chart-container">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <AreaChart data={salesData}>
-                <defs>
-                  <linearGradient
-                    id="salesGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor="#2563EB"
-                      stopOpacity={0.24}
-                    />
+            {chartData.length > 0 ? (
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <AreaChart
+                  data={chartData}
+                >
+                  <defs>
+                    <linearGradient
+                      id="salesGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="#2563EB"
+                        stopOpacity={0.24}
+                      />
 
-                    <stop
-                      offset="100%"
-                      stopColor="#2563EB"
-                      stopOpacity={0.02}
-                    />
-                  </linearGradient>
-                </defs>
+                      <stop
+                        offset="100%"
+                        stopColor="#2563EB"
+                        stopOpacity={0.02}
+                      />
+                    </linearGradient>
+                  </defs>
 
-                <CartesianGrid
-                  strokeDasharray="4 4"
-                  vertical={false}
-                  stroke="#E9EEF5"
-                />
+                  <CartesianGrid
+                    strokeDasharray="4 4"
+                    vertical={false}
+                    stroke="#E9EEF5"
+                  />
 
-                <XAxis
-                  dataKey="day"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: "#64748B",
-                    fontSize: 11,
-                  }}
-                />
+                  <XAxis
+                    dataKey="day"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "#64748B",
+                      fontSize: 11,
+                    }}
+                  />
 
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: "#64748B",
-                    fontSize: 11,
-                  }}
-                  width={45}
-                />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "#64748B",
+                      fontSize: 11,
+                    }}
+                  />
 
-                <Tooltip
-                  formatter={(value) => [
-                    `S/ ${Number(value).toLocaleString(
-                      "es-PE",
-                    )}`,
-                    "Ingresos",
-                  ]}
-                  contentStyle={{
-                    borderRadius: "8px",
-                    border: "1px solid #E2E8F0",
-                    boxShadow:
-                      "0 10px 30px rgba(15,23,42,0.08)",
-                    fontSize: "11px",
-                  }}
-                />
+                  <Tooltip
+                    formatter={(value) =>
+                      formatCurrency(
+                        value,
+                      )
+                    }
+                  />
 
-                <Area
-                  type="monotone"
-                  dataKey="sales"
-                  stroke="#2563EB"
-                  strokeWidth={3}
-                  fill="url(#salesGradient)"
-                  activeDot={{
-                    r: 5,
-                    fill: "#06B6D4",
-                    stroke: "#FFFFFF",
-                    strokeWidth: 2,
-                  }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+                  <Area
+                    type="monotone"
+                    dataKey="sales"
+                    stroke="#2563EB"
+                    strokeWidth={2.5}
+                    fill="url(#salesGradient)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="dashboard-chart-empty">
+                <Package size={24} />
+
+                <span>
+                  No hay datos diarios
+                  disponibles.
+                </span>
+              </div>
+            )}
           </div>
         </article>
 
@@ -307,86 +542,7 @@ function DashboardPage() {
           <div className="panel-header">
             <div>
               <span className="panel-label">
-                CATEGORÍAS
-              </span>
-
-              <h3>
-                Rendimiento comercial
-              </h3>
-            </div>
-
-            <button
-              type="button"
-              className="text-action"
-            >
-              Ver detalle
-              <ArrowRight size={14} />
-            </button>
-          </div>
-
-          <div className="bar-chart-container">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <BarChart
-                data={categoryData}
-                layout="vertical"
-                margin={{
-                  left: 12,
-                  right: 10,
-                }}
-              >
-                <CartesianGrid
-                  strokeDasharray="4 4"
-                  horizontal={false}
-                  stroke="#EEF2F7"
-                />
-
-                <XAxis
-                  type="number"
-                  hide
-                  domain={[0, 100]}
-                />
-
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={85}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: "#64748B",
-                    fontSize: 10,
-                  }}
-                />
-
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: "8px",
-                    border: "1px solid #E2E8F0",
-                    fontSize: "11px",
-                  }}
-                />
-
-                <Bar
-                  dataKey="value"
-                  fill="#06B6D4"
-                  radius={[0, 6, 6, 0]}
-                  barSize={12}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </article>
-      </div>
-
-      <div className="dashboard-secondary-grid">
-        <article className="panel recent-sales-panel">
-          <div className="panel-header">
-            <div>
-              <span className="panel-label">
-                ACTIVIDAD COMERCIAL
+                OPERACIÓN
               </span>
 
               <h3>
@@ -394,72 +550,78 @@ function DashboardPage() {
               </h3>
             </div>
 
-            <button
-              type="button"
-              className="text-action"
-            >
-              Ver todas
-              <ArrowRight size={14} />
-            </button>
+            <ArrowRight size={18} />
           </div>
 
-          <div className="table-wrapper">
-            <table className="sales-table">
-              <thead>
-                <tr>
-                  <th>Venta</th>
-                  <th>Cliente</th>
-                  <th>Fecha</th>
-                  <th>Total</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
+          <div className="dashboard-list">
+            {recentSales.length ===
+              0 ? (
+              <div className="dashboard-list-empty">
+                No hay ventas recientes.
+              </div>
+            ) : (
+              recentSales.map(
+                (sale, index) => {
+                  const saleId =
+                    sale.id ||
+                    sale.sale_number ||
+                    `Venta-${index + 1}`;
 
-              <tbody>
-                {recentSales.map(
-                  (sale) => (
-                    <tr key={sale.id}>
-                      <td>
+                  const customer =
+                    sale.customer ||
+                    sale.customer_name ||
+                    "Cliente no especificado";
+
+                  const date =
+                    sale.date ||
+                    sale.sale_date ||
+                    "";
+
+                  const amount =
+                    sale.amount ??
+                    sale.total ??
+                    0;
+
+                  return (
+                    <div
+                      className="dashboard-list-item"
+                      key={saleId}
+                    >
+                      <div>
                         <strong>
-                          {sale.id}
+                          {saleId}
                         </strong>
-                      </td>
 
-                      <td>
-                        {sale.customer}
-                      </td>
-
-                      <td>
-                        {sale.date}
-                      </td>
-
-                      <td>
-                        <strong>
-                          {sale.amount}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <span
-                          className={`status-badge ${
-                            sale.status ===
-                            "Completada"
-                              ? "success"
-                              : "pending"
-                          }`}
-                        >
-                          {sale.status}
+                        <span>
+                          {customer}
                         </span>
-                      </td>
-                    </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
+
+                        <small>
+                          {date}
+                        </small>
+                      </div>
+
+                      <div className="dashboard-list-value">
+                        <strong>
+                          {formatCurrency(
+                            amount,
+                          )}
+                        </strong>
+
+                        <span>
+                          {sale.status ||
+                            "Registrada"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                },
+              )
+            )}
           </div>
         </article>
 
-        <article className="panel stock-panel">
+        <article className="panel">
           <div className="panel-header">
             <div>
               <span className="panel-label">
@@ -471,60 +633,66 @@ function DashboardPage() {
               </h3>
             </div>
 
-            <div className="alert-count">
-              <AlertTriangle size={15} />
-              {stockAlerts.length}
-            </div>
+            <AlertTriangle size={18} />
           </div>
 
-          <div className="stock-list">
-            {stockAlerts.map(
-              (item) => (
-                <div
-                  className="stock-item"
-                  key={item.product}
-                >
-                  <div className="stock-icon">
-                    <Package size={18} />
-                  </div>
+          <div className="dashboard-list">
+            {stockAlerts.length ===
+              0 ? (
+              <div className="dashboard-list-empty">
+                No hay alertas de inventario.
+              </div>
+            ) : (
+              stockAlerts.map(
+                (alert, index) => {
+                  const product =
+                    alert.product ||
+                    alert.product_name ||
+                    `Producto ${index + 1}`;
 
-                  <div className="stock-info">
-                    <strong>
-                      {item.product}
-                    </strong>
+                  const stock =
+                    alert.stock ??
+                    alert.stock_quantity ??
+                    0;
 
-                    <span>
-                      {item.stock}
-                    </span>
-                  </div>
+                  const level =
+                    alert.level ||
+                    alert.stock_status ||
+                    "Bajo";
 
-                  <span
-                    className={`stock-level ${
-                      item.level ===
-                      "Crítico"
-                        ? "critical"
-                        : ""
-                    }`}
-                  >
-                    {item.level}
-                  </span>
-                </div>
-              ),
+                  return (
+                    <div
+                      className="dashboard-list-item"
+                      key={`${product}-${index}`}
+                    >
+                      <div>
+                        <strong>
+                          {product}
+                        </strong>
+
+                        <span>
+                          Stock:{" "}
+                          {formatNumber(
+                            stock,
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="dashboard-alert-level">
+                        <span>
+                          {level}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                },
+              )
             )}
           </div>
-
-          <button
-            type="button"
-            className="inventory-button"
-          >
-            <Boxes size={16} />
-            Revisar inventario
-          </button>
         </article>
       </div>
     </section>
   );
 }
-
 
 export default DashboardPage;

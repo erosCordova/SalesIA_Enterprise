@@ -12,89 +12,65 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 
 import {
-  getCurrentUser,
-  getStoredUser,
-  logout,
-} from "../services/auth.service";
-
-import type {
-  AuthUser,
-} from "../types/auth";
-
+  useAuth,
+} from "../services/auth.context";
 
 function MainLayout() {
   const navigate =
     useNavigate();
 
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+  const {
+    user,
+    loading,
+    logout,
+  } = useAuth();
 
-  const [user, setUser] =
-    useState<AuthUser | null>(
-      () => getStoredUser(),
-    );
-
+  const [
+    sidebarOpen,
+    setSidebarOpen,
+  ] = useState(false);
 
   useEffect(() => {
-    let active = true;
-
-    getCurrentUser()
-      .then(
-        (currentUser) => {
-          if (active) {
-            setUser(
-              currentUser,
-            );
-          }
-        },
-      )
-      .catch(
-        () => {
-          logout();
-
-          navigate(
-            "/login",
-            {
-              replace: true,
-            },
-          );
-        },
+    if (!loading && !user) {
+      navigate(
+        "/login",
+        { replace: true },
       );
-
-    return () => {
-      active = false;
-    };
-  }, [navigate]);
-
+    }
+  }, [
+    loading,
+    user,
+    navigate,
+  ]);
 
   function handleLogout() {
     logout();
 
     navigate(
       "/login",
-      {
-        replace: true,
-      },
+      { replace: true },
     );
   }
 
-
-  if (!user) {
+  if (loading || !user) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "#f8fafc",
-          color: "#64748b",
-        }}
-      >
-        Cargando sesión...
+      <div className="app-loading-screen">
+        <div className="app-loading-card">
+          <div className="app-loading-mark">
+            S
+          </div>
+
+          <strong>
+            SalesIA Enterprise
+          </strong>
+
+          <span>
+            Cargando sesión...
+          </span>
+        </div>
       </div>
     );
   }
-
 
   return (
     <div className="app-shell">
@@ -122,6 +98,5 @@ function MainLayout() {
     </div>
   );
 }
-
 
 export default MainLayout;

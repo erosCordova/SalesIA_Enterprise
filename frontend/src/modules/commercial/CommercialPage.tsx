@@ -1,15 +1,15 @@
 import {
   useMemo,
   useState,
+  type FormEvent,
 } from "react";
 
 import {
   Building2,
   CheckCircle2,
   Mail,
-  Pencil,
+  MapPin,
   Phone,
-  Trash2,
   UserRound,
   UsersRound,
   UserX,
@@ -25,201 +25,405 @@ import Pagination from "../../components/ui/Pagination";
 import StatCard from "../../components/ui/StatCard";
 import TableToolbar from "../../components/ui/TableToolbar";
 
+import {
+  createCustomer,
+  getCustomers,
+} from "../../services/commercial.service";
 
-interface Customer {
-  id: number;
-  name: string;
-  document: string;
-  email: string;
-  phone: string;
-  address: string;
-  status: "Activo" | "Inactivo";
+import {
+  useApiResource,
+} from "../../hooks/useApiResource";
+
+import type {
+  Customer,
+  CustomerCreate,
+} from "../../types/commercial";
+
+
+const PAGE_SIZE = 8;
+
+
+const initialForm: CustomerCreate = {
+  document_type: "RUC",
+  document_number: "",
+  business_name: "",
+  first_name: null,
+  last_name: null,
+  email: "",
+  phone: "",
+  address: "",
+  city: "",
+  status: "active",
+};
+
+
+function customerName(
+  customer: Customer,
+) {
+  const businessName =
+    customer.business_name?.trim();
+
+  if (businessName) {
+    return businessName;
+  }
+
+  const personName = [
+    customer.first_name,
+    customer.last_name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return personName || "Cliente sin nombre";
 }
 
 
-const initialCustomers: Customer[] = [
-  {
-    id: 1,
-    name: "Comercial Rivera",
-    document: "20601234567",
-    email: "ventas@rivera.pe",
-    phone: "987 654 321",
-    address: "Lima, Perú",
-    status: "Activo",
-  },
-  {
-    id: 2,
-    name: "Grupo San Martín",
-    document: "20607654321",
-    email: "contacto@sanmartin.pe",
-    phone: "966 221 458",
-    address: "Lima, Perú",
-    status: "Activo",
-  },
-  {
-    id: 3,
-    name: "Distribuidora Norte",
-    document: "20505557842",
-    email: "ventas@norte.pe",
-    phone: "955 843 120",
-    address: "Piura, Perú",
-    status: "Activo",
-  },
-  {
-    id: 4,
-    name: "Inversiones Lima",
-    document: "20401124578",
-    email: "contacto@inversioneslima.pe",
-    phone: "944 118 902",
-    address: "Lima, Perú",
-    status: "Inactivo",
-  },
-];
+function customerLocation(
+  customer: Customer,
+) {
+  return [
+    customer.address,
+    customer.city,
+  ]
+    .filter(Boolean)
+    .join(" · ") || "Sin ubicación";
+}
 
 
 function CommercialPage() {
-  const [search, setSearch] =
-    useState("");
-
-  const [page, setPage] =
-    useState(1);
-
-  const [modalOpen, setModalOpen] =
-    useState(false);
-
-
-  const customers = useMemo(
-    () => {
-      const query = search
-        .toLowerCase()
-        .trim();
-
-      if (!query) {
-        return initialCustomers;
-      }
-
-      return initialCustomers.filter(
-        (customer) =>
-          [
-            customer.name,
-            customer.document,
-            customer.email,
-            customer.phone,
-            customer.address,
-          ].some(
-            (value) =>
-              value
-                .toLowerCase()
-                .includes(query),
-          ),
-      );
-    },
-    [search],
+  const {
+    data,
+    loading,
+    error,
+    reload,
+  } = useApiResource(
+    getCustomers,
   );
+
+  const [
+    search,
+    setSearch,
+  ] = useState("");
+
+  const [
+    page,
+    setPage,
+  ] = useState(1);
+
+  const [
+    modalOpen,
+    setModalOpen,
+  ] = useState(false);
+
+  const [
+    form,
+    setForm,
+  ] = useState<CustomerCreate>(
+    initialForm,
+  );
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    formError,
+    setFormError,
+  ] = useState("");
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState("");
+
+
+  const customers =
+    data ?? [];
+
+
+  const filteredCustomers =
+    useMemo(
+      () => {
+        const query =
+          search
+            .toLowerCase()
+            .trim();
+
+        if (!query) {
+          return customers;
+        }
+
+        return customers.filter(
+          (customer) => {
+            const values = [
+              customerName(customer),
+              customer.document_type,
+              customer.document_number,
+              customer.email,
+              customer.phone,
+              customer.address,
+              customer.city,
+              customer.status,
+            ];
+
+            return values.some(
+              (value) =>
+                String(value ?? "")
+                  .toLowerCase()
+                  .includes(query),
+            );
+          },
+        );
+      },
+      [
+        customers,
+        search,
+      ],
+    );
+
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filteredCustomers.length /
+          PAGE_SIZE,
+      ),
+    );
+
+
+  const safePage =
+    Math.min(
+      page,
+      totalPages,
+    );
+
+
+  const paginatedCustomers =
+    useMemo(
+      () => {
+        const start =
+          (safePage - 1) *
+          PAGE_SIZE;
+
+        return filteredCustomers.slice(
+          start,
+          start + PAGE_SIZE,
+        );
+      },
+      [
+        filteredCustomers,
+        safePage,
+      ],
+    );
 
 
   const activeCustomers =
-    initialCustomers.filter(
+    customers.filter(
       (customer) =>
-        customer.status === "Activo",
+        customer.status === "active",
     ).length;
 
 
   const inactiveCustomers =
-    initialCustomers.filter(
+    customers.filter(
       (customer) =>
-        customer.status === "Inactivo",
+        customer.status !== "active",
     ).length;
 
 
-  const columns: DataTableColumn<Customer>[] = [
-    {
-      key: "customer",
-      label: "Cliente",
-      render: (customer) => (
-        <div className="customer-cell">
-          <div className="customer-avatar">
-            <Building2 size={17} />
+  const customersWithContact =
+    customers.filter(
+      (customer) =>
+        Boolean(
+          customer.email ||
+          customer.phone,
+        ),
+    ).length;
+
+
+  const activePercentage =
+    customers.length > 0
+      ? Math.round(
+          (
+            activeCustomers /
+            customers.length
+          ) * 100,
+        )
+      : 0;
+
+
+  const contactPercentage =
+    customers.length > 0
+      ? Math.round(
+          (
+            customersWithContact /
+            customers.length
+          ) * 100,
+        )
+      : 0;
+
+
+  const columns:
+    DataTableColumn<Customer>[] = [
+      {
+        key: "customer",
+        label: "Cliente",
+        render: (customer) => (
+          <div className="customer-cell">
+            <div className="customer-avatar">
+              {customer.business_name ? (
+                <Building2 size={17} />
+              ) : (
+                <UserRound size={17} />
+              )}
+            </div>
+
+            <div>
+              <strong>
+                {customerName(
+                  customer,
+                )}
+              </strong>
+
+              <span>
+                {customer.document_type ??
+                  "Documento"}{" "}
+                {customer.document_number ??
+                  "—"}
+              </span>
+            </div>
           </div>
+        ),
+      },
+      {
+        key: "email",
+        label: "Correo electrónico",
+        render: (customer) => (
+          <span className="table-detail">
+            <Mail size={13} />
 
-          <div>
-            <strong>
-              {customer.name}
-            </strong>
+            {customer.email ||
+              "Sin correo"}
+          </span>
+        ),
+      },
+      {
+        key: "phone",
+        label: "Teléfono",
+        render: (customer) => (
+          <span className="table-detail">
+            <Phone size={13} />
 
-            <span>
-              RUC {customer.document}
-            </span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "email",
-      label: "Correo electrónico",
-      render: (customer) => (
-        <span className="table-detail">
-          <Mail size={13} />
-          {customer.email}
-        </span>
-      ),
-    },
-    {
-      key: "phone",
-      label: "Teléfono",
-      render: (customer) => (
-        <span className="table-detail">
-          <Phone size={13} />
-          {customer.phone}
-        </span>
-      ),
-    },
-    {
-      key: "address",
-      label: "Ubicación",
-      render: (customer) => (
-        <span>
-          {customer.address}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      label: "Estado",
-      render: (customer) => (
-        <span
-          className={`status-badge ${
-            customer.status === "Activo"
-              ? "success"
-              : "inactive"
-          }`}
-        >
-          {customer.status}
-        </span>
-      ),
-    },
-    {
-      key: "actions",
-      label: "Acciones",
-      render: () => (
-        <div className="row-actions">
-          <button
-            type="button"
-            title="Editar cliente"
+            {customer.phone ||
+              "Sin teléfono"}
+          </span>
+        ),
+      },
+      {
+        key: "location",
+        label: "Ubicación",
+        render: (customer) => (
+          <span className="table-detail">
+            <MapPin size={13} />
+
+            {customerLocation(
+              customer,
+            )}
+          </span>
+        ),
+      },
+      {
+        key: "status",
+        label: "Estado",
+        render: (customer) => (
+          <span
+            className={`status-badge ${
+              customer.status ===
+              "active"
+                ? "success"
+                : "inactive"
+            }`}
           >
-            <Pencil size={15} />
-          </button>
+            {customer.status ===
+            "active"
+              ? "Activo"
+              : "Inactivo"}
+          </span>
+        ),
+      },
+    ];
 
-          <button
-            type="button"
-            title="Eliminar cliente"
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
-      ),
-    },
-  ];
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setFormError("");
+    setSuccessMessage("");
+    setSaving(true);
+
+    try {
+      await createCustomer({
+        ...form,
+
+        document_type:
+          form.document_type.trim(),
+
+        document_number:
+          form.document_number.trim(),
+
+        business_name:
+          form.business_name?.trim() ||
+          null,
+
+        first_name:
+          form.first_name?.trim() ||
+          null,
+
+        last_name:
+          form.last_name?.trim() ||
+          null,
+
+        email:
+          form.email?.trim() ||
+          null,
+
+        phone:
+          form.phone?.trim() ||
+          null,
+
+        address:
+          form.address?.trim() ||
+          null,
+
+        city:
+          form.city?.trim() ||
+          null,
+      });
+
+      setForm(initialForm);
+      setModalOpen(false);
+      setPage(1);
+
+      await reload();
+
+      setSuccessMessage(
+        "Cliente registrado correctamente.",
+      );
+    } catch (err) {
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo registrar el cliente.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
 
   return (
@@ -235,9 +439,11 @@ function CommercialPage() {
           </h1>
 
           <p>
-            Administra la información de los
-            clientes vinculados a las operaciones
-            comerciales de SalesIA Enterprise.
+            Administra la información
+            real de los clientes
+            vinculados a las operaciones
+            comerciales de SalesIA
+            Enterprise.
           </p>
         </div>
 
@@ -246,11 +452,23 @@ function CommercialPage() {
         </div>
       </div>
 
+
+      {successMessage && (
+        <ModuleState
+          type="success"
+          title="Cliente registrado"
+          description={
+            successMessage
+          }
+        />
+      )}
+
+
       <div className="stats-grid">
         <StatCard
           title="Clientes registrados"
           value={String(
-            initialCustomers.length,
+            customers.length,
           )}
           change="100%"
           caption="base comercial actual"
@@ -262,12 +480,7 @@ function CommercialPage() {
           value={String(
             activeCustomers,
           )}
-          change={`${Math.round(
-            (
-              activeCustomers /
-              initialCustomers.length
-            ) * 100,
-          )}%`}
+          change={`${activePercentage}%`}
           caption="con estado activo"
           icon={CheckCircle2}
         />
@@ -277,108 +490,305 @@ function CommercialPage() {
           value={String(
             inactiveCustomers,
           )}
-          change={`${Math.round(
-            (
-              inactiveCustomers /
-              initialCustomers.length
-            ) * 100,
-          )}%`}
+          change={
+            customers.length > 0
+              ? `${Math.round(
+                  (
+                    inactiveCustomers /
+                    customers.length
+                  ) * 100,
+                )}%`
+              : "0%"
+          }
+          positive={
+            inactiveCustomers === 0
+          }
           caption="requieren seguimiento"
           icon={UserX}
         />
 
         <StatCard
-          title="Contactos registrados"
+          title="Con datos de contacto"
           value={String(
-            initialCustomers.filter(
-              (customer) =>
-                customer.email &&
-                customer.phone,
-            ).length,
+            customersWithContact,
           )}
-          change="100%"
-          caption="con datos de contacto"
+          change={`${contactPercentage}%`}
+          caption="correo o teléfono"
           icon={UserRound}
         />
       </div>
 
+
       <article className="panel enterprise-data-panel">
         <TableToolbar
           search={search}
-          onSearchChange={(value) => {
+          onSearchChange={(
+            value,
+          ) => {
             setSearch(value);
             setPage(1);
           }}
           createLabel="Nuevo cliente"
-          onCreate={() =>
-            setModalOpen(true)
-          }
+          onCreate={() => {
+            setFormError("");
+            setModalOpen(true);
+          }}
         />
 
-        {customers.length === 0 ? (
+
+        {loading ? (
+          <ModuleState
+            type="loading"
+            title="Cargando clientes"
+            description="Consultando clientes registrados en PostgreSQL."
+          />
+        ) : error ? (
+          <div>
+            <ModuleState
+              type="error"
+              title="No se pudieron cargar los clientes"
+              description={error}
+            />
+
+            <div
+              className="modal-actions"
+              style={{
+                padding:
+                  "0 20px 20px",
+              }}
+            >
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  void reload();
+                }}
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        ) : filteredCustomers.length ===
+          0 ? (
           <ModuleState
             type="empty"
-            title="No encontramos clientes"
-            description="Prueba con otro término de búsqueda."
+            title={
+              search
+                ? "No encontramos clientes"
+                : "Todavía no hay clientes"
+            }
+            description={
+              search
+                ? "Prueba con otro término de búsqueda."
+                : "Registra el primer cliente desde el botón Nuevo cliente."
+            }
           />
         ) : (
           <>
             <DataTable
               columns={columns}
-              data={customers}
-              getRowKey={(customer) =>
-                customer.id
+              data={
+                paginatedCustomers
               }
+              getRowKey={(
+                customer,
+              ) => customer.id}
             />
 
             <Pagination
-              page={page}
-              totalPages={1}
-              onPageChange={setPage}
+              page={safePage}
+              totalPages={
+                totalPages
+              }
+              onPageChange={
+                setPage
+              }
             />
           </>
         )}
       </article>
 
+
       <Modal
         open={modalOpen}
         title="Registrar nuevo cliente"
-        description="Completa la información principal del cliente."
-        onClose={() =>
-          setModalOpen(false)
-        }
+        description="La información será almacenada mediante la API de SalesIA Enterprise."
+        onClose={() => {
+          if (!saving) {
+            setModalOpen(false);
+            setFormError("");
+          }
+        }}
       >
         <form
           className="enterprise-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setModalOpen(false);
-          }}
+          onSubmit={
+            handleSubmit
+          }
         >
+          {formError && (
+            <ModuleState
+              type="error"
+              title="No se pudo registrar"
+              description={
+                formError
+              }
+            />
+          )}
+
+
           <div className="form-grid">
             <label>
               <span>
-                Nombre o razón social
+                Tipo de documento
               </span>
 
-              <input
-                type="text"
-                placeholder="Ej. Comercial Rivera"
-                required
-              />
+              <select
+                value={
+                  form.document_type
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    document_type:
+                      event.target
+                        .value,
+                  })
+                }
+              >
+                <option value="RUC">
+                  RUC
+                </option>
+
+                <option value="DNI">
+                  DNI
+                </option>
+
+                <option value="CE">
+                  Carné de extranjería
+                </option>
+
+                <option value="PASAPORTE">
+                  Pasaporte
+                </option>
+              </select>
             </label>
+
 
             <label>
               <span>
-                Documento
+                Número de documento
               </span>
 
               <input
                 type="text"
-                placeholder="RUC o DNI"
+                minLength={8}
+                maxLength={20}
+                value={
+                  form.document_number
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    document_number:
+                      event.target
+                        .value,
+                  })
+                }
+                placeholder="Ej. 20601234567"
                 required
               />
             </label>
+
+
+            <label className="form-full">
+              <span>
+                Razón social
+              </span>
+
+              <input
+                type="text"
+                maxLength={200}
+                value={
+                  form.business_name ??
+                  ""
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    business_name:
+                      event.target
+                        .value,
+                  })
+                }
+                placeholder="Ej. Comercial Rivera SAC"
+                required={
+                  !form.first_name &&
+                  !form.last_name
+                }
+              />
+            </label>
+
+
+            <label>
+              <span>
+                Nombres
+              </span>
+
+              <input
+                type="text"
+                maxLength={100}
+                value={
+                  form.first_name ??
+                  ""
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    first_name:
+                      event.target
+                        .value,
+                  })
+                }
+                placeholder="Opcional para empresa"
+              />
+            </label>
+
+
+            <label>
+              <span>
+                Apellidos
+              </span>
+
+              <input
+                type="text"
+                maxLength={100}
+                value={
+                  form.last_name ??
+                  ""
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    last_name:
+                      event.target
+                        .value,
+                  })
+                }
+                placeholder="Opcional para empresa"
+              />
+            </label>
+
 
             <label>
               <span>
@@ -387,10 +797,24 @@ function CommercialPage() {
 
               <input
                 type="email"
+                maxLength={200}
+                value={
+                  form.email ?? ""
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    email:
+                      event.target
+                        .value,
+                  })
+                }
                 placeholder="correo@empresa.com"
-                required
               />
             </label>
+
 
             <label>
               <span>
@@ -399,10 +823,84 @@ function CommercialPage() {
 
               <input
                 type="text"
+                maxLength={30}
+                value={
+                  form.phone ?? ""
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    phone:
+                      event.target
+                        .value,
+                  })
+                }
                 placeholder="999 999 999"
-                required
               />
             </label>
+
+
+            <label>
+              <span>
+                Ciudad
+              </span>
+
+              <input
+                type="text"
+                maxLength={100}
+                value={
+                  form.city ?? ""
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    city:
+                      event.target
+                        .value,
+                  })
+                }
+                placeholder="Lima"
+              />
+            </label>
+
+
+            <label>
+              <span>
+                Estado
+              </span>
+
+              <select
+                value={
+                  form.status ??
+                  "active"
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    status:
+                      event.target
+                        .value as
+                        | "active"
+                        | "inactive",
+                  })
+                }
+              >
+                <option value="active">
+                  Activo
+                </option>
+
+                <option value="inactive">
+                  Inactivo
+                </option>
+              </select>
+            </label>
+
 
             <label className="form-full">
               <span>
@@ -411,18 +909,37 @@ function CommercialPage() {
 
               <input
                 type="text"
+                maxLength={500}
+                value={
+                  form.address ?? ""
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+                    address:
+                      event.target
+                        .value,
+                  })
+                }
                 placeholder="Dirección comercial"
               />
             </label>
           </div>
 
+
           <div className="modal-actions">
             <button
               type="button"
               className="secondary-button"
-              onClick={() =>
-                setModalOpen(false)
-              }
+              disabled={saving}
+              onClick={() => {
+                setModalOpen(
+                  false,
+                );
+                setFormError("");
+              }}
             >
               Cancelar
             </button>
@@ -430,8 +947,11 @@ function CommercialPage() {
             <button
               type="submit"
               className="primary-button"
+              disabled={saving}
             >
-              Guardar cliente
+              {saving
+                ? "Guardando..."
+                : "Guardar cliente"}
             </button>
           </div>
         </form>
