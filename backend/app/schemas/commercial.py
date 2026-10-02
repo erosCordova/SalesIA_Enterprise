@@ -97,18 +97,6 @@ class CustomerCreateRequest(BaseModel):
 
         return self
 
-class CustomerUpdateRequest(BaseModel):
-    document_type: str | None = None
-    document_number: str | None = Field(default=None, min_length=8, max_length=20)
-    first_name: str | None = None
-    last_name: str | None = None
-    business_name: str | None = None
-    email: str | None = None
-    phone: str | None = None
-    address: str | None = None
-    city: str | None = None
-    status: StatusValue | None = None
-
 
 class CustomerResponse(BaseModel):
     id: UUID
@@ -127,7 +115,104 @@ class CustomerResponse(BaseModel):
     status: str
 
 
+class CustomerUpdateRequest(BaseModel):
+    document_type: str = Field(
+        default="RUC",
+        min_length=2,
+        max_length=20,
+    )
+
+    document_number: str = Field(
+        ...,
+        min_length=8,
+        max_length=20,
+    )
+
+    first_name: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    last_name: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    business_name: str | None = Field(
+        default=None,
+        max_length=200,
+    )
+
+    email: str | None = Field(
+        default=None,
+        max_length=200,
+    )
+
+    phone: str | None = Field(
+        default=None,
+        max_length=30,
+    )
+
+    address: str | None = Field(
+        default=None,
+        max_length=500,
+    )
+
+    city: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    status: StatusValue = "active"
+
+    @model_validator(mode="after")
+    def validate_name(self):
+        if not any([
+            (self.business_name or "").strip(),
+            (self.first_name or "").strip(),
+            (self.last_name or "").strip(),
+        ]):
+            raise ValueError(
+                "Debe indicar razón social o nombre del cliente."
+            )
+        return self
+
+
+class CustomerHistoryItem(BaseModel):
+    id: UUID
+    sale_number: str
+    sale_date: str
+    subtotal: Decimal
+    discount: Decimal
+    tax: Decimal
+    total: Decimal
+    status: str
+
+
+class CustomerHistoryResponse(BaseModel):
+    customer: CustomerResponse
+    total_sales: int
+    total_amount: Decimal
+    last_sale_date: str | None
+    sales: list[CustomerHistoryItem]
+
+
 class CategoryCreateRequest(BaseModel):
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=120,
+    )
+
+    description: str | None = Field(
+        default=None,
+        max_length=500,
+    )
+
+    status: StatusValue = "active"
+
+
+class CategoryUpdateRequest(BaseModel):
     name: str = Field(
         ...,
         min_length=2,
@@ -147,6 +232,67 @@ class CategoryResponse(BaseModel):
     name: str
     description: str | None
     status: str
+
+
+class ProductUpdateRequest(BaseModel):
+    category_id: UUID | None = None
+
+    sku: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+    )
+
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=200,
+    )
+
+    description: str | None = Field(
+        default=None,
+        max_length=1000,
+    )
+
+    unit: str = Field(
+        default="unidad",
+        min_length=1,
+        max_length=50,
+    )
+
+    sale_price: Decimal = Field(
+        ...,
+        ge=0,
+    )
+
+    cost_price: Decimal = Field(
+        default=Decimal("0"),
+        ge=0,
+    )
+
+    minimum_stock: Decimal = Field(
+        default=Decimal("0"),
+        ge=0,
+    )
+
+    maximum_stock: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    status: StatusValue = "active"
+
+    @model_validator(mode="after")
+    def validate_stock_limits(self):
+        if (
+            self.maximum_stock is not None
+            and self.maximum_stock < self.minimum_stock
+        ):
+            raise ValueError(
+                "El stock máximo no puede ser menor al stock mínimo."
+            )
+
+        return self
 
 
 class ProductCreateRequest(BaseModel):
@@ -215,53 +361,6 @@ class ProductCreateRequest(BaseModel):
         return self
 
 
-class ProductUpdateRequest(BaseModel):
-    category_id: UUID | None = None
-
-    sku: str | None = Field(
-        default=None,
-        min_length=2,
-        max_length=100,
-    )
-
-    name: str | None = Field(
-        default=None,
-        min_length=2,
-        max_length=200,
-    )
-
-    description: str | None = Field(
-        default=None,
-        max_length=1000,
-    )
-
-    unit: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=50,
-    )
-
-    sale_price: Decimal | None = Field(
-        default=None,
-        ge=0,
-    )
-
-    cost_price: Decimal | None = Field(
-        default=None,
-        ge=0,
-    )
-
-    status: StatusValue | None = None
-
-    @model_validator(mode="after")
-    def validate_not_empty(self):
-        if not self.model_fields_set:
-            raise ValueError(
-                "Debe proporcionar al menos un campo para actualizar."
-            )
-        return self
-
-    
 class ProductResponse(BaseModel):
     id: UUID
     category_id: UUID | None

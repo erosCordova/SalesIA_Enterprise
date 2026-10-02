@@ -1,17 +1,23 @@
+from uuid import UUID
+
 from fastapi import (
     APIRouter,
     Depends,
     status,
 )
-from uuid import UUID
+
 from app.api.dependencies.auth import require_roles
 from app.schemas.commercial import (
     ProductCreateRequest,
-    ProductResponse, ProductUpdateRequest
+    ProductResponse,
+    ProductUpdateRequest,
 )
 from app.services.commercial import (
     create_product,
-    get_products, update_product
+    delete_product,
+    get_product,
+    get_products,
+    update_product,
 )
 
 
@@ -24,6 +30,8 @@ router = APIRouter()
     summary="Listar productos",
 )
 def list_products(
+    search: str | None = None,
+    category_id: UUID | None = None,
     current_user: dict = Depends(
         require_roles(
             "Administrador",
@@ -34,7 +42,9 @@ def list_products(
     ),
 ):
     return get_products(
-        current_user
+        current_user,
+        search,
+        category_id,
     )
 
 
@@ -60,6 +70,28 @@ def register_product(
     )
 
 
+@router.get(
+    "/{product_id}",
+    response_model=ProductResponse,
+    summary="Obtener producto",
+)
+def read_product(
+    product_id: UUID,
+    current_user: dict = Depends(
+        require_roles(
+            "Administrador",
+            "Gerente",
+            "Vendedor",
+            "Almacén",
+        )
+    ),
+):
+    return get_product(
+        product_id,
+        current_user,
+    )
+
+
 @router.put(
     "/{product_id}",
     response_model=ProductResponse,
@@ -79,5 +111,25 @@ def edit_product(
     return update_product(
         product_id,
         data,
+        current_user,
+    )
+
+
+@router.delete(
+    "/{product_id}",
+    summary="Desactivar producto",
+)
+def remove_product(
+    product_id: UUID,
+    current_user: dict = Depends(
+        require_roles(
+            "Administrador",
+            "Gerente",
+            "Almacén",
+        )
+    ),
+):
+    return delete_product(
+        product_id,
         current_user,
     )

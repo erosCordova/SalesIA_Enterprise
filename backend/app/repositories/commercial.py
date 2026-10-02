@@ -7,7 +7,14 @@ from sqlalchemy.engine import Connection
 def list_customers(
     connection: Connection,
     company_id: UUID,
+    search: str | None = None,
 ):
+    search_value = (
+        f"%{search.strip()}%"
+        if search
+        else None
+    )
+
     return connection.execute(
         text("""
             SELECT
@@ -24,6 +31,17 @@ def list_customers(
                 status
             FROM customers
             WHERE company_id = :company_id
+                AND (
+                    CAST(:search AS TEXT) IS NULL
+                    OR CAST(:search AS TEXT) = ''
+                    OR LOWER(COALESCE(first_name, '')) LIKE LOWER(:search)
+                    OR LOWER(COALESCE(last_name, '')) LIKE LOWER(:search)
+                    OR LOWER(COALESCE(business_name, '')) LIKE LOWER(:search)
+                    OR LOWER(COALESCE(document_number, '')) LIKE LOWER(:search)
+                    OR LOWER(COALESCE(email, '')) LIKE LOWER(:search)
+                    OR LOWER(COALESCE(phone, '')) LIKE LOWER(:search)
+                    OR LOWER(COALESCE(city, '')) LIKE LOWER(:search)
+              )
             ORDER BY
                 COALESCE(
                     business_name,
@@ -34,6 +52,7 @@ def list_customers(
         """),
         {
             "company_id": company_id,
+            "search": search_value,
         },
     ).mappings().all()
 
@@ -149,93 +168,18 @@ def create_customer(
         },
     ).mappings().one()
 
-def update_customer(connection, company_id, customer_id, data):
-    allowed_fields = {
-        "document_type",
-        "document_number",
-        "first_name",
-        "last_name",
-        "business_name",
-        "email",
-        "phone",
-        "address",
-        "city",
-        "status",
-    }
-
-    values = {
-        key: value
-        for key, value in data.items()
-        if key in allowed_fields
-    }
-
-    if not values:
-        return get_customer(connection, company_id, customer_id)
-
-    assignments = ", ".join(
-        f"{column} = :{column}"
-        for column in values
-    )
-
-    values["company_id"] = company_id
-    values["customer_id"] = customer_id
-
-    result = connection.execute(
-        text(f"""
-            UPDATE customers
-            SET {assignments}
-            WHERE company_id = :company_id
-              AND id = :customer_id
-            RETURNING
-                id,
-                document_type,
-                document_number,
-                first_name,
-                last_name,
-                business_name,
-                email,
-                phone,
-                address,
-                city,
-                status
-        """),
-        values,
-    ).mappings().first()
-
-    return dict(result) if result else None
-
-
-def list_customer_sales(connection, company_id, customer_id):
-    result = connection.execute(
-        text("""
-            SELECT
-                id,
-                sale_number,
-                sale_date,
-                subtotal,
-                discount,
-                tax,
-                total,
-                status,
-                notes
-            FROM sales
-            WHERE company_id = :company_id
-              AND customer_id = :customer_id
-            ORDER BY sale_date DESC
-        """),
-        {
-            "company_id": company_id,
-            "customer_id": customer_id,
-        },
-    ).mappings().all()
-
-    return [dict(row) for row in result]
-
 
 def list_categories(
     connection: Connection,
     company_id: UUID,
+    search: str | None = None,
 ):
+    search_value = (
+        f"%{search.strip()}%"
+        if search
+        else None
+    )
+
     return connection.execute(
         text("""
             SELECT
@@ -245,10 +189,16 @@ def list_categories(
                 status
             FROM categories
             WHERE company_id = :company_id
+              AND (
+                    CAST(:search AS TEXT) IS NULL
+                    OR CAST(:search AS TEXT) = ''
+                    OR LOWER(COALESCE(name, '')) LIKE LOWER(:search)
+              )
             ORDER BY name
         """),
         {
             "company_id": company_id,
+            "search": search_value,
         },
     ).mappings().all()
 
@@ -333,7 +283,15 @@ def create_category(
 def list_products(
     connection: Connection,
     company_id: UUID,
+    search: str | None = None,
+    category_id: UUID | None = None,
 ):
+    search_value = (
+        f"%{search.strip()}%"
+        if search
+        else None
+    )
+
     return connection.execute(
         text("""
             SELECT
@@ -357,10 +315,21 @@ def list_products(
                 ON i.product_id = p.id
                AND i.company_id = p.company_id
             WHERE p.company_id = :company_id
+              AND (
+                    CAST(:search AS TEXT) IS NULL
+                    OR CAST(:search AS TEXT) = ''
+                    OR LOWER(COALESCE(p.name, '')) LIKE LOWER(:search)
+              )
+              AND (
+                    CAST(:category_id AS UUID) IS NULL
+                    OR p.category_id = CAST(:category_id AS UUID)
+              )
             ORDER BY p.name
         """),
         {
             "company_id": company_id,
+            "search": search_value,
+            "category_id": category_id,
         },
     ).mappings().all()
 
@@ -445,84 +414,6 @@ def create_product(
             "status": status,
         },
     ).mappings().one()
-
-
-
-def get_product(
-    connection: Connection,
-    company_id: UUID,
-    product_id: UUID,
-):
-    return connection.execute(
-        text("""
-            SELECT id
-            FROM products
-            WHERE id = :product_id
-              AND company_id = :company_id
-            LIMIT 1
-        """),
-        {
-            "product_id": product_id,
-            "company_id": company_id,
-        },
-    ).mappings().first()
-
-
-def update_product(
-    connection: Connection,
-    company_id: UUID,
-    product_id: UUID,
-    data: dict,
-):
-    allowed_fields = {
-        "category_id",
-        "sku",
-        "name",
-        "description",
-        "unit",
-        "sale_price",
-        "cost_price",
-        "status",
-    }
-
-    values = {
-        key: value
-        for key, value in data.items()
-        if key in allowed_fields
-    }
-
-    if not values:
-        return None
-
-    assignments = ", ".join(
-        f"{column} = :{column}"
-        for column in values
-    )
-
-    values["company_id"] = company_id
-    values["product_id"] = product_id
-
-    result = connection.execute(
-        text(f"""
-            UPDATE products
-            SET {assignments}
-            WHERE id = :product_id
-              AND company_id = :company_id
-            RETURNING
-                id,
-                category_id,
-                sku,
-                name,
-                description,
-                unit,
-                sale_price,
-                cost_price,
-                status
-        """),
-        values,
-    ).mappings().first()
-
-    return dict(result) if result else None
 
 
 def create_inventory(
@@ -890,3 +781,228 @@ def list_sales(
         """),
         params,
     ).mappings().all()
+
+
+def update_customer(
+    connection: Connection,
+    company_id: UUID,
+    customer_id: UUID,
+    **values,
+):
+    return connection.execute(
+        text("""
+            UPDATE customers
+            SET
+                document_type = :document_type,
+                document_number = :document_number,
+                first_name = :first_name,
+                last_name = :last_name,
+                business_name = :business_name,
+                email = :email,
+                phone = :phone,
+                address = :address,
+                city = :city,
+                status = :status,
+                updated_at = NOW()
+            WHERE id = :customer_id
+              AND company_id = :company_id
+            RETURNING
+                id,
+                document_type,
+                document_number,
+                first_name,
+                last_name,
+                business_name,
+                email,
+                phone,
+                address,
+                city,
+                status
+        """),
+        {
+            **values,
+            "customer_id": customer_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
+def list_customer_history(
+    connection: Connection,
+    company_id: UUID,
+    customer_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                s.id AS id,
+                s.sale_number,
+                s.sale_date,
+                s.subtotal,
+                s.discount,
+                s.tax,
+                s.total,
+                s.status
+            FROM sales s
+            WHERE s.company_id = :company_id
+              AND s.customer_id = :customer_id
+            ORDER BY s.sale_date DESC
+            LIMIT 200
+        """),
+        {
+            "company_id": company_id,
+            "customer_id": customer_id,
+        },
+    ).mappings().all()
+
+
+def get_category(
+    connection: Connection,
+    company_id: UUID,
+    category_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                id,
+                name,
+                description,
+                status
+            FROM categories
+            WHERE id = :category_id
+              AND company_id = :company_id
+        """),
+        {
+            "category_id": category_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
+def update_category(
+    connection: Connection,
+    company_id: UUID,
+    category_id: UUID,
+    **values,
+):
+    return connection.execute(
+        text("""
+            UPDATE categories
+            SET
+                name = :name,
+                description = :description,
+                status = :status,
+                updated_at = NOW()
+            WHERE id = :category_id
+              AND company_id = :company_id
+            RETURNING
+                id,
+                name,
+                description,
+                status
+        """),
+        {
+            **values,
+            "category_id": category_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
+def get_product(
+    connection: Connection,
+    company_id: UUID,
+    product_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                p.id,
+                p.category_id,
+                c.name AS category_name,
+                p.sku,
+                p.name,
+                p.description,
+                p.unit,
+                p.sale_price,
+                p.cost_price,
+                p.status,
+                i.stock_quantity,
+                i.minimum_stock,
+                i.maximum_stock
+            FROM products p
+            LEFT JOIN categories c
+                ON c.id = p.category_id
+               AND c.company_id = p.company_id
+            LEFT JOIN inventory i
+                ON i.product_id = p.id
+               AND i.company_id = p.company_id
+            WHERE p.id = :product_id
+              AND p.company_id = :company_id
+        """),
+        {
+            "product_id": product_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
+def update_product(
+    connection: Connection,
+    company_id: UUID,
+    product_id: UUID,
+    **values,
+):
+    return connection.execute(
+        text("""
+            UPDATE products
+            SET
+                category_id = :category_id,
+                sku = :sku,
+                name = :name,
+                description = :description,
+                unit = :unit,
+                sale_price = :sale_price,
+                cost_price = :cost_price,
+                status = :status,
+                updated_at = NOW()
+            WHERE id = :product_id
+              AND company_id = :company_id
+            RETURNING id
+        """),
+        {
+            **values,
+            "product_id": product_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
+def update_inventory_limits(
+    connection: Connection,
+    company_id: UUID,
+    product_id: UUID,
+    minimum_stock,
+    maximum_stock,
+):
+    return connection.execute(
+        text("""
+            UPDATE inventory
+            SET
+                minimum_stock = :minimum_stock,
+                maximum_stock = :maximum_stock,
+                updated_at = NOW()
+            WHERE product_id = :product_id
+              AND company_id = :company_id
+            RETURNING
+                stock_quantity,
+                minimum_stock,
+                maximum_stock
+        """),
+        {
+            "product_id": product_id,
+            "company_id": company_id,
+            "minimum_stock": minimum_stock,
+            "maximum_stock": maximum_stock,
+        },
+    ).mappings().first()

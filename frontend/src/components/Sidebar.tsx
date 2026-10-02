@@ -8,7 +8,6 @@ import {
   Lightbulb,
   PackageSearch,
   Percent,
-  Plus,
   ShieldCheck,
   ShoppingCart,
   Sparkles,
@@ -112,15 +111,6 @@ const menuSections: MenuSection[] = [
         end: true,
       },
       {
-        label: "Nueva venta",
-        path: "/sales/new",
-        icon: Plus,
-        roles: [
-          "Administrador",
-          "Vendedor",
-        ],
-      },
-      {
         label: "Productos",
         path: "/products",
         icon: PackageSearch,
@@ -132,7 +122,7 @@ const menuSections: MenuSection[] = [
         ],
       },
       {
-        label: "Categorías",
+        label: "CategorÃ­as",
         path: "/categories",
         icon: Tags,
         roles: [
@@ -205,7 +195,7 @@ const menuSections: MenuSection[] = [
     title: "CONTROL",
     items: [
       {
-        label: "Auditoría",
+        label: "AuditorÃ­a",
         path: "/audit",
         icon: ShieldCheck,
         roles: [
@@ -254,7 +244,7 @@ function Sidebar({
         <button
           className="sidebar-overlay"
           onClick={onClose}
-          aria-label="Cerrar menú"
+          aria-label="Cerrar menÃº"
         />
       )}
 
@@ -282,7 +272,7 @@ function Sidebar({
             type="button"
             className="sidebar-close"
             onClick={onClose}
-            aria-label="Cerrar menú"
+            aria-label="Cerrar menÃº"
           >
             <X size={19} />
           </button>
@@ -384,3 +374,5 @@ function Sidebar({
 
 
 export default Sidebar;
+
+
