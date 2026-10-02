@@ -149,6 +149,88 @@ def create_customer(
         },
     ).mappings().one()
 
+def update_customer(connection, company_id, customer_id, data):
+    allowed_fields = {
+        "document_type",
+        "document_number",
+        "first_name",
+        "last_name",
+        "business_name",
+        "email",
+        "phone",
+        "address",
+        "city",
+        "status",
+    }
+
+    values = {
+        key: value
+        for key, value in data.items()
+        if key in allowed_fields
+    }
+
+    if not values:
+        return get_customer(connection, company_id, customer_id)
+
+    assignments = ", ".join(
+        f"{column} = :{column}"
+        for column in values
+    )
+
+    values["company_id"] = company_id
+    values["customer_id"] = customer_id
+
+    result = connection.execute(
+        text(f"""
+            UPDATE customers
+            SET {assignments}
+            WHERE company_id = :company_id
+              AND id = :customer_id
+            RETURNING
+                id,
+                document_type,
+                document_number,
+                first_name,
+                last_name,
+                business_name,
+                email,
+                phone,
+                address,
+                city,
+                status
+        """),
+        values,
+    ).mappings().first()
+
+    return dict(result) if result else None
+
+
+def list_customer_sales(connection, company_id, customer_id):
+    result = connection.execute(
+        text("""
+            SELECT
+                id,
+                sale_number,
+                sale_date,
+                subtotal,
+                discount,
+                tax,
+                total,
+                status,
+                notes
+            FROM sales
+            WHERE company_id = :company_id
+              AND customer_id = :customer_id
+            ORDER BY sale_date DESC
+        """),
+        {
+            "company_id": company_id,
+            "customer_id": customer_id,
+        },
+    ).mappings().all()
+
+    return [dict(row) for row in result]
+
 
 def list_categories(
     connection: Connection,
@@ -363,6 +445,84 @@ def create_product(
             "status": status,
         },
     ).mappings().one()
+
+
+
+def get_product(
+    connection: Connection,
+    company_id: UUID,
+    product_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT id
+            FROM products
+            WHERE id = :product_id
+              AND company_id = :company_id
+            LIMIT 1
+        """),
+        {
+            "product_id": product_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
+def update_product(
+    connection: Connection,
+    company_id: UUID,
+    product_id: UUID,
+    data: dict,
+):
+    allowed_fields = {
+        "category_id",
+        "sku",
+        "name",
+        "description",
+        "unit",
+        "sale_price",
+        "cost_price",
+        "status",
+    }
+
+    values = {
+        key: value
+        for key, value in data.items()
+        if key in allowed_fields
+    }
+
+    if not values:
+        return None
+
+    assignments = ", ".join(
+        f"{column} = :{column}"
+        for column in values
+    )
+
+    values["company_id"] = company_id
+    values["product_id"] = product_id
+
+    result = connection.execute(
+        text(f"""
+            UPDATE products
+            SET {assignments}
+            WHERE id = :product_id
+              AND company_id = :company_id
+            RETURNING
+                id,
+                category_id,
+                sku,
+                name,
+                description,
+                unit,
+                sale_price,
+                cost_price,
+                status
+        """),
+        values,
+    ).mappings().first()
+
+    return dict(result) if result else None
 
 
 def create_inventory(

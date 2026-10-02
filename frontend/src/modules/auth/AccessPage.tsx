@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import {
   Plus,
@@ -15,23 +10,13 @@ import {
   X,
 } from "lucide-react";
 
-import {
-  createUser,
-  getRoles,
-  getUsers,
-} from "../../services/users.service";
+import { createUser, getRoles, getUsers } from "../../services/users.service";
 
-import type {
-  UserRole,
-} from "../../types/auth";
+import type { UserRole } from "../../types/auth";
 
-import type {
-  RoleResponse,
-  UserListItem,
-} from "../../types/users";
+import type { RoleResponse, UserListItem } from "../../types/users";
 
 import "./access.css";
-
 
 const initialForm = {
   dni: "",
@@ -42,45 +27,31 @@ const initialForm = {
   role: "Vendedor" as UserRole,
 };
 
-
 export default function AccessPage() {
-  const [users, setUsers] =
-    useState<UserListItem[]>([]);
+  const [users, setUsers] = useState<UserListItem[]>([]);
 
-  const [roles, setRoles] =
-    useState<RoleResponse[]>([]);
+  const [roles, setRoles] = useState<RoleResponse[]>([]);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [success, setSuccess] =
-    useState("");
+  const [success, setSuccess] = useState("");
 
-  const [modalOpen, setModalOpen] =
-    useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const [form, setForm] =
-    useState(initialForm);
-
+  const [form, setForm] = useState(initialForm);
 
   async function loadData() {
     setLoading(true);
     setError("");
 
     try {
-      const [
-        usersResponse,
-        rolesResponse,
-      ] = await Promise.all([
+      const [usersResponse, rolesResponse] = await Promise.all([
         getUsers(),
         getRoles(),
       ]);
@@ -98,45 +69,27 @@ export default function AccessPage() {
     }
   }
 
-
   useEffect(() => {
     void loadData();
   }, []);
 
+  const filteredUsers = useMemo(() => {
+    const value = search.trim().toLowerCase();
 
-  const filteredUsers =
-    useMemo(
-      () => {
-        const value = search
-          .trim()
-          .toLowerCase();
+    if (!value) {
+      return users;
+    }
 
-        if (!value) {
-          return users;
-        }
+    return users.filter((user) => {
+      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
 
-        return users.filter(
-          (user) => {
-            const fullName =
-              `${user.first_name} ${user.last_name}`
-                .toLowerCase();
-
-            return (
-              user.dni.includes(value) ||
-              fullName.includes(value) ||
-              user.role
-                .toLowerCase()
-                .includes(value)
-            );
-          },
-        );
-      },
-      [
-        users,
-        search,
-      ],
-    );
-
+      return (
+        user.dni.includes(value) ||
+        fullName.includes(value) ||
+        user.role.toLowerCase().includes(value)
+      );
+    });
+  }, [users, search]);
 
   function openModal() {
     setForm(initialForm);
@@ -144,7 +97,6 @@ export default function AccessPage() {
     setSuccess("");
     setModalOpen(true);
   }
-
 
   function closeModal() {
     if (saving) {
@@ -154,36 +106,24 @@ export default function AccessPage() {
     setModalOpen(false);
   }
 
-
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
     setSuccess("");
 
     if (!/^\d{8}$/.test(form.dni)) {
-      setError(
-        "El DNI debe contener exactamente 8 números.",
-      );
+      setError("El DNI debe contener exactamente 8 números.");
       return;
     }
 
-    if (
-      form.first_name.trim().length < 2 ||
-      form.last_name.trim().length < 2
-    ) {
-      setError(
-        "Ingresa los nombres y apellidos del usuario.",
-      );
+    if (form.first_name.trim().length < 2 || form.last_name.trim().length < 2) {
+      setError("Ingresa los nombres y apellidos del usuario.");
       return;
     }
 
     if (form.password.length < 8) {
-      setError(
-        "La contraseña debe tener al menos 8 caracteres.",
-      );
+      setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
 
@@ -192,18 +132,12 @@ export default function AccessPage() {
     try {
       const created = await createUser({
         dni: form.dni,
-        first_name:
-          form.first_name.trim(),
-        last_name:
-          form.last_name.trim(),
-        password:
-          form.password,
-        role:
-          form.role,
-        phone:
-          form.phone.trim() || null,
-        status:
-          "active",
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        password: form.password,
+        role: form.role,
+        phone: form.phone.trim() || null,
+        status: "active",
       });
 
       setSuccess(
@@ -225,7 +159,6 @@ export default function AccessPage() {
     }
   }
 
-
   return (
     <div className="access-page">
       <div className="access-header">
@@ -235,21 +168,15 @@ export default function AccessPage() {
             ACCESO Y SEGURIDAD
           </div>
 
-          <h1>
-            Administración de usuarios
-          </h1>
+          <h1>Administración de usuarios</h1>
 
           <p>
-            Crea las cuentas de acceso y
-            asigna el rol correspondiente a
-            cada integrante de la empresa.
+            Crea las cuentas de acceso y asigna el rol correspondiente a cada
+            integrante de la empresa.
           </p>
         </div>
 
-        <button
-          className="access-primary-button"
-          onClick={openModal}
-        >
+        <button className="access-primary-button" onClick={openModal}>
           <Plus size={18} />
           Nuevo usuario
         </button>
@@ -260,13 +187,9 @@ export default function AccessPage() {
           <UsersRound size={22} />
 
           <div>
-            <span>
-              Usuarios registrados
-            </span>
+            <span>Usuarios registrados</span>
 
-            <strong>
-              {users.length}
-            </strong>
+            <strong>{users.length}</strong>
           </div>
         </div>
 
@@ -274,28 +197,18 @@ export default function AccessPage() {
           <ShieldCheck size={22} />
 
           <div>
-            <span>
-              Roles disponibles
-            </span>
+            <span>Roles disponibles</span>
 
-            <strong>
-              {roles.length}
-            </strong>
+            <strong>{roles.length}</strong>
           </div>
         </div>
       </div>
 
       {error && !modalOpen && (
-        <div className="access-message error">
-          {error}
-        </div>
+        <div className="access-message error">{error}</div>
       )}
 
-      {success && (
-        <div className="access-message success">
-          {success}
-        </div>
-      )}
+      {success && <div className="access-message success">{success}</div>}
 
       <section className="access-panel">
         <div className="access-toolbar">
@@ -306,42 +219,24 @@ export default function AccessPage() {
               type="text"
               placeholder="Buscar por DNI, usuario o rol..."
               value={search}
-              onChange={(event) =>
-                setSearch(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setSearch(event.target.value)}
             />
           </div>
 
           <button
             className="access-secondary-button"
-            onClick={() =>
-              void loadData()
-            }
+            onClick={() => void loadData()}
             disabled={loading}
           >
-            <RefreshCw
-              size={17}
-              className={
-                loading
-                  ? "access-spin"
-                  : ""
-              }
-            />
-
+            <RefreshCw size={17} className={loading ? "access-spin" : ""} />
             Actualizar
           </button>
         </div>
 
         {loading ? (
-          <div className="access-state">
-            Cargando usuarios...
-          </div>
+          <div className="access-state">Cargando usuarios...</div>
         ) : filteredUsers.length === 0 ? (
-          <div className="access-state">
-            No se encontraron usuarios.
-          </div>
+          <div className="access-state">No se encontraron usuarios.</div>
         ) : (
           <div className="access-table-wrapper">
             <table className="access-table">
@@ -356,67 +251,48 @@ export default function AccessPage() {
               </thead>
 
               <tbody>
-                {filteredUsers.map(
-                  (user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <strong>
-                          {user.dni}
-                        </strong>
-                      </td>
+                {filteredUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <strong>{user.dni}</strong>
+                    </td>
 
-                      <td>
-                        <div className="access-user-cell">
-                          <div className="access-avatar">
-                            {user.first_name
-                              .charAt(0)
-                              .toUpperCase()}
-                            {user.last_name
-                              .charAt(0)
-                              .toUpperCase()}
-                          </div>
-
-                          <div>
-                            <strong>
-                              {user.first_name}{" "}
-                              {user.last_name}
-                            </strong>
-
-                            <span>
-                              {user.company}
-                            </span>
-                          </div>
+                    <td>
+                      <div className="access-user-cell">
+                        <div className="access-avatar">
+                          {user.first_name.charAt(0).toUpperCase()}
+                          {user.last_name.charAt(0).toUpperCase()}
                         </div>
-                      </td>
 
-                      <td>
-                        <span className="access-role">
-                          {user.role}
-                        </span>
-                      </td>
+                        <div>
+                          <strong>
+                            {user.first_name} {user.last_name}
+                          </strong>
 
-                      <td>
-                        {user.phone || "—"}
-                      </td>
+                          <span>{user.company}</span>
+                        </div>
+                      </div>
+                    </td>
 
-                      <td>
-                        <span
-                          className={
-                            user.status ===
-                            "active"
-                              ? "access-status active"
-                              : "access-status inactive"
-                          }
-                        >
-                          {user.status ===
-                          "active"
-                            ? "Activo"
-                            : "Inactivo"}
-                        </span>
-                      </td>
-                    </tr>
-                  ),
-                )}
+                    <td>
+                      <span className="access-role">{user.role}</span>
+                    </td>
+
+                    <td>{user.phone || "—"}</td>
+
+                    <td>
+                      <span
+                        className={
+                          user.status === "active"
+                            ? "access-status active"
+                            : "access-status inactive"
+                        }
+                      >
+                        {user.status === "active" ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -424,15 +300,10 @@ export default function AccessPage() {
       </section>
 
       {modalOpen && (
-        <div
-          className="access-modal-backdrop"
-          onMouseDown={closeModal}
-        >
+        <div className="access-modal-backdrop" onMouseDown={closeModal}>
           <div
             className="access-modal"
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="access-modal-header">
               <div>
@@ -441,14 +312,9 @@ export default function AccessPage() {
                 </div>
 
                 <div>
-                  <h2>
-                    Nuevo usuario
-                  </h2>
+                  <h2>Nuevo usuario</h2>
 
-                  <p>
-                    El administrador asignará
-                    las credenciales de acceso.
-                  </p>
+                  <p>El administrador asignará las credenciales de acceso.</p>
                 </div>
               </div>
 
@@ -461,15 +327,8 @@ export default function AccessPage() {
               </button>
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="access-form"
-            >
-              {error && (
-                <div className="access-message error">
-                  {error}
-                </div>
-              )}
+            <form onSubmit={handleSubmit} className="access-form">
+              {error && <div className="access-message error">{error}</div>}
 
               <div className="access-form-grid">
                 <label>
@@ -484,16 +343,7 @@ export default function AccessPage() {
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        dni:
-                          event.target.value
-                            .replace(
-                              /\D/g,
-                              "",
-                            )
-                            .slice(
-                              0,
-                              8,
-                            ),
+                        dni: event.target.value.replace(/\D/g, "").slice(0, 8),
                       })
                     }
                   />
@@ -507,22 +357,15 @@ export default function AccessPage() {
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        role:
-                          event.target
-                            .value as UserRole,
+                        role: event.target.value as UserRole,
                       })
                     }
                   >
-                    {roles.map(
-                      (role) => (
-                        <option
-                          key={role.id}
-                          value={role.name}
-                        >
-                          {role.name}
-                        </option>
-                      ),
-                    )}
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.name}>
+                        {role.name}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
@@ -532,14 +375,11 @@ export default function AccessPage() {
                   <input
                     type="text"
                     placeholder="Nombres"
-                    value={
-                      form.first_name
-                    }
+                    value={form.first_name}
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        first_name:
-                          event.target.value,
+                        first_name: event.target.value,
                       })
                     }
                   />
@@ -551,14 +391,11 @@ export default function AccessPage() {
                   <input
                     type="text"
                     placeholder="Apellidos"
-                    value={
-                      form.last_name
-                    }
+                    value={form.last_name}
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        last_name:
-                          event.target.value,
+                        last_name: event.target.value,
                       })
                     }
                   />
@@ -574,8 +411,7 @@ export default function AccessPage() {
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        phone:
-                          event.target.value,
+                        phone: event.target.value,
                       })
                     }
                   />
@@ -587,14 +423,11 @@ export default function AccessPage() {
                   <input
                     type="password"
                     placeholder="Mínimo 8 caracteres"
-                    value={
-                      form.password
-                    }
+                    value={form.password}
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        password:
-                          event.target.value,
+                        password: event.target.value,
                       })
                     }
                     autoComplete="new-password"
@@ -603,9 +436,8 @@ export default function AccessPage() {
               </div>
 
               <div className="access-form-info">
-                El usuario iniciará sesión
-                únicamente con su DNI y la
-                contraseña que asignes aquí.
+                El usuario iniciará sesión únicamente con su DNI y la contraseña
+                que asignes aquí.
               </div>
 
               <div className="access-modal-actions">
@@ -625,9 +457,7 @@ export default function AccessPage() {
                 >
                   <UserPlus size={18} />
 
-                  {saving
-                    ? "Creando..."
-                    : "Crear usuario"}
+                  {saving ? "Creando..." : "Crear usuario"}
                 </button>
               </div>
             </form>

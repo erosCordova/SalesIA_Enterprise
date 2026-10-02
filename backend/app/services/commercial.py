@@ -3,8 +3,9 @@ from decimal import (
     ROUND_HALF_UP,
 )
 from uuid import UUID, uuid4
-
+from app.schemas.commercial import CustomerUpdateRequest
 from fastapi import HTTPException, status
+
 
 from app.core.database import engine
 from app.repositories import commercial as repository
@@ -20,6 +21,7 @@ from app.schemas.commercial import (
     SaleCreatedResponse,
     SaleDetailResponse,
     SaleListItem,
+    ProductUpdateRequest,
 )
 
 
@@ -58,6 +60,111 @@ def get_customers(
         for row in rows
     ]
 
+def update_customer(
+    customer_id: UUID,
+    data: CustomerUpdateRequest,
+    current_user: dict,
+):
+    company_id = current_user["company_id"]
+
+    with engine.begin() as connection:
+        existing = repository.get_customer(
+            connection,
+            company_id,
+            customer_id,
+        )
+
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cliente no encontrado.",
+            )
+
+        changes = data.model_dump(exclude_unset=True)
+
+        if not changes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se proporcionaron cambios.",
+            )
+
+        if "document_number" in changes:
+            document_number = changes["document_number"]
+
+            if document_number is not None:
+                document_number = document_number.strip()
+                changes["document_number"] = document_number
+
+                duplicate = repository.find_customer_by_document(
+                    connection,
+                    company_id,
+                    document_number,
+                )
+
+                duplicate_id = duplicate["id"] if duplicate else None
+
+                if (
+                    duplicate_id is not None
+                    and str(duplicate_id) != str(customer_id)
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Ya existe otro cliente con ese número de documento.",
+                    )
+
+        for field in (
+            "document_type",
+            "first_name",
+            "last_name",
+            "business_name",
+            "email",
+            "phone",
+            "address",
+            "city",
+        ):
+            if field in changes and changes[field] is not None:
+                changes[field] = changes[field].strip() or None
+
+        updated = repository.update_customer(
+            connection,
+            company_id,
+            customer_id,
+            changes,
+        )
+
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No se pudo actualizar el cliente.",
+            )
+
+        return CustomerResponse(**updated)
+
+
+def get_customer_history(
+    customer_id: UUID,
+    current_user: dict,
+):
+    company_id = current_user["company_id"]
+
+    with engine.begin() as connection:
+        existing = repository.get_customer(
+            connection,
+            company_id,
+            customer_id,
+        )
+
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cliente no encontrado.",
+            )
+
+        return repository.list_customer_sales(
+            connection,
+            company_id,
+            customer_id,
+        )
 
 def create_customer(
     data: CustomerCreateRequest,
@@ -269,6 +376,137 @@ def create_product(
         status=product["status"],
     )
 
+
+def update_product(
+    product_id: UUID,
+    data: ProductUpdateRequest,
+    current_user: dict,
+) -> ProductResponse:
+    company_id = current_user["company_id"]
+
+    with engine.begin() as connection:
+        existing = repository.get_product(
+            connection,
+            company_id,
+            product_id,
+        )
+
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Producto no encontrado.",
+            )
+
+        changes = data.model_dump(exclude_unset=True)
+
+        if not changes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se proporcionaron cambios.",
+            )
+
+        # Los campos obligatorios no pueden quedar vacíos.
+        for field in (
+            "sku",
+            "name",
+            "unit",
+            "sale_price",
+            "cost_price",
+            "status",
+        ):
+            if field in changes and changes[field] is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"El campo {field} no puede ser nulo.",
+                )
+
+        # Normalizar textos.
+        for field in ("sku", "name", "unit"):
+            if field in changes:
+                changes[field] = changes[field].strip()
+
+                if not changes[field]:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"El campo {field} es obligatorio.",
+                    )
+
+        if "description" in changes:
+            changes["description"] = clean_optional(
+                changes["description"]
+            )
+
+        # Validar SKU único dentro de la empresa.
+        if "sku" in changes:
+            duplicate = repository.find_product_by_sku(
+                connection,
+                company_id,
+                changes["sku"],
+            )
+
+            if (
+                duplicate
+                and str(duplicate["id"]) != str(product_id)
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Ya existe otro producto con ese SKU.",
+                )
+
+        # Validar categoría dentro de la misma empresa.
+        if changes.get("category_id") is not None:
+            category = repository.get_category(
+                connection,
+                company_id,
+                changes["category_id"],
+            )
+
+            if not category:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="La categoría seleccionada no existe.",
+                )
+
+        # Mantener la precisión monetaria.
+        for field in ("sale_price", "cost_price"):
+            if field in changes:
+                changes[field] = money(changes[field])
+
+        updated = repository.update_product(
+            connection,
+            company_id,
+            product_id,
+            changes,
+        )
+
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No se pudo actualizar el producto.",
+            )
+
+        # Recuperar los datos completos que exige ProductResponse.
+        rows = repository.list_products(
+            connection,
+            company_id,
+        )
+
+        result = next(
+            (
+                dict(row)
+                for row in rows
+                if str(row["id"]) == str(product_id)
+            ),
+            None,
+        )
+
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No se pudo recuperar el producto actualizado.",
+            )
+
+        return ProductResponse(**result)
 
 def get_inventory(
     current_user: dict,

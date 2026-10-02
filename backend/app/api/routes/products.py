@@ -3,15 +3,15 @@ from fastapi import (
     Depends,
     status,
 )
-
+from uuid import UUID
 from app.api.dependencies.auth import require_roles
 from app.schemas.commercial import (
     ProductCreateRequest,
-    ProductResponse,
+    ProductResponse, ProductUpdateRequest
 )
 from app.services.commercial import (
     create_product,
-    get_products,
+    get_products, update_product
 )
 
 
@@ -55,6 +55,29 @@ def register_product(
     ),
 ):
     return create_product(
+        data,
+        current_user,
+    )
+
+
+@router.put(
+    "/{product_id}",
+    response_model=ProductResponse,
+    summary="Actualizar producto",
+)
+def edit_product(
+    product_id: UUID,
+    data: ProductUpdateRequest,
+    current_user: dict = Depends(
+        require_roles(
+            "Administrador",
+            "Gerente",
+            "Almacén",
+        )
+    ),
+):
+    return update_product(
+        product_id,
         data,
         current_user,
     )

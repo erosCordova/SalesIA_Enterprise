@@ -78,7 +78,7 @@ export interface Product {
   minimum_stock: DecimalValue;
   maximum_stock: DecimalValue | null;
 
-  status: string;
+  status: StatusValue;
 }
 
 export interface ProductCreate {

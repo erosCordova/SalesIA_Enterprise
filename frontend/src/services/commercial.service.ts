@@ -1,6 +1,4 @@
-import {
-  apiFetch,
-} from "./api";
+import { apiFetch } from "./api";
 
 import type {
   Category,
@@ -15,89 +13,73 @@ import type {
   SaleListItem,
 } from "../types/commercial";
 
-
 export function getCustomers() {
-  return apiFetch<Customer[]>(
-    "/customers",
-  );
+  return apiFetch<Customer[]>("/customers");
 }
 
-
-export function createCustomer(
-  payload: CustomerCreate,
-) {
-  return apiFetch<Customer>(
-    "/customers",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
-  );
+export function createCustomer(payload: CustomerCreate) {
+  return apiFetch<Customer>("/customers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
-
 
 export function getCategories() {
-  return apiFetch<Category[]>(
-    "/categories",
-  );
+  return apiFetch<Category[]>("/categories");
 }
 
-
-export function createCategory(
-  payload: CategoryCreate,
-) {
-  return apiFetch<Category>(
-    "/categories",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
-  );
+export function createCategory(payload: CategoryCreate) {
+  return apiFetch<Category>("/categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
-
 
 export function getProducts() {
-  return apiFetch<Product[]>(
-    "/products",
-  );
+  return apiFetch<Product[]>("/products");
 }
 
+export function createProduct(payload: ProductCreate) {
+  return apiFetch<Product>("/products", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
 
-export function createProduct(
-  payload: ProductCreate,
+export function updateProduct(
+  id: string,
+  payload: Partial<ProductCreate>,
 ) {
-  return apiFetch<Product>(
-    "/products",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
-  );
+  return apiFetch<Product>(`/products/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
-
 
 export function getInventory() {
-  return apiFetch<InventoryItem[]>(
-    "/inventory",
-  );
+  return apiFetch<InventoryItem[]>("/inventory");
 }
-
 
 export function getSales() {
-  return apiFetch<SaleListItem[]>(
-    "/sales",
-  );
+  return apiFetch<SaleListItem[]>("/sales");
 }
 
-
-export function createSale(
-  payload: SaleCreate,
+export function createSale(payload: SaleCreate) {
+  return apiFetch<SaleCreated>("/sales", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+export function updateCustomer(
+  id: string,
+  payload: Partial<CustomerCreate>,
 ) {
-  return apiFetch<SaleCreated>(
-    "/sales",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
-  );
+  return apiFetch<Customer>(`/customers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCustomer(id: string) {
+  return updateCustomer(id, { status: "inactive" });
 }

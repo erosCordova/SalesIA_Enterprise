@@ -97,6 +97,18 @@ class CustomerCreateRequest(BaseModel):
 
         return self
 
+class CustomerUpdateRequest(BaseModel):
+    document_type: str | None = None
+    document_number: str | None = Field(default=None, min_length=8, max_length=20)
+    first_name: str | None = None
+    last_name: str | None = None
+    business_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    city: str | None = None
+    status: StatusValue | None = None
+
 
 class CustomerResponse(BaseModel):
     id: UUID
@@ -203,6 +215,53 @@ class ProductCreateRequest(BaseModel):
         return self
 
 
+class ProductUpdateRequest(BaseModel):
+    category_id: UUID | None = None
+
+    sku: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=100,
+    )
+
+    name: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=200,
+    )
+
+    description: str | None = Field(
+        default=None,
+        max_length=1000,
+    )
+
+    unit: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+    )
+
+    sale_price: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    cost_price: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    status: StatusValue | None = None
+
+    @model_validator(mode="after")
+    def validate_not_empty(self):
+        if not self.model_fields_set:
+            raise ValueError(
+                "Debe proporcionar al menos un campo para actualizar."
+            )
+        return self
+
+    
 class ProductResponse(BaseModel):
     id: UUID
     category_id: UUID | None

@@ -1,3 +1,4 @@
+
 import type { ReactNode } from "react";
 
 export interface DataTableColumn<T> {
@@ -10,12 +11,14 @@ interface DataTableProps<T> {
   columns: DataTableColumn<T>[];
   data: T[];
   getRowKey: (row: T) => string | number;
+  actions?: (row: T) => ReactNode;
 }
 
 function DataTable<T>({
   columns,
   data,
   getRowKey,
+  actions,
 }: DataTableProps<T>) {
   return (
     <div className="enterprise-table-wrapper">
@@ -25,6 +28,8 @@ function DataTable<T>({
             {columns.map((column) => (
               <th key={column.key}>{column.label}</th>
             ))}
+
+            {actions && <th>Acciones</th>}
           </tr>
         </thead>
 
@@ -36,6 +41,12 @@ function DataTable<T>({
                   {column.render(row)}
                 </td>
               ))}
+
+              {actions && (
+                <td>
+                  {actions(row)}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
