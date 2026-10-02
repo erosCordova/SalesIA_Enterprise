@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
+from datetime import date
 
 
 class NumericValuesRequest(BaseModel):
@@ -122,3 +123,16 @@ class RandomVariableResponse(BaseModel):
     standard_deviation: float
 
     observations: int
+class SalesStatisticsRequest(BaseModel):
+    start_date: date | None = None
+    end_date: date | None = None
+
+
+class SalesStatisticsResponse(BaseModel):
+    start_date: date | None
+    end_date: date | None
+    count: int
+    mean: float
+    median: float
+    difference: float
+    interpretation: str

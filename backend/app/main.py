@@ -43,3 +43,7 @@ app.include_router(
     api_router,
     prefix=settings.API_V1_PREFIX,
 )
+for route in app.routes:
+    if "sales-analysis" in getattr(route, "path", ""):
+        print("Ruta registrada:", route.path)
+        print("Métodos:", getattr(route, "methods", {}))

@@ -285,3 +285,59 @@
     grid-column: auto;
   }
 }
+
+.sales-dashboard {
+  margin-bottom: 24px;
+  padding: 24px;
+}
+
+.sales-dashboard-filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.sales-dashboard-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.sales-dashboard-filters label span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sales-dashboard-filters input {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #d8deea;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.sales-dashboard-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sales-dashboard-table {
+  width: 100%;
+  margin-top: 16px;
+  border-collapse: collapse;
+}
+
+.sales-dashboard-table th,
+.sales-dashboard-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e8edf5;
+  text-align: left;
+}
+
+.sales-dashboard-table th {
+  font-size: 13px;
+  font-weight: 700;
+}
