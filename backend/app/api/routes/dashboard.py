@@ -30,7 +30,9 @@ def get_dashboard_summary(
     "/status",
     summary="Estado del dashboard",
 )
-def dashboard_status():
+def dashboard_status(
+    current_user: dict = Depends(get_current_user),
+):
     return {
         "module": "Dashboard Ejecutivo",
         "status": "ready",

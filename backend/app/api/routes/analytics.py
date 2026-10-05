@@ -81,7 +81,9 @@ def persist_numeric_analysis(
 
 
 @router.get("/status")
-def analytics_status():
+def analytics_status(
+    current_user: dict = Depends(analytics_user()),
+):
     return {
         "module": "Analytics",
         "status": "ready",
@@ -98,6 +100,16 @@ def analytics_dashboard(
     end_date: date | None = None,
     current_user: dict = Depends(analytics_user()),
 ):
+    if (
+        start_date is not None
+        and end_date is not None
+        and start_date > end_date
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="La fecha inicial no puede ser posterior a la fecha final.",
+        )
+
     return get_analytics_dashboard(
         current_user=current_user,
         start_date=start_date,

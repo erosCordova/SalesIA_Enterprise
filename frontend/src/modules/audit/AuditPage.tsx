@@ -1,208 +1,129 @@
 import {
   AlertTriangle,
-  CheckCircle2,
   FileClock,
-  Info,
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
 
-import {
-  useApiResource,
-} from "../../hooks/useApiResource";
-
-import {
-  getAuditStatus,
-} from "../../services/reporting.service";
-
-import type {
-  ModuleStatus,
-} from "../../types/reporting";
-
+import { useApiResource } from "../../hooks/useApiResource";
+import { getAuditEvents } from "../../services/reporting.service";
+import type { AuditEvent } from "../../types/reporting";
 import "../../styles/reporting.css";
 
+const actionLabels: Record<string, string> = {
+  "user.created": "Creó un usuario",
+  "company.updated": "Actualizó los datos de la empresa",
+  "branch.created": "Creó una sucursal",
+  "branch.updated": "Actualizó una sucursal",
+  "customer.created": "Registró un cliente",
+  "customer.updated": "Actualizó un cliente",
+  "customer.deactivated": "Desactivó un cliente",
+  "category.created": "Creó una categoría",
+  "category.updated": "Actualizó una categoría",
+  "category.deactivated": "Desactivó una categoría",
+  "product.created": "Creó un producto",
+  "product.updated": "Actualizó un producto",
+  "product.deactivated": "Desactivó un producto",
+  "sale.created": "Registró una venta",
+  "report.generated": "Generó un reporte",
+  "report.downloaded": "Descargó un reporte",
+};
+
+const resourceLabels: Record<string, string> = {
+  users: "Usuario",
+  companies: "Empresa",
+  branches: "Sucursal",
+  customers: "Cliente",
+  categories: "Categoría",
+  products: "Producto",
+  sales: "Venta",
+  reports: "Reporte",
+};
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("es-PE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
 
 function AuditPage() {
-  const {
-    data,
-    loading,
-    error,
-    reload,
-  } =
-    useApiResource<ModuleStatus>(
-      getAuditStatus,
-    );
-
+  const { data, loading, error, reload } =
+    useApiResource<AuditEvent[]>(getAuditEvents);
 
   return (
     <section className="module-page">
       <div className="page-heading">
         <div>
-          <span className="page-eyebrow">
-            CONTROL Y TRAZABILIDAD
-          </span>
-
-          <h1>
-            Auditoría
-          </h1>
-
-          <p>
-            Supervisa la disponibilidad
-            del módulo de auditoría y
-            trazabilidad de SalesIA
-            Enterprise.
-          </p>
+          <span className="page-eyebrow">CONTROL Y TRAZABILIDAD</span>
+          <h1>Auditoría</h1>
+          <p>Consulta quién realizó cambios importantes y cuándo ocurrieron.</p>
         </div>
-
-        <div className="module-main-icon">
-          <ShieldCheck
-            size={27}
-          />
-        </div>
+        <div className="module-main-icon"><ShieldCheck size={27} /></div>
       </div>
-
 
       <article className="panel">
         <div className="reporting-toolbar">
           <div className="reporting-toolbar-info">
-            <FileClock
-              size={20}
-            />
-
+            <FileClock size={20} />
             <div>
-              <h2>
-                Estado del módulo
-              </h2>
-
-              <p>
-                Información consultada
-                directamente desde
-                GET /audit/status.
-              </p>
+              <h2>Acciones recientes</h2>
+              <p>Se muestran hasta 100 acciones de tu empresa.</p>
             </div>
           </div>
-
           <button
             type="button"
             className="secondary-button"
             disabled={loading}
-            onClick={() => {
-              void reload();
-            }}
+            onClick={() => void reload()}
           >
-            <RefreshCw
-              size={15}
-            />
-
-            Actualizar
+            <RefreshCw size={15} /> Actualizar
           </button>
         </div>
 
-
         {loading ? (
-          <div className="reporting-loading">
-            Consultando auditoría...
-          </div>
+          <div className="reporting-loading">Consultando el historial…</div>
         ) : error ? (
           <div className="reporting-error">
-            <AlertTriangle
-              size={16}
-            />
-
-            <span>
-              {error}
-            </span>
+            <AlertTriangle size={16} /><span>{error}</span>
           </div>
-        ) : data ? (
-          <>
-            <div className="audit-status-card">
-              <div className="audit-status-icon">
-                <ShieldCheck
-                  size={27}
-                />
-              </div>
-
-              <div>
-                <span className="reporting-badge success">
-                  {data.status}
-                </span>
-
-                <h2
-                  style={{
-                    marginTop: 8,
-                  }}
-                >
-                  {data.module}
-                </h2>
-
-                <p>
-                  El backend confirmó
-                  correctamente la
-                  disponibilidad del
-                  módulo.
-                </p>
-              </div>
-            </div>
-
-
-            <div className="audit-contract-note">
-              <Info
-                size={17}
-              />
-
-              <div>
-                <strong>
-                  Contrato actual del backend
-                </strong>
-
-                <div
-                  style={{
-                    marginTop: 4,
-                  }}
-                >
-                  La API disponible en esta
-                  fase expone el estado del
-                  módulo de auditoría mediante
-                  /audit/status. Esta pantalla
-                  no fabrica eventos ni
-                  registros de auditoría que
-                  todavía no sean entregados
-                  por el backend.
-                </div>
-              </div>
-            </div>
-
-
-            <div
-              className="analytics-success"
-              style={{
-                marginTop: 16,
-                marginBottom: 0,
-              }}
-            >
-              <CheckCircle2
-                size={15}
-              />
-
-              Comunicación con auditoría
-              verificada.
-            </div>
-          </>
+        ) : data?.length ? (
+          <div className="audit-table-wrap">
+            <table className="audit-table">
+              <thead>
+                <tr>
+                  <th>Acción</th>
+                  <th>Sección</th>
+                  <th>Realizada por</th>
+                  <th>Fecha y hora</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((event) => (
+                  <tr key={event.id}>
+                    <td>
+                      <strong>{actionLabels[event.action] ?? "Acción registrada"}</strong>
+                      {event.record_id && (
+                        <span className="audit-record">Referencia: {event.record_id.slice(0, 8)}</span>
+                      )}
+                    </td>
+                    <td>{resourceLabels[event.table_name ?? ""] ?? "General"}</td>
+                    <td>
+                      <strong>{event.actor_name}</strong>
+                      {event.actor_role && <span className="audit-record">{event.actor_role}</span>}
+                    </td>
+                    <td>{formatDate(event.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="reporting-empty">
             <div>
-              <ShieldCheck
-                size={28}
-              />
-
-              <strong>
-                Sin información disponible
-              </strong>
-
-              <p>
-                No se recibió información
-                del estado de auditoría.
-              </p>
+              <ShieldCheck size={28} />
+              <strong>Aún no hay acciones registradas</strong>
+              <p>Los cambios importantes aparecerán aquí cuando se realicen.</p>
             </div>
           </div>
         )}
@@ -210,6 +131,5 @@ function AuditPage() {
     </section>
   );
 }
-
 
 export default AuditPage;

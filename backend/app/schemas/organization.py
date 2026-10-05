@@ -2,7 +2,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.schemas.common import strip_string_fields, validate_optional_email
 
 
 StatusValue = Literal[
@@ -75,6 +77,16 @@ class CompanyUpdateRequest(BaseModel):
 
     status: StatusValue | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value):
+        return validate_optional_email(value)
+
 
 class BranchCreateRequest(BaseModel):
     code: str = Field(
@@ -117,6 +129,16 @@ class BranchCreateRequest(BaseModel):
 
     status: StatusValue = "active"
 
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value):
+        return validate_optional_email(value)
+
 
 class BranchUpdateRequest(BaseModel):
     code: str | None = Field(
@@ -157,6 +179,16 @@ class BranchUpdateRequest(BaseModel):
     )
 
     status: StatusValue | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value):
+        return validate_optional_email(value)
 
 
 class BranchResponse(BaseModel):

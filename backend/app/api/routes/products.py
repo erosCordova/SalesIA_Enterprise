@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
+    Query,
     status,
 )
 
@@ -30,7 +31,7 @@ router = APIRouter()
     summary="Listar productos",
 )
 def list_products(
-    search: str | None = None,
+    search: str | None = Query(default=None, max_length=100),
     category_id: UUID | None = None,
     current_user: dict = Depends(
         require_roles(

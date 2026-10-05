@@ -6,10 +6,11 @@ from fastapi import (
 )
 
 from pathlib import Path
+from uuid import UUID
 
 from fastapi.responses import FileResponse
 
-from app.api.dependencies.auth import require_permission
+from app.api.dependencies.auth import get_current_user, require_permission
 from app.schemas.reporting import (
     ReportGenerateRequest,
     ReportListItem,
@@ -39,7 +40,9 @@ def list_reports(
     "/status",
     summary="Estado del módulo de reportes",
 )
-def reports_status():
+def reports_status(
+    current_user: dict = Depends(get_current_user),
+):
     return {
         "module": "Reportes",
         "status": "ready",
@@ -69,7 +72,7 @@ def create_report(
     summary="Descargar reporte",
 )
 def download_report(
-    report_id: str,
+    report_id: UUID,
     current_user: dict = Depends(
         require_permission("reports.download")
     ),
@@ -111,6 +114,16 @@ def download_report(
         raise HTTPException(
             status_code=404,
             detail="Archivo del reporte no encontrado.",
+        )
+
+    from app.services.audit import record_critical_action
+
+    with engine.begin() as connection:
+        record_critical_action(
+            connection, current_user,
+            action="report.downloaded", table_name="reports",
+            record_id=report_id,
+            details={"format": "csv"},
         )
 
     return FileResponse(

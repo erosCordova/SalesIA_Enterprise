@@ -6,6 +6,8 @@ from fastapi import (
 
     Depends,
 
+    Query,
+
     status,
 
 )
@@ -65,7 +67,7 @@ router = APIRouter()
 )
 
 def list_customers(
-    search: str | None = None,
+    search: str | None = Query(default=None, max_length=100),
     current_user: dict = Depends(
         require_roles(
             "Administrador",

@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import engine
+from app.services.audit import record_critical_action
 from app.repositories import organization as repository
 from app.schemas.organization import (
     BranchCreateRequest,
@@ -88,6 +89,13 @@ def update_current_company(
                 company_id,
                 values,
             )
+            if row:
+                record_critical_action(
+                    connection, current_user,
+                    action="company.updated", table_name="companies",
+                    record_id=company_id,
+                    details={"changed_fields": sorted(values.keys())},
+                )
 
     except IntegrityError as exc:
         raise HTTPException(
@@ -177,6 +185,11 @@ def create_branch(
             ),
             status=data.status,
         )
+        record_critical_action(
+            connection, current_user,
+            action="branch.created", table_name="branches",
+            record_id=row["id"], details={"changed_fields": ["code", "name", "status"]},
+        )
 
     return BranchResponse(
         **dict(row)
@@ -234,6 +247,13 @@ def update_branch(
                 branch_id=branch_id,
                 values=values,
             )
+            if row:
+                record_critical_action(
+                    connection, current_user,
+                    action="branch.updated", table_name="branches",
+                    record_id=branch_id,
+                    details={"changed_fields": sorted(values.keys())},
+                )
 
     except IntegrityError as exc:
         raise HTTPException(

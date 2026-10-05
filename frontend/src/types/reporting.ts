@@ -72,3 +72,13 @@ export interface ModuleStatus {
   module: string;
   status: string;
 }
+
+export interface AuditEvent {
+  id: string;
+  action: string;
+  table_name: string | null;
+  record_id: string | null;
+  created_at: string;
+  actor_name: string;
+  actor_role: string | null;
+}

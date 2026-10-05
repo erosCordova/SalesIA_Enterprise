@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 RoleName = Literal[
@@ -53,6 +53,20 @@ class UserCreateRequest(BaseModel):
     )
 
     status: UserStatus = "active"
+
+    @field_validator("first_name", "last_name", mode="before")
+    @classmethod
+    def trim_personal_names(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+        return value
+
+    @field_validator("password")
+    @classmethod
+    def reject_blank_password(cls, value):
+        if not value.strip():
+            raise ValueError("La contraseña no puede contener solo espacios.")
+        return value
 
 
 class UserCreatedResponse(BaseModel):

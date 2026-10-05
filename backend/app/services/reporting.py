@@ -4,6 +4,7 @@ import json
 from sqlalchemy import text
 
 from app.core.database import engine
+from app.services.audit import record_critical_action
 from app.repositories.reporting import (
     list_insights,
     list_reports,
@@ -181,8 +182,16 @@ def generate_report(
                 if data.end_date
                 else None
             ),
-            "employee_id": data.employee_id,
-            "category_id": data.category_id,
+            "employee_id": (
+                str(data.employee_id)
+                if data.employee_id
+                else None
+            ),
+            "category_id": (
+                str(data.category_id)
+                if data.category_id
+                else None
+            ),
         }
 
         file_url = (
@@ -233,6 +242,12 @@ def generate_report(
                 "file_url": file_url,
             },
         ).mappings().one()
+        record_critical_action(
+            connection, current_user,
+            action="report.generated", table_name="reports",
+            record_id=report_id,
+            details={"report_type": data.report_type},
+        )
 
     return ReportListItem(
         **dict(row)

@@ -2,7 +2,9 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.schemas.common import strip_string_fields, validate_optional_email
 
 
 StatusValue = Literal[
@@ -69,6 +71,16 @@ class CustomerCreateRequest(BaseModel):
     )
 
     status: StatusValue = "active"
+
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value):
+        return validate_optional_email(value)
 
     @model_validator(mode="after")
     def validate_name(self):
@@ -165,6 +177,16 @@ class CustomerUpdateRequest(BaseModel):
 
     status: StatusValue = "active"
 
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value):
+        return validate_optional_email(value)
+
     @model_validator(mode="after")
     def validate_name(self):
         if not any([
@@ -211,6 +233,11 @@ class CategoryCreateRequest(BaseModel):
 
     status: StatusValue = "active"
 
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
+
 
 class CategoryUpdateRequest(BaseModel):
     name: str = Field(
@@ -225,6 +252,11 @@ class CategoryUpdateRequest(BaseModel):
     )
 
     status: StatusValue = "active"
+
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
 
 
 class CategoryResponse(BaseModel):
@@ -281,6 +313,11 @@ class ProductUpdateRequest(BaseModel):
     )
 
     status: StatusValue = "active"
+
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
 
     @model_validator(mode="after")
     def validate_stock_limits(self):
@@ -348,6 +385,11 @@ class ProductCreateRequest(BaseModel):
 
     status: StatusValue = "active"
 
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
+
     @model_validator(mode="after")
     def validate_stock_limits(self):
         if (
@@ -401,6 +443,8 @@ class SaleCreateRequest(BaseModel):
     items: list[SaleItemCreate] = Field(
         ...,
         min_length=1,
+        max_length=100,
+        description="La venta debe incluir entre 1 y 100 productos.",
     )
 
     sale_discount: Decimal = Field(
@@ -425,6 +469,11 @@ class SaleCreateRequest(BaseModel):
         default=None,
         max_length=1000,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def trim_text_fields(cls, value):
+        return strip_string_fields(value)
 
 
 class SaleDetailResponse(BaseModel):
