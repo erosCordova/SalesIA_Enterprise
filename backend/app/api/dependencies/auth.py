@@ -27,12 +27,13 @@ def get_current_user(
 
     token = credentials.credentials
 
-    supabase = create_client(
-        settings.SUPABASE_URL,
-        settings.SUPABASE_PUBLISHABLE_KEY,
-    )
+   
 
     try:
+        supabase = create_client(
+            settings.SUPABASE_URL,
+            settings.SUPABASE_PUBLISHABLE_KEY,
+        )
         auth_response = supabase.auth.get_user(token)
     except Exception:
         raise HTTPException(

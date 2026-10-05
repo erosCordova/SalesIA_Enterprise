@@ -265,7 +265,7 @@ function AnalyticsPage() {
         <section className="analytics-section">
           <h2>Análisis estadístico de ventas</h2>
 
-          <p>Analiza las ventas completadas dentro del período seleccionado.</p>
+         
 
           <button
             type="button"

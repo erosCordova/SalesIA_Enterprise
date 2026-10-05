@@ -28,7 +28,7 @@ def dashboard_summary(
             sales_user_id=sales_user_id,
             include_sales=include_sales,
         )
-
+    
     return DashboardSummaryResponse(
         **result,
         scope=scope,

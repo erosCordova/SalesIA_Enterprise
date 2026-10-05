@@ -78,23 +78,36 @@ def find_customer_by_document(
 
 
 def get_customer(
-    connection: Connection,
-    company_id: UUID,
-    customer_id: UUID,
-):
+        connection: Connection,
+        company_id: UUID,
+        customer_id: UUID,
+    ):
     return connection.execute(
-        text("""
-            SELECT id
-            FROM customers
-            WHERE id = :customer_id
-              AND company_id = :company_id
-            LIMIT 1
-        """),
-        {
-            "customer_id": customer_id,
-            "company_id": company_id,
-        },
-    ).mappings().first()
+    text("""
+        SELECT
+        id,
+        document_type,
+        document_number,
+        first_name,
+        last_name,
+        business_name,
+        email,
+        phone,
+        address,
+        city,
+        status
+        FROM customers
+        WHERE id = :customer_id
+        AND company_id = :company_id
+        LIMIT 1
+    """),
+{
+"customer_id": customer_id,
+"company_id": company_id,
+},
+).mappings().first()
+
+
 
 
 def create_customer(

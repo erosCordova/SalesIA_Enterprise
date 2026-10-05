@@ -20,11 +20,7 @@ import {
   YAxis,
 } from "recharts";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import StatCard from "../../components/ui/StatCard";
 import { apiFetch } from "../../services/api";
@@ -35,64 +31,41 @@ interface DashboardSummary {
   active_customers?: number | null;
   average_ticket?: number | null;
   growth_percentage?: number | null;
-
   sales_by_day?: Array<{
     day?: string;
     sales?: number;
     revenue?: number;
   }> | null;
-
   recent_sales?: Array<{
     id?: string;
     sale_number?: string;
-    customer?: string;
     customer_name?: string;
-    date?: string;
     sale_date?: string;
-    amount?: number;
     total?: number;
     status?: string;
   }> | null;
-
   stock_alerts?: Array<{
-    product?: string;
     product_name?: string;
-    stock?: number;
     stock_quantity?: number;
-    level?: string;
     stock_status?: string;
   }> | null;
 }
-
-function numberValue(
-  value: unknown,
-): number {
+function numberValue(value: unknown): number {
   const parsed = Number(value);
 
-  return Number.isFinite(parsed)
-    ? parsed
-    : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatCurrency(
-  value: unknown,
-) {
-  return new Intl.NumberFormat(
-    "es-PE",
-    {
-      style: "currency",
-      currency: "PEN",
-      minimumFractionDigits: 2,
-    },
-  ).format(numberValue(value));
+function formatCurrency(value: unknown) {
+  return new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: "PEN",
+    minimumFractionDigits: 2,
+  }).format(numberValue(value));
 }
 
-function formatNumber(
-  value: unknown,
-) {
-  return new Intl.NumberFormat(
-    "es-PE",
-  ).format(numberValue(value));
+function formatNumber(value: unknown) {
+  return new Intl.NumberFormat("es-PE").format(numberValue(value));
 }
 
 function DashboardLoading() {
@@ -100,29 +73,18 @@ function DashboardLoading() {
     <section className="dashboard-page">
       <div className="page-heading">
         <div>
-          <span className="page-eyebrow">
-            CENTRO DE CONTROL
-          </span>
+          <span className="page-eyebrow">CENTRO DE CONTROL</span>
 
-          <h1>
-            Dashboard ejecutivo
-          </h1>
+          <h1>Dashboard ejecutivo</h1>
 
-          <p>
-            Cargando información empresarial...
-          </p>
+          <p>Cargando información empresarial...</p>
         </div>
       </div>
 
       <div className="stats-grid">
-        {[1, 2, 3, 4].map(
-          (item) => (
-            <div
-              key={item}
-              className="dashboard-skeleton-card"
-            />
-          ),
-        )}
+        {[1, 2, 3, 4].map((item) => (
+          <div key={item} className="dashboard-skeleton-card" />
+        ))}
       </div>
 
       <div className="dashboard-skeleton-panel" />
@@ -144,13 +106,9 @@ function DashboardError({
           <AlertTriangle size={24} />
         </div>
 
-        <h2>
-          No fue posible cargar el dashboard
-        </h2>
+        <h2>No fue posible cargar el dashboard</h2>
 
-        <p>
-          {message}
-        </p>
+        <p>{message}</p>
 
         <button
           type="button"
@@ -170,71 +128,45 @@ function DashboardEmpty() {
       <div className="dashboard-empty-state">
         <Package size={30} />
 
-        <h2>
-          Sin información disponible
-        </h2>
+        <h2>Sin información disponible</h2>
 
-        <p>
-          El backend no devolvió información
-          para mostrar en el dashboard.
-        </p>
+        <p>El backend no devolvió información para mostrar en el dashboard.</p>
       </div>
     </section>
   );
 }
 
 function DashboardPage() {
-  const [
-    summary,
-    setSummary,
-  ] = useState<DashboardSummary | null>(
-    null,
-  );
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [error, setError] = useState("");
 
-  const loadDashboard =
-    useCallback(async () => {
-      setLoading(true);
-      setError("");
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-      try {
-        const data =
-          await apiFetch<DashboardSummary>(
-            "/dashboard/summary",
-          );
+    try {
+      const data = await apiFetch<DashboardSummary>("/dashboard/summary");
 
-        console.log(
-          "SalesIA Dashboard API:",
-          data,
-        );
+      console.log("SalesIA Dashboard API:", data);
 
-        setSummary(data || {});
-      } catch (err) {
-        console.error(
-          "Error Dashboard:",
-          err,
-        );
+      setSummary(data || {});
+    } catch (err) {
+      console.error("Error Dashboard:", err);
 
-        setSummary(null);
+      setSummary(null);
 
-        setError(
-          err instanceof Error
-            ? err.message
-            : "No fue posible obtener la información del dashboard.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }, []);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No fue posible obtener la información del dashboard.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadDashboard();
@@ -245,120 +177,69 @@ function DashboardPage() {
   }
 
   if (error) {
-    return (
-      <DashboardError
-        message={error}
-        onRetry={loadDashboard}
-      />
-    );
+    return <DashboardError message={error} onRetry={loadDashboard} />;
   }
 
   if (!summary) {
     return <DashboardEmpty />;
   }
 
-  const salesCount =
-    numberValue(
-      summary.sales_count,
-    );
+  const salesCount = numberValue(summary.sales_count);
 
-  const revenue =
-    numberValue(
-      summary.revenue,
-    );
+  const revenue = numberValue(summary.revenue);
 
-  const activeCustomers =
-    numberValue(
-      summary.active_customers,
-    );
+  const activeCustomers = numberValue(summary.active_customers);
 
-  const averageTicket =
-    numberValue(
-      summary.average_ticket,
-    );
+  const averageTicket = numberValue(summary.average_ticket);
 
-  const growth =
-    numberValue(
-      summary.growth_percentage,
-    );
+  const growth = numberValue(summary.growth_percentage);
 
-  const salesByDay =
-    Array.isArray(
-      summary.sales_by_day,
-    )
-      ? summary.sales_by_day
-      : [];
+  const salesByDay = Array.isArray(summary.sales_by_day)
+    ? summary.sales_by_day
+    : [];
 
-  const recentSales =
-    Array.isArray(
-      summary.recent_sales,
-    )
-      ? summary.recent_sales
-      : [];
+  const recentSales = Array.isArray(summary.recent_sales)
+    ? summary.recent_sales
+    : [];
 
-  const stockAlerts =
-    Array.isArray(
-      summary.stock_alerts,
-    )
-      ? summary.stock_alerts
-      : [];
+  const stockAlerts = Array.isArray(summary.stock_alerts)
+    ? summary.stock_alerts
+    : [];
 
-  const chartData =
-    salesByDay.map(
-      (item, index) => ({
-        day:
-          item.day ||
-          `Día ${index + 1}`,
-        sales: numberValue(
-          item.sales ??
-          item.revenue,
-        ),
-      }),
-    );
+  const chartData = salesByDay.map((item, index) => ({
+    day: item.day || `Día ${index + 1}`,
+    revenue: numberValue(item.revenue),
+  }));
 
   return (
     <section className="dashboard-page">
       <div className="page-heading">
         <div>
-          <span className="page-eyebrow">
-            CENTRO DE CONTROL
-          </span>
+          <span className="page-eyebrow">CENTRO DE CONTROL</span>
 
-          <h1>
-            Dashboard ejecutivo
-          </h1>
+          <h1>Dashboard ejecutivo</h1>
 
           <p>
-            Resumen general de la actividad
-            comercial, ingresos, clientes e
+            Resumen general de la actividad comercial, ingresos, clientes e
             inventario de SalesIA Enterprise.
           </p>
         </div>
 
-        <button
-          type="button"
-          className="date-filter-button"
-        >
+        <button type="button" className="date-filter-button">
           <CalendarDays size={17} />
-          Últimos 7 días
+          Últimos 30 días
         </button>
       </div>
 
       <div className="dashboard-highlight">
         <div>
-          <span>
-            RESUMEN COMERCIAL
-          </span>
+          <span>RESUMEN COMERCIAL</span>
 
-          <h2>
-            Resumen actualizado desde
-            el backend empresarial.
-          </h2>
+          <h2>Resumen actualizado desde el backend empresarial.</h2>
 
           <p>
-            Los indicadores mostrados
-            corresponden a la información
-            disponible en SalesIA Enterprise.
+            Los indicadores mostrados corresponden a la información disponible
+            en SalesIA Enterprise.
           </p>
         </div>
 
@@ -367,15 +248,11 @@ function DashboardPage() {
 
           <div>
             <strong>
-              {growth >= 0
-                ? "+"
-                : ""}
+              {growth >= 0 ? "+" : ""}
               {growth.toFixed(1)}%
             </strong>
 
-            <span>
-              crecimiento semanal
-            </span>
+            <span>crecimiento semanal</span>
           </div>
         </div>
       </div>
@@ -383,33 +260,23 @@ function DashboardPage() {
       <div className="stats-grid">
         <StatCard
           title="Ventas registradas"
-          value={formatNumber(
-            salesCount,
-          )}
-          change={`${growth.toFixed(
-            1,
-          )}%`}
+          value={formatNumber(salesCount)}
+          change={`${growth.toFixed(1)}%`}
           caption="vs. periodo anterior"
           icon={ShoppingBag}
         />
 
         <StatCard
           title="Ingresos"
-          value={formatCurrency(
-            revenue,
-          )}
-          change={`${growth.toFixed(
-            1,
-          )}%`}
+          value={formatCurrency(revenue)}
+          change={`${growth.toFixed(1)}%`}
           caption="periodo actual"
           icon={Banknote}
         />
 
         <StatCard
           title="Clientes activos"
-          value={formatNumber(
-            activeCustomers,
-          )}
+          value={formatNumber(activeCustomers)}
           change="—"
           caption="clientes registrados"
           icon={UsersRound}
@@ -417,9 +284,7 @@ function DashboardPage() {
 
         <StatCard
           title="Ticket promedio"
-          value={formatCurrency(
-            averageTicket,
-          )}
+          value={formatCurrency(averageTicket)}
           change="—"
           caption="promedio por venta"
           icon={ReceiptText}
@@ -430,37 +295,22 @@ function DashboardPage() {
         <article className="panel panel-large">
           <div className="panel-header">
             <div>
-              <span className="panel-label">
-                RENDIMIENTO
-              </span>
+              <span className="panel-label">RENDIMIENTO</span>
 
-              <h3>
-                Ingresos por día
-              </h3>
+              <h3>Ingresos por día</h3>
             </div>
 
             <div className="panel-total">
-              <span>
-                Total semanal
-              </span>
+              <span>Total Mensual</span>
 
-              <strong>
-                {formatCurrency(
-                  revenue,
-                )}
-              </strong>
+              <strong>{formatCurrency(revenue)}</strong>
             </div>
           </div>
 
           <div className="chart-container">
             {chartData.length > 0 ? (
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <AreaChart
-                  data={chartData}
-                >
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
                   <defs>
                     <linearGradient
                       id="salesGradient"
@@ -482,13 +332,11 @@ function DashboardPage() {
                       />
                     </linearGradient>
                   </defs>
-
                   <CartesianGrid
                     strokeDasharray="4 4"
                     vertical={false}
                     stroke="#E9EEF5"
                   />
-
                   <XAxis
                     dataKey="day"
                     axisLine={false}
@@ -498,7 +346,6 @@ function DashboardPage() {
                       fontSize: 11,
                     }}
                   />
-
                   <YAxis
                     axisLine={false}
                     tickLine={false}
@@ -507,18 +354,12 @@ function DashboardPage() {
                       fontSize: 11,
                     }}
                   />
-
-                  <Tooltip
-                    formatter={(value) =>
-                      formatCurrency(
-                        value,
-                      )
-                    }
-                  />
+                  <Tooltip formatter={(value) => formatCurrency(value)} />
 
                   <Area
                     type="monotone"
-                    dataKey="sales"
+                    dataKey="revenue"
+                    name="Ingresos"
                     stroke="#2563EB"
                     strokeWidth={2.5}
                     fill="url(#salesGradient)"
@@ -529,10 +370,7 @@ function DashboardPage() {
               <div className="dashboard-chart-empty">
                 <Package size={24} />
 
-                <span>
-                  No hay datos diarios
-                  disponibles.
-                </span>
+                <span>No hay datos diarios disponibles.</span>
               </div>
             )}
           </div>
@@ -541,82 +379,49 @@ function DashboardPage() {
         <article className="panel">
           <div className="panel-header">
             <div>
-              <span className="panel-label">
-                OPERACIÓN
-              </span>
+              <span className="panel-label">OPERACIÓN</span>
 
-              <h3>
-                Ventas recientes
-              </h3>
+              <h3>Ventas recientes</h3>
             </div>
 
             <ArrowRight size={18} />
           </div>
 
           <div className="dashboard-list">
-            {recentSales.length ===
-              0 ? (
+            {recentSales.length === 0 ? (
               <div className="dashboard-list-empty">
                 No hay ventas recientes.
               </div>
             ) : (
-              recentSales.map(
-                (sale, index) => {
-                  const saleId =
-                    sale.id ||
-                    sale.sale_number ||
-                    `Venta-${index + 1}`;
+              recentSales.map((sale, index) => {
+                const saleId =
+                  sale.id || sale.sale_number || `Venta-${index + 1}`;
 
-                  const customer =
-                    sale.customer ||
-                    sale.customer_name ||
-                    "Cliente no especificado";
+                const customer =
+                  sale.customer_name || "Cliente no especificado";
+                const date = sale.sale_date
+                  ? new Date(sale.sale_date).toLocaleDateString("es-PE")
+                  : "Fecha no disponible";
+                const amount = sale.total ?? 0;
 
-                  const date =
-                    sale.date ||
-                    sale.sale_date ||
-                    "";
+                return (
+                  <div className="dashboard-list-item" key={saleId}>
+                    <div>
+                      <strong>{saleId}</strong>
 
-                  const amount =
-                    sale.amount ??
-                    sale.total ??
-                    0;
+                      <span>{customer}</span>
 
-                  return (
-                    <div
-                      className="dashboard-list-item"
-                      key={saleId}
-                    >
-                      <div>
-                        <strong>
-                          {saleId}
-                        </strong>
-
-                        <span>
-                          {customer}
-                        </span>
-
-                        <small>
-                          {date}
-                        </small>
-                      </div>
-
-                      <div className="dashboard-list-value">
-                        <strong>
-                          {formatCurrency(
-                            amount,
-                          )}
-                        </strong>
-
-                        <span>
-                          {sale.status ||
-                            "Registrada"}
-                        </span>
-                      </div>
+                      <small>{date}</small>
                     </div>
-                  );
-                },
-              )
+
+                    <div className="dashboard-list-value">
+                      <strong>{formatCurrency(amount)}</strong>
+
+                      <span>{sale.status || "Registrada"}</span>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </article>
@@ -624,69 +429,42 @@ function DashboardPage() {
         <article className="panel">
           <div className="panel-header">
             <div>
-              <span className="panel-label">
-                INVENTARIO
-              </span>
+              <span className="panel-label">INVENTARIO</span>
 
-              <h3>
-                Alertas de stock
-              </h3>
+              <h3>Alertas de stock</h3>
             </div>
 
             <AlertTriangle size={18} />
           </div>
 
           <div className="dashboard-list">
-            {stockAlerts.length ===
-              0 ? (
+            {stockAlerts.length === 0 ? (
               <div className="dashboard-list-empty">
                 No hay alertas de inventario.
               </div>
             ) : (
-              stockAlerts.map(
-                (alert, index) => {
-                  const product =
-                    alert.product ||
-                    alert.product_name ||
-                    `Producto ${index + 1}`;
-
-                  const stock =
-                    alert.stock ??
-                    alert.stock_quantity ??
-                    0;
-
-                  const level =
-                    alert.level ||
-                    alert.stock_status ||
-                    "Bajo";
-
-                  return (
-                    <div
-                      className="dashboard-list-item"
-                      key={`${product}-${index}`}
-                    >
-                      <div>
-                        <strong>
-                          {product}
-                        </strong>
-
-                        <span>
-                          Stock:{" "}
-                          {formatNumber(
-                            stock,
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="dashboard-alert-level">
-                        <span>
-                          {level}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                },
-              )
+              stockAlerts.map((alert, index) => {
+                const product = alert.product_name || `Producto ${index + 1}`;
+                const stock = alert.stock_quantity ?? 0;
+                const level = alert.stock_status || "Stock bajo";
+                return (
+                  <div
+                    className="dashboard-list-item"
+                    key={`${product}-${index}`}
+                  >
+                    {" "}
+                    <div>
+                      {" "}
+                      <strong>{product}</strong>{" "}
+                      <span>Stock: {formatNumber(stock)}</span>{" "}
+                    </div>{" "}
+                    <div className="dashboard-alert-level">
+                      {" "}
+                      <span>{level}</span>{" "}
+                    </div>{" "}
+                  </div>
+                );
+              })
             )}
           </div>
         </article>

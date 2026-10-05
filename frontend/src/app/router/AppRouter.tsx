@@ -1,19 +1,10 @@
-import {
-  Navigate,
-  Outlet,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 
 import MainLayout from "../../layouts/MainLayout";
 
-import {
-  useAuth,
-} from "../../services/auth.context";
+import { useAuth } from "../../services/auth.context";
 
-import type {
-  UserRole,
-} from "../../types/auth";
+import type { UserRole } from "../../types/auth";
 
 import AccessPage from "../../modules/auth/AccessPage";
 import LoginPage from "../../modules/auth/LoginPage";
@@ -37,96 +28,57 @@ function LoadingScreen() {
   return (
     <div className="app-loading-screen">
       <div className="app-loading-card">
-        <div className="app-loading-mark">
-          S
-        </div>
+        <div className="app-loading-mark">S</div>
 
-        <strong>
-          SalesIA Enterprise
-        </strong>
+        <strong>SalesIA Enterprise</strong>
 
-        <span>
-          Validando sesión...
-        </span>
+        <span>Validando sesión...</span>
       </div>
     </div>
   );
 }
 
 function ProtectedRoute() {
-  const {
-    authenticated,
-    loading,
-  } = useAuth();
+  const { authenticated, loading } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
   }
 
   if (!authenticated) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;
 }
 
-function RoleRoute({
-  allowed,
-}: {
-  allowed: UserRole[];
-}) {
-  const {
-    user,
-    loading,
-  } = useAuth();
+function RoleRoute({ allowed }: { allowed: UserRole[] }) {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
   }
 
   if (!user) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
+    return <Navigate to="/login" replace />;
   }
 
   if (!allowed.includes(user.role)) {
-    return (
-      <Navigate
-        to="/dashboard"
-        replace
-      />
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;
 }
 
 function LoginRoute() {
-  const {
-    authenticated,
-    loading,
-  } = useAuth();
+  const { authenticated, loading } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
   }
 
   if (authenticated) {
-    return (
-      <Navigate
-        to="/dashboard"
-        replace
-      />
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <LoginPage />;
@@ -135,194 +87,79 @@ function LoginRoute() {
 export default function AppRouter() {
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={<LoginRoute />}
-      />
+      <Route path="/login" element={<LoginRoute />} />
 
-      <Route
-        element={<ProtectedRoute />}
-      >
-        <Route
-          element={<MainLayout />}
-        >
-          <Route
-            path="/dashboard"
-            element={<DashboardPage />}
-          />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
 
           <Route
             element={
-              <RoleRoute
-                allowed={[
-                  "Administrador",
-                  "Gerente",
-                  "Vendedor",
-                ]}
-              />
+              <RoleRoute allowed={["Administrador", "Gerente", "Vendedor"]} />
             }
           >
-            <Route
-              path="/commercial"
-              element={<CommercialPage />}
-            />
+            <Route path="/commercial" element={<CommercialPage />} />
 
-            <Route
-              path="/sales"
-              element={<VentasPage />}
-            />
+            <Route path="/sales" element={<VentasPage />} />
+          </Route>
+
+          <Route
+            element={<RoleRoute allowed={["Administrador", "Vendedor"]} />}
+          >
+            <Route path="/sales/new" element={<NuevaVentaPage />} />
           </Route>
 
           <Route
             element={
               <RoleRoute
-                allowed={[
-                  "Administrador",
-                  "Vendedor",
-                ]}
+                allowed={["Administrador", "Gerente", "Vendedor", "Almacén"]}
               />
             }
           >
-            <Route
-              path="/sales/new"
-              element={<NuevaVentaPage />}
-            />
+            <Route path="/products" element={<ProductosPage />} />
           </Route>
 
           <Route
             element={
-              <RoleRoute
-                allowed={[
-                  "Administrador",
-                  "Gerente",
-                  "Vendedor",
-                  "Almacén",
-                ]}
-              />
+              <RoleRoute allowed={["Administrador", "Gerente", "Almacén"]} />
             }
           >
-            <Route
-              path="/products"
-              element={<ProductosPage />}
-            />
+            <Route path="/categories" element={<CategoriasPage />} />
+
+            <Route path="/inventory" element={<InventoryPage />} />
+          </Route>
+
+          <Route element={<RoleRoute allowed={["Administrador", "Gerente"]} />}>
+            <Route path="/company" element={<EmpresaPage />} />
+
+            <Route path="/branches" element={<SucursalesPage />} />
           </Route>
 
           <Route
             element={
-              <RoleRoute
-                allowed={[
-                  "Administrador",
-                  "Gerente",
-                  "Almacén",
-                ]}
-              />
+              <RoleRoute allowed={["Administrador", "Gerente", "Analista"]} />
             }
           >
-            <Route
-              path="/categories"
-              element={<CategoriasPage />}
-            />
+            <Route path="/analytics" element={<AnalyticsPage />} />
 
-            <Route
-              path="/inventory"
-              element={<InventoryPage />}
-            />
+            <Route path="/probability" element={<ProbabilidadPage />} />
+
+            <Route path="/insights" element={<InsightsPage />} />
+
+            <Route path="/reports" element={<ReportsPage />} />
           </Route>
 
-          <Route
-            element={
-              <RoleRoute
-                allowed={[
-                  "Administrador",
-                  "Gerente",
-                ]}
-              />
-            }
-          >
-            <Route
-              path="/company"
-              element={<EmpresaPage />}
-            />
+          <Route element={<RoleRoute allowed={["Administrador"]} />}>
+            <Route path="/audit" element={<AuditPage />} />
 
-            <Route
-              path="/branches"
-              element={<SucursalesPage />}
-            />
-          </Route>
-
-          <Route
-            element={
-              <RoleRoute
-                allowed={[
-                  "Administrador",
-                  "Gerente",
-                  "Analista",
-                ]}
-              />
-            }
-          >
-            <Route
-              path="/analytics"
-              element={<AnalyticsPage />}
-            />
-
-            <Route
-              path="/probability"
-              element={<ProbabilidadPage />}
-            />
-
-            <Route
-              path="/insights"
-              element={<InsightsPage />}
-            />
-
-            <Route
-              path="/reports"
-              element={<ReportsPage />}
-            />
-          </Route>
-
-          <Route
-            element={
-              <RoleRoute
-                allowed={[
-                  "Administrador",
-                ]}
-              />
-            }
-          >
-            <Route
-              path="/audit"
-              element={<AuditPage />}
-            />
-
-            <Route
-              path="/access"
-              element={<AccessPage />}
-            />
+            <Route path="/access" element={<AccessPage />} />
           </Route>
         </Route>
       </Route>
 
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to="/dashboard"
-            replace
-          />
-        }
-      />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      <Route
-        path="*"
-        element={
-          <Navigate
-            to="/dashboard"
-            replace
-          />
-        }
-      />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
