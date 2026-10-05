@@ -9,11 +9,18 @@ import {
 } from "react";
 
 import {
+  getToken,
   getCurrentUser,
   getStoredUser,
   login as loginRequest,
   logout as clearSession,
 } from "./auth.service";
+
+import {
+  ACCESS_TOKEN_KEY,
+  clearStoredSession,
+  getSessionExpiresAt,
+} from "./session";
 
 import type {
   AuthUser,
@@ -48,21 +55,12 @@ export function AuthProvider({
 
   const [loading, setLoading] =
     useState<boolean>(
-      () =>
-        Boolean(
-          localStorage.getItem(
-            "access_token",
-          ),
-        ),
+      () => Boolean(getToken()),
     );
 
   const refreshUser =
     useCallback(async () => {
-      if (
-        !localStorage.getItem(
-          "access_token",
-        )
-      ) {
+      if (!getToken()) {
         setUser(null);
         return null;
       }
@@ -82,13 +80,48 @@ export function AuthProvider({
     }, []);
 
   useEffect(() => {
+    function handleSessionExpired() {
+      clearStoredSession();
+      setUser(null);
+      setLoading(false);
+    }
+
+    function handleStorageChange(event: StorageEvent) {
+      if (
+        event.key === null
+        || (event.key === ACCESS_TOKEN_KEY && event.newValue === null)
+      ) {
+        handleSessionExpired();
+      }
+    }
+
+    window.addEventListener("salesia:session-expired", handleSessionExpired);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("salesia:session-expired", handleSessionExpired);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const expiresAt = getSessionExpiresAt();
+    if (expiresAt === null) return;
+
+    const timeout = window.setTimeout(() => {
+      clearStoredSession();
+      setUser(null);
+    }, Math.max(0, expiresAt - Date.now()));
+
+    return () => window.clearTimeout(timeout);
+  }, [user]);
+
+  useEffect(() => {
     let mounted = true;
 
-    if (
-      !localStorage.getItem(
-        "access_token",
-      )
-    ) {
+    if (!getToken()) {
       setLoading(false);
 
       return () => {
@@ -150,9 +183,7 @@ export function AuthProvider({
       authenticated:
         Boolean(
           user &&
-            localStorage.getItem(
-              "access_token",
-            ),
+            getToken(),
         ),
       login,
       refreshUser,

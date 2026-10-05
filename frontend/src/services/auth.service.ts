@@ -6,8 +6,12 @@ import type {
   AuthUser,
 } from "../types/auth";
 
-const TOKEN_KEY = "access_token";
-const USER_KEY = "user";
+import {
+  clearStoredSession,
+  getActiveAccessToken,
+  saveStoredSession,
+  USER_KEY,
+} from "./session";
 
 export async function login(
   credentials: LoginRequest,
@@ -23,14 +27,10 @@ export async function login(
       },
     );
 
-  localStorage.setItem(
-    TOKEN_KEY,
+  saveStoredSession(
     response.access_token,
-  );
-
-  localStorage.setItem(
-    USER_KEY,
-    JSON.stringify(response.user),
+    response.user,
+    response.expires_in,
   );
 
   return response;
@@ -51,6 +51,11 @@ export async function getCurrentUser(): Promise<AuthUser> {
 }
 
 export function getStoredUser(): AuthUser | null {
+  if (!getActiveAccessToken()) {
+    clearStoredSession();
+    return null;
+  }
+
   const raw =
     localStorage.getItem(USER_KEY);
 
@@ -70,25 +75,13 @@ export function getStoredUser(): AuthUser | null {
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem(
-    TOKEN_KEY,
-  );
+  return getActiveAccessToken();
 }
 
 export function isAuthenticated(): boolean {
-  return Boolean(
-    localStorage.getItem(
-      TOKEN_KEY,
-    ),
-  );
+  return Boolean(getActiveAccessToken());
 }
 
 export function logout(): void {
-  localStorage.removeItem(
-    TOKEN_KEY,
-  );
-
-  localStorage.removeItem(
-    USER_KEY,
-  );
+  clearStoredSession();
 }

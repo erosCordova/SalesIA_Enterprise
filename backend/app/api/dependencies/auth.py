@@ -14,6 +14,27 @@ bearer_scheme = HTTPBearer(
 )
 
 
+DEFAULT_ROLE_PERMISSIONS = {
+    "Administrador": {"*": True},
+    "Gerente": {
+        "reports.read": True,
+        "reports.generate": True,
+        "reports.download": True,
+    },
+    "Analista": {
+        "reports.read": True,
+        "reports.generate": True,
+        "reports.download": True,
+    },
+}
+
+PERMISSION_MESSAGES = {
+    "reports.read": "consultar reportes",
+    "reports.generate": "generar reportes",
+    "reports.download": "descargar reportes",
+}
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(
         bearer_scheme
@@ -116,7 +137,13 @@ def require_permission(
     def dependency(
         current_user: dict = Depends(get_current_user),
     ) -> dict:
-        permissions = current_user.get("permissions") or {}
+        permissions = current_user.get("permissions")
+
+        if permissions is None:
+            permissions = DEFAULT_ROLE_PERMISSIONS.get(
+                current_user.get("role"),
+                {},
+            )
 
         if not isinstance(permissions, dict):
             raise HTTPException(
@@ -130,9 +157,13 @@ def require_permission(
 
         # Verificación del permiso específico.
         if permissions.get(permission) is not True:
+            action = PERMISSION_MESSAGES.get(
+                permission,
+                "realizar esta acción",
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"No tienes el permiso requerido: {permission}.",
+                detail=f"No tienes permiso para {action}.",
             )
 
         return current_user

@@ -34,7 +34,15 @@ def list_inventory(
     "/status",
     summary="Estado del módulo de inventario",
 )
-def inventory_status():
+def inventory_status(
+    current_user: dict = Depends(
+        require_roles(
+            "Administrador",
+            "Gerente",
+            "Almacén",
+        )
+    ),
+):
     return {
         "module": "Gestión de Inventario",
         "status": "ready",

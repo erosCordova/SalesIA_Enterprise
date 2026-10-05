@@ -1,11 +1,15 @@
-from pydantic import BaseModel, Field, model_validator
+from typing import Annotated
 from datetime import date
+
+from pydantic import BaseModel, Field, FiniteFloat, field_validator, model_validator
 
 
 class NumericValuesRequest(BaseModel):
-    values: list[float] = Field(
+    values: list[FiniteFloat] = Field(
         ...,
         min_length=1,
+        max_length=1000,
+        description="Entre 1 y 1000 valores numéricos finitos.",
     )
 
 
@@ -40,23 +44,40 @@ class BayesRequest(BaseModel):
         max_length=200,
     )
 
-    probability_a: float = Field(
+    probability_a: Annotated[FiniteFloat, Field(
         ...,
         ge=0,
         le=1,
-    )
+    )]
 
-    probability_b_given_a: float = Field(
+    probability_b_given_a: Annotated[FiniteFloat, Field(
         ...,
         ge=0,
         le=1,
-    )
+    )]
 
-    probability_b: float = Field(
+    probability_b: Annotated[FiniteFloat, Field(
         ...,
         gt=0,
         le=1,
-    )
+    )]
+
+    @field_validator("event_a", "event_b", mode="before")
+    @classmethod
+    def strip_event_names(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+        return value
+
+    @model_validator(mode="after")
+    def validate_probability_consistency(self):
+        joint_probability = self.probability_a * self.probability_b_given_a
+        if joint_probability > self.probability_b + 1e-12:
+            raise ValueError(
+                "Los valores no son compatibles: P(B) debe ser igual o mayor "
+                "que P(A) × P(B|A)."
+            )
+        return self
 
 
 class BayesResponse(BaseModel):
@@ -80,15 +101,24 @@ class RandomVariableRequest(BaseModel):
         max_length=200,
     )
 
-    values: list[float] = Field(
+    values: list[FiniteFloat] = Field(
         ...,
         min_length=1,
+        max_length=1000,
     )
 
-    probabilities: list[float] = Field(
+    probabilities: list[FiniteFloat] = Field(
         ...,
         min_length=1,
+        max_length=1000,
     )
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def strip_name(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+        return value
 
     @model_validator(mode="after")
     def validate_distribution(self):
@@ -126,6 +156,18 @@ class RandomVariableResponse(BaseModel):
 class SalesStatisticsRequest(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
+
+    @model_validator(mode="after")
+    def validate_date_range(self):
+        if (
+            self.start_date is not None
+            and self.end_date is not None
+            and self.start_date > self.end_date
+        ):
+            raise ValueError(
+                "La fecha inicial no puede ser posterior a la fecha final."
+            )
+        return self
 
 
 class SalesStatisticsResponse(BaseModel):

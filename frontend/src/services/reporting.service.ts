@@ -5,6 +5,7 @@ import {
 
 import type {
   InsightItem,
+  AuditEvent,
   ModuleStatus,
   ReportGenerateRequest,
   ReportItem,
@@ -36,6 +37,10 @@ export function getAuditStatus() {
   return apiFetch<ModuleStatus>(
     "/audit/status",
   );
+}
+
+export function getAuditEvents() {
+  return apiFetch<AuditEvent[]>("/audit?limit=100");
 }
 
 

@@ -1,13 +1,14 @@
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings, SettingsConfigDict   
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     APP_NAME: str = "SalesIA Enterprise"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     API_V1_PREFIX: str = "/api/v1"
 
@@ -29,6 +30,30 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self):
+        if self.ENVIRONMENT.strip().lower() not in {"production", "prod"}:
+            return self
+
+        if self.DEBUG:
+            raise ValueError("DEBUG debe estar desactivado en producción.")
+
+        secret = self.SECRET_KEY.strip()
+        placeholder_markers = ("replace", "generate", "change-me", "placeholder")
+        if len(secret) < 32 or any(
+            marker in secret.lower() for marker in placeholder_markers
+        ):
+            raise ValueError(
+                "SECRET_KEY debe ser una clave aleatoria de al menos 32 caracteres en producción."
+            )
+
+        if not self.SUPABASE_SECRET_KEY.strip():
+            raise ValueError(
+                "SUPABASE_SECRET_KEY es obligatorio para la administración de cuentas en producción."
+            )
+
+        return self
 
     @property
     def cors_origins_list(self) -> list[str]:

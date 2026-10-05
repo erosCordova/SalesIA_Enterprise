@@ -1,4 +1,4 @@
-from math import sqrt
+from math import fsum, sqrt
 
 from app.schemas.statistics import (
     BayesRequest,
@@ -17,7 +17,13 @@ def calculate_mean(
 ) -> MeanResponse:
     values = data.values
 
-    result = sum(values) / len(values)
+    # Normalize before summing so valid finite inputs cannot overflow
+    # merely because their intermediate sum exceeds the float range.
+    scale = max(abs(value) for value in values)
+    if scale == 0:
+        result = 0.0
+    else:
+        result = (fsum(value / scale for value in values) / len(values)) * scale
 
     return MeanResponse(
         count=len(values),
@@ -36,10 +42,8 @@ def calculate_median(
     if count % 2 == 1:
         result = values[middle]
     else:
-        result = (
-            values[middle - 1]
-            + values[middle]
-        ) / 2
+        # Halve before adding to avoid overflow for large finite values.
+        result = values[middle - 1] / 2 + values[middle] / 2
 
     return MedianResponse(
         count=count,

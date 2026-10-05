@@ -5,6 +5,7 @@ from supabase import create_client
 from app.api.dependencies.auth import require_roles
 from app.core.config import settings
 from app.core.database import engine
+from app.services.audit import record_critical_action
 from app.schemas.users import (
     RoleResponse,
     UserCreateRequest,
@@ -320,6 +321,12 @@ def create_user(
                     "status": data.status,
                 },
             ).mappings().one()
+            record_critical_action(
+                connection, current_user,
+                action="user.created", table_name="users",
+                record_id=created_user["id"],
+                details={"role": role["name"], "status": data.status},
+            )
 
     except Exception:
         if auth_user_id:

@@ -122,7 +122,7 @@ const menuSections: MenuSection[] = [
         ],
       },
       {
-        label: "CategorÃ­as",
+        label: "Categorías",
         path: "/categories",
         icon: Tags,
         roles: [
@@ -195,7 +195,7 @@ const menuSections: MenuSection[] = [
     title: "CONTROL",
     items: [
       {
-        label: "AuditorÃ­a",
+        label: "Auditoría",
         path: "/audit",
         icon: ShieldCheck,
         roles: [
@@ -244,7 +244,7 @@ function Sidebar({
         <button
           className="sidebar-overlay"
           onClick={onClose}
-          aria-label="Cerrar menÃº"
+          aria-label="Cerrar menú"
         />
       )}
 
@@ -272,7 +272,7 @@ function Sidebar({
             type="button"
             className="sidebar-close"
             onClick={onClose}
-            aria-label="Cerrar menÃº"
+            aria-label="Cerrar menú"
           >
             <X size={19} />
           </button>

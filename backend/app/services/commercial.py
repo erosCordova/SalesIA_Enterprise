@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from fastapi import HTTPException, status
 
 from app.core.database import engine
+from app.services.audit import record_critical_action
 from app.repositories import commercial as repository
 from app.schemas.commercial import (
     CategoryCreateRequest,
@@ -106,6 +107,12 @@ def create_customer(
             city=clean_optional(data.city),
             status=data.status,
         )
+        record_critical_action(
+            connection, current_user,
+            action="customer.created", table_name="customers",
+            record_id=row["id"],
+            details={"changed_fields": ["document_type", "first_name", "last_name", "status"]},
+        )
 
     return CustomerResponse(**dict(row))
 
@@ -157,6 +164,11 @@ def create_category(
                 data.description
             ),
             status=data.status,
+        )
+        record_critical_action(
+            connection, current_user,
+            action="category.created", table_name="categories",
+            record_id=row["id"], details={"changed_fields": ["name", "status"]},
         )
 
     return CategoryResponse(**dict(row))
@@ -241,6 +253,11 @@ def create_product(
             stock_quantity=data.initial_stock,
             minimum_stock=data.minimum_stock,
             maximum_stock=data.maximum_stock,
+        )
+        record_critical_action(
+            connection, current_user,
+            action="product.created", table_name="products",
+            record_id=product["id"], details={"changed_fields": ["sku", "name", "sale_price", "cost_price", "initial_stock"]},
         )
 
         category_name = None
@@ -573,6 +590,12 @@ def create_sale(
                 data.payment_reference
             ),
         )
+        record_critical_action(
+            connection, current_user,
+            action="sale.created", table_name="sales",
+            record_id=sale["id"],
+            details={"sale_number": sale["sale_number"], "total": str(total), "items": len(details)},
+        )
 
     return SaleCreatedResponse(
         id=sale["id"],
@@ -657,6 +680,12 @@ def update_customer(
             city=clean_optional(data.city),
             status=data.status,
         )
+        record_critical_action(
+            connection, current_user,
+            action="customer.updated", table_name="customers",
+            record_id=customer_id,
+            details={"changed_fields": ["document_type", "first_name", "last_name", "email", "phone", "address", "city", "status"]},
+        )
 
     return CustomerResponse(**dict(row))
 
@@ -692,6 +721,11 @@ def delete_customer(
             address=customer["address"],
             city=customer["city"],
             status="inactive",
+        )
+        record_critical_action(
+            connection, current_user,
+            action="customer.deactivated", table_name="customers",
+            record_id=customer_id, details={"changed_fields": ["status"]},
         )
 
     return {
@@ -783,6 +817,11 @@ def update_category(
             description=clean_optional(data.description),
             status=data.status,
         )
+        record_critical_action(
+            connection, current_user,
+            action="category.updated", table_name="categories",
+            record_id=category_id, details={"changed_fields": ["name", "description", "status"]},
+        )
 
     return CategoryResponse(**dict(row))
 
@@ -812,6 +851,11 @@ def delete_category(
             description=category["description"],
             status="inactive",
         )
+        record_critical_action(
+            connection, current_user,
+            action="category.deactivated", table_name="categories",
+            record_id=category_id, details={"changed_fields": ["status"]},
+        )
 
     return {
         "message": "Categoría desactivada correctamente.",
@@ -827,6 +871,12 @@ def get_product(
             connection,
             current_user["company_id"],
             product_id,
+        )
+        record_critical_action(
+            connection, current_user,
+            action="product.updated", table_name="products",
+            record_id=product_id,
+            details={"changed_fields": ["category_id", "sku", "name", "unit", "sale_price", "cost_price", "status", "stock_limits"]},
         )
 
     if not row:
@@ -949,6 +999,11 @@ def delete_product(
             sale_price=product["sale_price"],
             cost_price=product["cost_price"],
             status="inactive",
+        )
+        record_critical_action(
+            connection, current_user,
+            action="product.deactivated", table_name="products",
+            record_id=product_id, details={"changed_fields": ["status"]},
         )
 
     return {

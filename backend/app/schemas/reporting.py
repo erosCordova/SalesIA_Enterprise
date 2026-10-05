@@ -34,8 +34,9 @@ class ReportListItem(BaseModel):
     
 from datetime import date
 from typing import Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 ReportType = Literal[
@@ -53,13 +54,32 @@ class ReportGenerateRequest(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
 
-    employee_id: str | None = None
-    category_id: str | None = None
+    employee_id: UUID | None = None
+    category_id: UUID | None = None
 
     name: str | None = Field(
         default=None,
         max_length=150,
     )
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def clean_name(cls, value):
+        if isinstance(value, str):
+            value = value.strip() or None
+        return value
+
+    @model_validator(mode="after")
+    def validate_date_range(self):
+        if (
+            self.start_date is not None
+            and self.end_date is not None
+            and self.start_date > self.end_date
+        ):
+            raise ValueError(
+                "La fecha inicial no puede ser posterior a la fecha final."
+            )
+        return self
 
 class AnalyticsSummary(BaseModel):
     total_sales: int

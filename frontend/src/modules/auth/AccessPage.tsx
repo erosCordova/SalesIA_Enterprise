@@ -27,6 +27,63 @@ const initialForm = {
   role: "Vendedor" as UserRole,
 };
 
+const ROLE_GUIDANCE: Record<
+  UserRole,
+  { summary: string; areas: string[] }
+> = {
+  Administrador: {
+    summary:
+      "Administra los usuarios y la configuración, y puede acceder a todas las áreas del sistema.",
+    areas: [
+      "Gestión comercial",
+      "Inventario",
+      "Análisis y reportes",
+      "Auditoría",
+      "Acceso y seguridad",
+    ],
+  },
+  Gerente: {
+    summary:
+      "Supervisa la operación y consulta la información comercial y los resultados del negocio.",
+    areas: [
+      "Gestión comercial",
+      "Inventario",
+      "Empresa y sucursales",
+      "Análisis y reportes",
+    ],
+  },
+  Vendedor: {
+    summary: "Atiende clientes y registra las ventas que le corresponden.",
+    areas: [
+      "Clientes",
+      "Ventas",
+      "Productos",
+      "Panel general",
+    ],
+  },
+  Analista: {
+    summary:
+      "Trabaja con los datos y consulta los resultados de análisis del negocio.",
+    areas: [
+      "Análisis",
+      "Probabilidad",
+      "Insights",
+      "Reportes",
+      "Panel general",
+    ],
+  },
+  Almacén: {
+    summary:
+      "Consulta productos y administra las existencias y sus movimientos.",
+    areas: [
+      "Productos",
+      "Categorías",
+      "Inventario",
+      "Panel general",
+    ],
+  },
+};
+
 export default function AccessPage() {
   const [users, setUsers] = useState<UserListItem[]>([]);
 
@@ -45,6 +102,8 @@ export default function AccessPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const [form, setForm] = useState(initialForm);
+
+  const selectedRoleGuidance = ROLE_GUIDANCE[form.role];
 
   async function loadData() {
     setLoading(true);
@@ -350,7 +409,7 @@ export default function AccessPage() {
                 </label>
 
                 <label>
-                  <span>Rol</span>
+                  <span>Rol y nivel de acceso</span>
 
                   <select
                     value={form.role}
@@ -368,6 +427,17 @@ export default function AccessPage() {
                     ))}
                   </select>
                 </label>
+
+                <div className="access-role-guidance" aria-live="polite">
+                  <strong>{form.role}</strong>
+                  <p>{selectedRoleGuidance.summary}</p>
+                  <span>Áreas disponibles</span>
+                  <ul>
+                    {selectedRoleGuidance.areas.map((area) => (
+                      <li key={area}>{area}</li>
+                    ))}
+                  </ul>
+                </div>
 
                 <label>
                   <span>Nombres</span>
