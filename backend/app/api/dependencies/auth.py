@@ -108,3 +108,33 @@ def require_roles(
         return current_user
 
     return dependency
+
+
+def require_permission(
+    permission: str,
+) -> Callable[[dict], dict]:
+    def dependency(
+        current_user: dict = Depends(get_current_user),
+    ) -> dict:
+        permissions = current_user.get("permissions") or {}
+
+        if not isinstance(permissions, dict):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Configuración de permisos inválida.",
+            )
+
+        # Administrador tiene acceso total.
+        if permissions.get("*") is True:
+            return current_user
+
+        # Verificación del permiso específico.
+        if permissions.get(permission) is not True:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"No tienes el permiso requerido: {permission}.",
+            )
+
+        return current_user
+
+    return dependency

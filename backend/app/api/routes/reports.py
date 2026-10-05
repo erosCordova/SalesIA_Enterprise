@@ -1,12 +1,23 @@
 from fastapi import (
     APIRouter,
     Depends,
+    HTTPException,
+    status,
 )
 
-from app.api.dependencies.auth import require_roles
-from app.schemas.reporting import ReportListItem
-from app.services.reporting import get_reports
+from pathlib import Path
 
+from fastapi.responses import FileResponse
+
+from app.api.dependencies.auth import require_permission
+from app.schemas.reporting import (
+    ReportGenerateRequest,
+    ReportListItem,
+)
+from app.services.reporting import (
+    generate_report,
+    get_reports,
+)
 
 router = APIRouter()
 
@@ -18,16 +29,10 @@ router = APIRouter()
 )
 def list_reports(
     current_user: dict = Depends(
-        require_roles(
-            "Administrador",
-            "Gerente",
-            "Analista",
-        )
+        require_permission("reports.read")
     ),
 ):
-    return get_reports(
-        current_user
-    )
+    return get_reports(current_user)
 
 
 @router.get(
@@ -39,3 +44,77 @@ def reports_status():
         "module": "Reportes",
         "status": "ready",
     }
+
+
+# --- EL NUEVO CÓDIGO VA AQUÍ ---
+@router.post(
+    "/generate",
+    response_model=ReportListItem,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generar reporte",
+)
+def create_report(
+    data: ReportGenerateRequest,
+    current_user: dict = Depends(
+        require_permission("reports.generate")
+    ),
+):
+    return generate_report(
+        data,
+        current_user,
+    )
+
+@router.get(
+    "/{report_id}/download",
+    summary="Descargar reporte",
+)
+def download_report(
+    report_id: str,
+    current_user: dict = Depends(
+        require_permission("reports.download")
+    ),
+):
+    from app.core.database import engine
+    from sqlalchemy import text
+
+    with engine.connect() as connection:
+        row = connection.execute(
+            text("""
+                SELECT
+                    id,
+                    file_url
+                FROM reports
+                WHERE id = :report_id
+                  AND company_id = :company_id
+                LIMIT 1
+            """),
+            {
+                "report_id": report_id,
+                "company_id": current_user["company_id"],
+            },
+        ).mappings().first()
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail="Reporte no encontrado.",
+        )
+
+    from app.utils.report_files import REPORTS_DIR
+
+    file_path = (
+        REPORTS_DIR /
+        f"{report_id}.csv"
+    )
+
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Archivo del reporte no encontrado.",
+        )
+
+    return FileResponse(
+        path=file_path,
+        filename=f"salesia-report-{report_id}.csv",
+        media_type="text/csv",
+    )

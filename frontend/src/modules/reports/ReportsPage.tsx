@@ -2,27 +2,55 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  ExternalLink,
+  Download,
   FileText,
+  Printer,
   RefreshCw,
   Server,
 } from "lucide-react";
+
+import {
+  useState,
+} from "react";
 
 import {
   useApiResource,
 } from "../../hooks/useApiResource";
 
 import {
+  downloadReport,
+  generateReport,
   getReports,
   getReportsStatus,
 } from "../../services/reporting.service";
 
 import type {
   ModuleStatus,
+  ReportGenerateRequest,
   ReportItem,
+  ReportType,
 } from "../../types/reporting";
 
 import "../../styles/reporting.css";
+
+
+const REPORT_TYPE_LABELS:
+  Record<ReportType, string> = {
+  sales:
+    "Reporte de ventas",
+
+  statistical:
+    "Reporte estadístico",
+
+  products:
+    "Reporte de productos",
+
+  customers:
+    "Reporte de clientes",
+
+  employees:
+    "Reporte de vendedores",
+};
 
 
 function formatDate(
@@ -66,6 +94,297 @@ function formatParameters(
 }
 
 
+/**
+ * Convierte un CSV en una matriz
+ * respetando valores entre comillas.
+ */
+function parseCSV(
+  csv: string,
+): string[][] {
+  const rows: string[][] = [];
+
+  let row: string[] = [];
+  let value = "";
+  let insideQuotes = false;
+
+  for (
+    let i = 0;
+    i < csv.length;
+    i += 1
+  ) {
+    const character =
+      csv[i];
+
+    const nextCharacter =
+      csv[i + 1];
+
+    if (
+      character === '"' &&
+      insideQuotes &&
+      nextCharacter === '"'
+    ) {
+      value += '"';
+      i += 1;
+      continue;
+    }
+
+    if (
+      character === '"'
+    ) {
+      insideQuotes =
+        !insideQuotes;
+      continue;
+    }
+
+    if (
+      character === "," &&
+      !insideQuotes
+    ) {
+      row.push(value);
+      value = "";
+      continue;
+    }
+
+    if (
+      (
+        character === "\n" ||
+        character === "\r"
+      ) &&
+      !insideQuotes
+    ) {
+      if (
+        character === "\r" &&
+        nextCharacter === "\n"
+      ) {
+        i += 1;
+      }
+
+      row.push(value);
+      value = "";
+
+      if (
+        row.some(
+          (item) =>
+            item.trim() !== "",
+        )
+      ) {
+        rows.push(row);
+      }
+
+      row = [];
+      continue;
+    }
+
+    value += character;
+  }
+
+  if (
+    value.length > 0 ||
+    row.length > 0
+  ) {
+    row.push(value);
+
+    if (
+      row.some(
+        (item) =>
+          item.trim() !== "",
+      )
+    ) {
+      rows.push(row);
+    }
+  }
+
+  return rows;
+}
+
+
+function printReportData(
+  report: ReportItem,
+  csv: string,
+) {
+  const rows =
+    parseCSV(csv);
+
+  const printWindow =
+    window.open(
+      "",
+      "_blank",
+      "width=1200,height=800",
+    );
+
+  if (!printWindow) {
+    throw new Error(
+      "El navegador bloqueó la ventana de impresión.",
+    );
+  }
+
+  const headers =
+    rows[0] ?? [];
+
+  const bodyRows =
+    rows.slice(1);
+
+  const tableHeader =
+    headers
+      .map(
+        (header) =>
+          `<th>${header}</th>`,
+      )
+      .join("");
+
+  const tableBody =
+    bodyRows
+      .map(
+        (row) => `
+          <tr>
+            ${row
+              .map(
+                (cell) =>
+                  `<td>${cell}</td>`,
+              )
+              .join("")}
+          </tr>
+        `,
+      )
+      .join("");
+
+  printWindow.document.write(`
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="UTF-8" />
+
+        <title>
+          ${report.name}
+        </title>
+
+        <style>
+          body {
+            font-family:
+              Arial,
+              sans-serif;
+
+            margin: 40px;
+
+            color: #172033;
+          }
+
+          h1 {
+            margin-bottom: 6px;
+          }
+
+          .subtitle {
+            color: #64748b;
+            margin-bottom: 24px;
+          }
+
+          .metadata {
+            margin-bottom: 24px;
+            padding: 16px;
+
+            border:
+              1px solid #e2e8f0;
+
+            border-radius: 8px;
+
+            background: #f8fafc;
+          }
+
+          table {
+            width: 100%;
+            border-collapse:
+              collapse;
+
+            font-size: 12px;
+          }
+
+          th,
+          td {
+            border:
+              1px solid #cbd5e1;
+
+            padding: 8px;
+
+            text-align: left;
+          }
+
+          th {
+            background: #f1f5f9;
+            font-weight: 700;
+          }
+
+          .footer {
+            margin-top: 30px;
+
+            color: #64748b;
+
+            font-size: 11px;
+          }
+
+          @media print {
+            body {
+              margin: 20px;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        <h1>
+          ${report.name}
+        </h1>
+
+        <div class="subtitle">
+          SalesIA Enterprise
+        </div>
+
+        <div class="metadata">
+          <strong>Tipo:</strong>
+          ${REPORT_TYPE_LABELS[
+            report.report_type as ReportType
+          ] ?? report.report_type}
+          <br />
+
+          <strong>Estado:</strong>
+          ${report.status}
+          <br />
+
+          <strong>Fecha:</strong>
+          ${formatDate(
+            report.created_at,
+          )}
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              ${tableHeader}
+            </tr>
+          </thead>
+
+          <tbody>
+            ${tableBody}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          Reporte generado por
+          SalesIA Enterprise.
+        </div>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+
+  printWindow.focus();
+
+  printWindow.onload = () => {
+    printWindow.print();
+  };
+}
+
+
 function ReportsPage() {
   const {
     data,
@@ -86,8 +405,54 @@ function ReportsPage() {
       getReportsStatus,
     );
 
+
   const reports =
     data ?? [];
+
+
+  const [
+    reportType,
+    setReportType,
+  ] =
+    useState<ReportType>(
+      "sales",
+    );
+
+
+  const [
+    startDate,
+    setStartDate,
+  ] =
+    useState("");
+
+
+  const [
+    endDate,
+    setEndDate,
+  ] =
+    useState("");
+
+
+  const [
+    generating,
+    setGenerating,
+  ] =
+    useState(false);
+
+
+  const [
+    actionError,
+    setActionError,
+  ] =
+    useState("");
+
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] =
+    useState("");
+
 
   const readyReports =
     reports.filter(
@@ -96,6 +461,7 @@ function ReportsPage() {
           .toLowerCase() ===
         "ready",
     ).length;
+
 
   const filesAvailable =
     reports.filter(
@@ -112,8 +478,153 @@ function ReportsPage() {
   }
 
 
+  async function handleGenerate(
+    event:
+      React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setActionError("");
+    setSuccessMessage("");
+
+    if (
+      startDate &&
+      endDate &&
+      startDate > endDate
+    ) {
+      setActionError(
+        "La fecha inicial no puede ser posterior a la fecha final.",
+      );
+
+      return;
+    }
+
+    setGenerating(true);
+
+    const payload:
+      ReportGenerateRequest = {
+      report_type:
+        reportType,
+
+      start_date:
+        startDate || null,
+
+      end_date:
+        endDate || null,
+
+      employee_id:
+        null,
+
+      category_id:
+        null,
+
+      name:
+        null,
+    };
+
+    try {
+      await generateReport(
+        payload,
+      );
+
+      setSuccessMessage(
+        "El reporte se generó correctamente.",
+      );
+
+      await reload();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo generar el reporte.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+
+  async function handleDownload(
+    report: ReportItem,
+  ) {
+    setActionError("");
+
+    try {
+      const blob =
+        await downloadReport(
+          report.id,
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob,
+        );
+
+      const link =
+        document.createElement(
+          "a",
+        );
+
+      link.href = url;
+
+      link.download =
+        `${report.name.replace(
+          /\s+/g,
+          "-",
+        )}-${report.id}.csv`;
+
+      document.body.appendChild(
+        link,
+      );
+
+      link.click();
+
+      link.remove();
+
+      URL.revokeObjectURL(
+        url,
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo descargar el reporte.",
+      );
+    }
+  }
+
+
+  async function handlePrint(
+    report: ReportItem,
+  ) {
+    setActionError("");
+
+    try {
+      const blob =
+        await downloadReport(
+          report.id,
+        );
+
+      const csv =
+        await blob.text();
+
+      printReportData(
+        report,
+        csv,
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo preparar la impresión.",
+      );
+    }
+  }
+
+
   return (
     <section className="module-page">
+
       <div className="page-heading">
         <div>
           <span className="page-eyebrow">
@@ -125,10 +636,10 @@ function ReportsPage() {
           </h1>
 
           <p>
-            Consulta reportes
-            empresariales registrados,
-            sus parámetros, estado y
-            archivos disponibles.
+            Genera, consulta,
+            descarga e imprime
+            reportes comerciales y
+            estadísticos.
           </p>
         </div>
 
@@ -141,6 +652,7 @@ function ReportsPage() {
 
 
       <div className="reporting-summary">
+
         <div className="reporting-summary-card">
           <span>
             Reportes
@@ -151,9 +663,10 @@ function ReportsPage() {
           </strong>
         </div>
 
+
         <div className="reporting-summary-card">
           <span>
-            Estado ready
+            Listos
           </span>
 
           <strong>
@@ -161,28 +674,195 @@ function ReportsPage() {
           </strong>
         </div>
 
+
         <div className="reporting-summary-card">
           <span>
-            Archivos disponibles
+            Archivos
           </span>
 
           <strong>
             {filesAvailable}
           </strong>
         </div>
+
       </div>
 
 
       <article className="panel">
+
         <div className="reporting-toolbar">
+
           <div className="reporting-toolbar-info">
+
             <Server
               size={20}
             />
 
             <div>
               <h2>
-                Registro de reportes
+                Generar reporte
+              </h2>
+
+              <p>
+                Selecciona el tipo y
+                el periodo de análisis.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <form
+          className="reporting-form"
+          onSubmit={
+            handleGenerate
+          }
+        >
+
+          <div className="reporting-field">
+
+            <label htmlFor="report-type">
+              Tipo de reporte
+            </label>
+
+            <select
+              id="report-type"
+              value={reportType}
+              onChange={(event) =>
+                setReportType(
+                  event.target.value as ReportType,
+                )
+              }
+            >
+              <option value="sales">
+                Reporte de ventas
+              </option>
+
+              <option value="statistical">
+                Reporte estadístico
+              </option>
+
+              <option value="products">
+                Reporte de productos
+              </option>
+
+              <option value="customers">
+                Reporte de clientes
+              </option>
+
+              <option value="employees">
+                Reporte de vendedores
+              </option>
+            </select>
+
+          </div>
+
+
+          <div className="reporting-field">
+
+            <label htmlFor="start-date">
+              Fecha inicial
+            </label>
+
+            <input
+              id="start-date"
+              type="date"
+              value={startDate}
+              onChange={(event) =>
+                setStartDate(
+                  event.target.value,
+                )
+              }
+            />
+
+          </div>
+
+
+          <div className="reporting-field">
+
+            <label htmlFor="end-date">
+              Fecha final
+            </label>
+
+            <input
+              id="end-date"
+              type="date"
+              value={endDate}
+              onChange={(event) =>
+                setEndDate(
+                  event.target.value,
+                )
+              }
+            />
+
+          </div>
+
+
+          <div className="reporting-form-actions">
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={generating}
+            >
+              <FileText
+                size={15}
+              />
+
+              {generating
+                ? "Generando..."
+                : "Generar reporte"}
+            </button>
+
+          </div>
+
+        </form>
+
+
+        {actionError && (
+          <div className="reporting-error">
+            <AlertTriangle
+              size={16}
+            />
+
+            <span>
+              {actionError}
+            </span>
+          </div>
+        )}
+
+
+        {successMessage && (
+          <div className="reporting-success">
+            <CheckCircle2
+              size={16}
+            />
+
+            <span>
+              {successMessage}
+            </span>
+          </div>
+        )}
+
+      </article>
+
+
+      <article className="panel">
+
+        <div className="reporting-toolbar">
+
+          <div className="reporting-toolbar-info">
+
+            <Server
+              size={20}
+            />
+
+            <div>
+
+              <h2>
+                Historial de reportes
               </h2>
 
               <p>
@@ -190,10 +870,13 @@ function ReportsPage() {
                   ? "Consultando estado del módulo..."
                   : moduleStatus
                     ? `${moduleStatus.module}: ${moduleStatus.status}`
-                    : "Información obtenida desde GET /reports."}
+                    : "Reportes registrados en el sistema."}
               </p>
+
             </div>
+
           </div>
+
 
           <button
             type="button"
@@ -206,12 +889,15 @@ function ReportsPage() {
               refreshAll
             }
           >
+
             <RefreshCw
               size={15}
             />
 
             Actualizar
+
           </button>
+
         </div>
 
 
@@ -221,6 +907,7 @@ function ReportsPage() {
           </div>
         ) : error ? (
           <div className="reporting-error">
+
             <AlertTriangle
               size={16}
             />
@@ -228,10 +915,13 @@ function ReportsPage() {
             <span>
               {error}
             </span>
+
           </div>
         ) : reports.length === 0 ? (
           <div className="reporting-empty">
+
             <div>
+
               <FileText
                 size={28}
               />
@@ -241,29 +931,40 @@ function ReportsPage() {
               </strong>
 
               <p>
-                El módulo está disponible,
-                pero actualmente no existen
-                reportes para mostrar.
+                Genera tu primer reporte
+                utilizando el formulario
+                superior.
               </p>
+
             </div>
+
           </div>
         ) : (
           <div className="reporting-grid">
+
             {reports.map(
               (report) => (
+
                 <article
                   key={report.id}
                   className="reporting-card"
                 >
+
                   <div className="reporting-card-header">
+
                     <div className="reporting-card-title">
+
                       <div className="reporting-card-icon">
+
                         <FileText
                           size={17}
                         />
+
                       </div>
 
+
                       <div>
+
                         <h3>
                           {report.name}
                         </h3>
@@ -273,16 +974,25 @@ function ReportsPage() {
                             marginTop: 6,
                           }}
                         >
+
                           <span className="reporting-badge neutral">
-                            {report.report_type}
+                            {REPORT_TYPE_LABELS[
+                              report.report_type as ReportType
+                            ] ??
+                              report.report_type}
                           </span>
+
                         </div>
+
                       </div>
+
                     </div>
+
 
                     <span className="reporting-badge success">
                       {report.status}
                     </span>
+
                   </div>
 
 
@@ -296,15 +1006,20 @@ function ReportsPage() {
 
 
                   <div className="reporting-meta">
+
                     <span className="reporting-meta-item">
+
                       <CheckCircle2
                         size={12}
                       />
 
                       {report.status}
+
                     </span>
 
+
                     <span className="reporting-meta-item">
+
                       <Clock3
                         size={12}
                       />
@@ -312,34 +1027,65 @@ function ReportsPage() {
                       {formatDate(
                         report.created_at,
                       )}
+
                     </span>
+
                   </div>
 
 
                   {report.file_url && (
                     <div className="reporting-actions">
-                      <a
+
+                      <button
+                        type="button"
                         className="reporting-link"
-                        href={
-                          report.file_url
+                        onClick={() =>
+                          void handleDownload(
+                            report,
+                          )
                         }
-                        target="_blank"
-                        rel="noreferrer"
                       >
-                        <ExternalLink
+
+                        <Download
                           size={13}
                         />
 
-                        Abrir archivo
-                      </a>
+                        Descargar
+
+                      </button>
+
+
+                      <button
+                        type="button"
+                        className="reporting-link"
+                        onClick={() =>
+                          void handlePrint(
+                            report,
+                          )
+                        }
+                      >
+
+                        <Printer
+                          size={13}
+                        />
+
+                        Imprimir
+
+                      </button>
+
                     </div>
                   )}
+
                 </article>
+
               ),
             )}
+
           </div>
         )}
+
       </article>
+
     </section>
   );
 }

@@ -31,6 +31,35 @@ class ReportListItem(BaseModel):
 
     status: str
     created_at: datetime
+    
+from datetime import date
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+
+ReportType = Literal[
+    "sales",
+    "statistical",
+    "products",
+    "customers",
+    "employees",
+]
+
+
+class ReportGenerateRequest(BaseModel):
+    report_type: ReportType
+
+    start_date: date | None = None
+    end_date: date | None = None
+
+    employee_id: str | None = None
+    category_id: str | None = None
+
+    name: str | None = Field(
+        default=None,
+        max_length=150,
+    )
 
 class AnalyticsSummary(BaseModel):
     total_sales: int
