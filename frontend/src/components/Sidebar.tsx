@@ -8,6 +8,7 @@ import {
   Lightbulb,
   PackageSearch,
   Percent,
+  Settings2,
   ShieldCheck,
   ShoppingCart,
   Sparkles,
@@ -94,6 +95,7 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
+
   {
     title: "COMERCIAL",
     items: [
@@ -122,7 +124,7 @@ const menuSections: MenuSection[] = [
         ],
       },
       {
-        label: "CategorÃ­as",
+        label: "Categorías",
         path: "/categories",
         icon: Tags,
         roles: [
@@ -133,6 +135,7 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
+
   {
     title: "OPERACIONES",
     items: [
@@ -162,6 +165,7 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
+
   {
     title: "INTELIGENCIA",
     items: [
@@ -191,11 +195,27 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
+
+  {
+    title: "ADMINISTRACIÓN",
+    items: [
+      {
+        label: "Mantenimiento",
+        path: "/maintenance",
+        icon: Settings2,
+        roles: [
+          "Administrador",
+          "Gerente",
+        ],
+      },
+    ],
+  },
+
   {
     title: "CONTROL",
     items: [
       {
-        label: "AuditorÃ­a",
+        label: "Auditoría",
         path: "/audit",
         icon: ShieldCheck,
         roles: [
@@ -226,13 +246,19 @@ function Sidebar({
 
   const visibleSections =
     menuSections
-      .map((section) => ({
-        ...section,
-        items: section.items.filter(
-          (item) =>
-            item.roles.includes(user.role),
-        ),
-      }))
+      .map(
+        (section) => ({
+          ...section,
+
+          items:
+            section.items.filter(
+              (item) =>
+                item.roles.includes(
+                  user.role,
+                ),
+            ),
+        }),
+      )
       .filter(
         (section) =>
           section.items.length > 0,
@@ -244,18 +270,22 @@ function Sidebar({
         <button
           className="sidebar-overlay"
           onClick={onClose}
-          aria-label="Cerrar menÃº"
+          aria-label="Cerrar menú"
         />
       )}
 
       <aside
         className={`sidebar ${
-          open ? "sidebar-open" : ""
+          open
+            ? "sidebar-open"
+            : ""
         }`}
       >
         <div className="sidebar-header">
           <div className="brand-icon">
-            <Sparkles size={21} />
+            <Sparkles
+              size={21}
+            />
           </div>
 
           <div className="brand-text">
@@ -272,7 +302,7 @@ function Sidebar({
             type="button"
             className="sidebar-close"
             onClick={onClose}
-            aria-label="Cerrar menÃº"
+            aria-label="Cerrar menú"
           >
             <X size={19} />
           </button>
@@ -280,7 +310,9 @@ function Sidebar({
 
         <div className="sidebar-company">
           <div className="company-icon">
-            <Building2 size={19} />
+            <Building2
+              size={19}
+            />
           </div>
 
           <div>
@@ -304,13 +336,18 @@ function Sidebar({
           {visibleSections.map(
             (section) => (
               <div
-                key={section.title}
+                key={
+                  section.title
+                }
                 style={{
-                  marginBottom: "15px",
+                  marginBottom:
+                    "15px",
                 }}
               >
                 <p className="sidebar-section-title">
-                  {section.title}
+                  {
+                    section.title
+                  }
                 </p>
 
                 {section.items.map(
@@ -320,10 +357,18 @@ function Sidebar({
 
                     return (
                       <NavLink
-                        key={item.path}
-                        to={item.path}
-                        end={item.end}
-                        onClick={onClose}
+                        key={
+                          item.path
+                        }
+                        to={
+                          item.path
+                        }
+                        end={
+                          item.end
+                        }
+                        onClick={
+                          onClose
+                        }
                         className={({
                           isActive,
                         }) =>
@@ -335,8 +380,13 @@ function Sidebar({
                         }
                       >
                         <span className="sidebar-item-left">
-                          <Icon size={18} />
-                          {item.label}
+                          <Icon
+                            size={18}
+                          />
+
+                          {
+                            item.label
+                          }
                         </span>
 
                         <ChevronRight
@@ -374,5 +424,3 @@ function Sidebar({
 
 
 export default Sidebar;
-
-
