@@ -5,13 +5,15 @@ import {
 
 import {
   Banknote,
+  Ban,
   CheckCircle2,
+  Eye,
   Plus,
   ReceiptText,
   RefreshCw,
-  ShoppingCart,
   TrendingUp,
   UserRound,
+  XCircle,
 } from "lucide-react";
 
 import {
@@ -22,12 +24,15 @@ import DataTable, {
   type DataTableColumn,
 } from "../../components/ui/DataTable";
 
+import Modal from "../../components/ui/Modal";
 import ModuleState from "../../components/ui/ModuleState";
 import Pagination from "../../components/ui/Pagination";
 import StatCard from "../../components/ui/StatCard";
 import TableToolbar from "../../components/ui/TableToolbar";
 
 import {
+  cancelSale,
+  getSaleDetail,
   getSales,
 } from "../../services/commercial.service";
 
@@ -41,6 +46,7 @@ import {
 
 import type {
   SaleListItem,
+  SaleView,
 } from "../../types/commercial";
 
 import "./ventas.css";
@@ -52,8 +58,7 @@ const PAGE_SIZE = 8;
 function toNumber(
   value: number | string,
 ) {
-  const parsed =
-    Number(value);
+  const parsed = Number(value);
 
   return Number.isFinite(parsed)
     ? parsed
@@ -80,10 +85,6 @@ function formatMoney(
 function formatDate(
   value: string,
 ) {
-  if (!value) {
-    return "Sin fecha";
-  }
-
   const date =
     new Date(value);
 
@@ -105,6 +106,21 @@ function formatDate(
 }
 
 
+function statusLabel(
+  value: string,
+) {
+  if (value === "completed") {
+    return "Completada";
+  }
+
+  if (value === "cancelled") {
+    return "Anulada";
+  }
+
+  return value;
+}
+
+
 function VentasPage() {
   const navigate =
     useNavigate();
@@ -113,16 +129,15 @@ function VentasPage() {
     user,
   } = useAuth();
 
-
   const {
     data,
     loading,
     error,
     reload,
-  } = useApiResource(
-    getSales,
-  );
-
+  } =
+    useApiResource(
+      getSales,
+    );
 
   const [
     search,
@@ -134,16 +149,104 @@ function VentasPage() {
     setPage,
   ] = useState(1);
 
+  const [
+    detailOpen,
+    setDetailOpen,
+  ] = useState(false);
+
+  const [
+    selectedSale,
+    setSelectedSale,
+  ] =
+    useState<SaleView | null>(
+      null,
+    );
+
+  const [
+    detailLoading,
+    setDetailLoading,
+  ] = useState(false);
+
+  const [
+    detailError,
+    setDetailError,
+  ] = useState("");
+
+  const [
+    cancelTarget,
+    setCancelTarget,
+  ] =
+    useState<SaleListItem | null>(
+      null,
+    );
+
+  const [
+    cancelReason,
+    setCancelReason,
+  ] = useState("");
+
+  const [
+    cancelling,
+    setCancelling,
+  ] = useState(false);
+
+  const [
+    actionError,
+    setActionError,
+  ] = useState("");
+
+  const [
+    success,
+    setSuccess,
+  ] = useState("");
+
 
   const sales =
     data ?? [];
 
 
-  const canCreateSale =
-    user?.role ===
-      "Administrador" ||
-    user?.role ===
-      "Vendedor";
+  const canCreate =
+    user?.role === "Administrador"
+    ||
+    user?.role === "Vendedor";
+
+
+  const canCancel =
+    user?.role === "Administrador"
+    ||
+    user?.role === "Gerente";
+
+
+  const validSales =
+    sales.filter(
+      (sale) =>
+        sale.status !== "cancelled",
+    );
+
+
+  const cancelledCount =
+    sales.filter(
+      (sale) =>
+        sale.status === "cancelled",
+    ).length;
+
+
+  const revenue =
+    validSales.reduce(
+      (total, sale) =>
+        total +
+        toNumber(
+          sale.total,
+        ),
+      0,
+    );
+
+
+  const averageTicket =
+    validSales.length
+      ? revenue /
+        validSales.length
+      : 0;
 
 
   const filteredSales =
@@ -164,13 +267,16 @@ function VentasPage() {
               sale.sale_number,
               sale.customer_name,
               sale.status,
-              sale.sale_date,
               sale.total,
             ].some(
               (value) =>
-                String(value ?? "")
+                String(
+                  value ?? "",
+                )
                   .toLowerCase()
-                  .includes(query),
+                  .includes(
+                    query,
+                  ),
             ),
         );
       },
@@ -199,59 +305,85 @@ function VentasPage() {
 
 
   const paginatedSales =
-    useMemo(
-      () => {
-        const start =
-          (safePage - 1) *
-          PAGE_SIZE;
+    filteredSales.slice(
+      (safePage - 1) *
+        PAGE_SIZE,
 
-        return filteredSales.slice(
-          start,
-          start + PAGE_SIZE,
-        );
-      },
-      [
-        filteredSales,
-        safePage,
-      ],
+      safePage *
+        PAGE_SIZE,
     );
 
 
-  const completedSales =
-    sales.filter(
-      (sale) =>
-        sale.status ===
-        "completed",
-    ).length;
+  async function openDetail(
+    sale: SaleListItem,
+  ) {
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError("");
+    setSelectedSale(null);
 
-
-  const revenue =
-    sales.reduce(
-      (total, sale) =>
-        total +
-        toNumber(
-          sale.total,
+    try {
+      setSelectedSale(
+        await getSaleDetail(
+          sale.id,
         ),
-      0,
-    );
+      );
+    } catch (err) {
+      setDetailError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo cargar la venta.",
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
 
-  const averageTicket =
-    sales.length > 0
-      ? revenue /
-        sales.length
-      : 0;
+  async function handleCancel() {
+    if (!cancelTarget) {
+      return;
+    }
 
+    const reason =
+      cancelReason.trim();
 
-  const completedPercentage =
-    sales.length > 0
-      ? Math.round(
-          (
-            completedSales /
-            sales.length
-          ) * 100,
-        )
-      : 0;
+    if (reason.length < 3) {
+      setActionError(
+        "Indica el motivo de la anulación.",
+      );
+
+      return;
+    }
+
+    setCancelling(true);
+    setActionError("");
+
+    try {
+      await cancelSale(
+        cancelTarget.id,
+        reason,
+      );
+
+      setSuccess(
+        `La venta ${cancelTarget.sale_number} fue anulada y el inventario fue restaurado.`,
+      );
+
+      setCancelTarget(null);
+      setCancelReason("");
+
+      await reload();
+
+    } catch (err) {
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo anular la venta.",
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }
 
 
   const columns:
@@ -259,6 +391,7 @@ function VentasPage() {
       {
         key: "sale",
         label: "Venta",
+
         render: (sale) => (
           <div className="customer-cell">
             <div className="customer-avatar">
@@ -285,6 +418,7 @@ function VentasPage() {
       {
         key: "customer",
         label: "Cliente",
+
         render: (sale) => (
           <span className="table-detail">
             <UserRound
@@ -298,35 +432,9 @@ function VentasPage() {
       },
 
       {
-        key: "subtotal",
-        label: "Subtotal",
-        render: (sale) =>
-          formatMoney(
-            sale.subtotal,
-          ),
-      },
-
-      {
-        key: "discount",
-        label: "Descuento",
-        render: (sale) =>
-          formatMoney(
-            sale.discount,
-          ),
-      },
-
-      {
-        key: "tax",
-        label: "Impuesto",
-        render: (sale) =>
-          formatMoney(
-            sale.tax,
-          ),
-      },
-
-      {
         key: "total",
         label: "Total",
+
         render: (sale) => (
           <strong>
             {formatMoney(
@@ -339,19 +447,19 @@ function VentasPage() {
       {
         key: "status",
         label: "Estado",
+
         render: (sale) => (
           <span
             className={`status-badge ${
               sale.status ===
               "completed"
                 ? "success"
-                : "warning"
+                : "inactive"
             }`}
           >
-            {sale.status ===
-            "completed"
-              ? "Completada"
-              : sale.status}
+            {statusLabel(
+              sale.status,
+            )}
           </span>
         ),
       },
@@ -371,10 +479,11 @@ function VentasPage() {
           </h1>
 
           <p>
-            Consulta las operaciones
-            comerciales registradas en
-            SalesIA Enterprise y sus
-            importes reales.
+            Consulta el detalle de cada
+            operación y administra
+            anulaciones manteniendo
+            trazabilidad en Inventario
+            y Kardex.
           </p>
         </div>
 
@@ -383,9 +492,9 @@ function VentasPage() {
             type="button"
             className="secondary-button"
             disabled={loading}
-            onClick={() => {
-              void reload();
-            }}
+            onClick={() =>
+              void reload()
+            }
           >
             <RefreshCw
               size={16}
@@ -394,7 +503,7 @@ function VentasPage() {
             Actualizar
           </button>
 
-          {canCreateSale && (
+          {canCreate && (
             <button
               type="button"
               className="primary-button"
@@ -405,51 +514,58 @@ function VentasPage() {
               }
             >
               <Plus size={16} />
+
               Nueva venta
             </button>
           )}
-
-          <div className="module-main-icon">
-            <ShoppingCart
-              size={27}
-            />
-          </div>
         </div>
       </div>
 
 
+      {success && (
+        <ModuleState
+          type="success"
+          title="Venta actualizada"
+          description={success}
+        />
+      )}
+
+
+      {actionError &&
+        !cancelTarget && (
+        <ModuleState
+          type="error"
+          title="No se pudo completar la acción"
+          description={actionError}
+        />
+      )}
+
+
       <div className="stats-grid">
         <StatCard
-          title="Ventas registradas"
+          title="Ventas vigentes"
           value={String(
-            sales.length,
+            validSales.length,
           )}
-          change="100%"
-          caption="operaciones consultadas"
-          icon={ShoppingCart}
-        />
-
-        <StatCard
-          title="Ventas completadas"
-          value={String(
-            completedSales,
-          )}
-          change={`${completedPercentage}%`}
-          caption="operaciones finalizadas"
+          caption="operaciones válidas"
           icon={CheckCircle2}
         />
 
         <StatCard
-          title="Ingresos"
+          title="Anuladas"
+          value={String(
+            cancelledCount,
+          )}
+          caption="operaciones revertidas"
+          icon={XCircle}
+        />
+
+        <StatCard
+          title="Ingresos válidos"
           value={formatMoney(
             revenue,
           )}
-          change={
-            sales.length > 0
-              ? "Registrado"
-              : "0%"
-          }
-          caption="valor total consultado"
+          caption="sin anulaciones"
           icon={Banknote}
         />
 
@@ -458,12 +574,7 @@ function VentasPage() {
           value={formatMoney(
             averageTicket,
           )}
-          change={
-            sales.length > 0
-              ? "Promedio"
-              : "0%"
-          }
-          caption="por operación"
+          caption="por venta vigente"
           icon={TrendingUp}
         />
       </div>
@@ -472,19 +583,13 @@ function VentasPage() {
       <article className="panel enterprise-data-panel">
         <TableToolbar
           search={search}
-          onSearchChange={(value) => {
+          onSearchChange={(
+            value,
+          ) => {
             setSearch(value);
             setPage(1);
           }}
-          canCreate={
-            canCreateSale
-          }
-          createLabel="Nueva venta"
-          onCreate={() =>
-            navigate(
-              "/sales/new",
-            )
-          }
+          canCreate={false}
         />
 
 
@@ -492,50 +597,18 @@ function VentasPage() {
           <ModuleState
             type="loading"
             title="Cargando ventas"
-            description="Consultando operaciones comerciales registradas."
           />
         ) : error ? (
-          <div>
-            <ModuleState
-              type="error"
-              title="No se pudieron cargar las ventas"
-              description={error}
-            />
-
-            <div
-              className="modal-actions"
-              style={{
-                padding:
-                  "0 20px 20px",
-              }}
-            >
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  void reload();
-                }}
-              >
-                Reintentar
-              </button>
-            </div>
-          </div>
+          <ModuleState
+            type="error"
+            title="No se pudieron cargar las ventas"
+            description={error}
+          />
         ) : filteredSales.length ===
           0 ? (
           <ModuleState
             type="empty"
-            title={
-              search
-                ? "No encontramos ventas"
-                : "Todavía no existen ventas"
-            }
-            description={
-              search
-                ? "Prueba con otro número de venta, cliente o estado."
-                : canCreateSale
-                  ? "Registra la primera operación desde Nueva venta."
-                  : "No existen operaciones disponibles para consultar."
-            }
+            title="No se encontraron ventas"
           />
         ) : (
           <>
@@ -547,6 +620,49 @@ function VentasPage() {
               getRowKey={(
                 sale,
               ) => sale.id}
+              actions={(
+                sale,
+              ) => (
+                <div className="table-actions">
+                  <button
+                    type="button"
+                    className="icon-button"
+                    title="Ver detalle"
+                    onClick={() =>
+                      void openDetail(
+                        sale,
+                      )
+                    }
+                  >
+                    <Eye size={16} />
+                  </button>
+
+                  {canCancel &&
+                    sale.status ===
+                      "completed" && (
+                    <button
+                      type="button"
+                      className="icon-button sale-cancel-action"
+                      title="Anular venta"
+                      onClick={() => {
+                        setActionError(
+                          "",
+                        );
+
+                        setCancelReason(
+                          "",
+                        );
+
+                        setCancelTarget(
+                          sale,
+                        );
+                      }}
+                    >
+                      <Ban size={16} />
+                    </button>
+                  )}
+                </div>
+              )}
             />
 
             <Pagination
@@ -561,6 +677,307 @@ function VentasPage() {
           </>
         )}
       </article>
+
+
+      <Modal
+        open={detailOpen}
+        title={
+          selectedSale
+            ? `Venta ${selectedSale.sale_number}`
+            : "Detalle de venta"
+        }
+        description="Información completa de la operación."
+        onClose={() => {
+          setDetailOpen(
+            false,
+          );
+
+          setSelectedSale(
+            null,
+          );
+        }}
+      >
+        {detailLoading ? (
+          <ModuleState
+            type="loading"
+            title="Cargando detalle"
+          />
+        ) : detailError ? (
+          <ModuleState
+            type="error"
+            title="No se pudo cargar el detalle"
+            description={
+              detailError
+            }
+          />
+        ) : selectedSale ? (
+          <div className="sale-detail-view">
+            <div className="sale-detail-summary">
+              <div>
+                <span>Cliente</span>
+
+                <strong>
+                  {selectedSale.customer_name}
+                </strong>
+              </div>
+
+              <div>
+                <span>Fecha</span>
+
+                <strong>
+                  {formatDate(
+                    selectedSale.sale_date,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Registrado por
+                </span>
+
+                <strong>
+                  {selectedSale.created_by_name}
+                </strong>
+              </div>
+
+              <div>
+                <span>Estado</span>
+
+                <strong>
+                  {statusLabel(
+                    selectedSale.status,
+                  )}
+                </strong>
+              </div>
+            </div>
+
+
+            <div className="sale-detail-items">
+              <h3>
+                Productos
+              </h3>
+
+              {selectedSale.items.map(
+                (item) => (
+                  <div
+                    className="sale-detail-item"
+                    key={
+                      item.product_id
+                    }
+                  >
+                    <div>
+                      <strong>
+                        {item.product_name}
+                      </strong>
+
+                      <span>
+                        {item.quantity}
+                        {" × "}
+                        {formatMoney(
+                          item.unit_price,
+                        )}
+                      </span>
+                    </div>
+
+                    <strong>
+                      {formatMoney(
+                        item.subtotal,
+                      )}
+                    </strong>
+                  </div>
+                ),
+              )}
+            </div>
+
+
+            <div className="sale-detail-totals">
+              <div>
+                <span>Subtotal</span>
+
+                <strong>
+                  {formatMoney(
+                    selectedSale.subtotal,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>Descuento</span>
+
+                <strong>
+                  {formatMoney(
+                    selectedSale.discount,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>Impuesto</span>
+
+                <strong>
+                  {formatMoney(
+                    selectedSale.tax,
+                  )}
+                </strong>
+              </div>
+
+              <div className="sale-detail-total">
+                <span>Total</span>
+
+                <strong>
+                  {formatMoney(
+                    selectedSale.total,
+                  )}
+                </strong>
+              </div>
+            </div>
+
+
+            {selectedSale.payment && (
+              <div className="sale-detail-payment">
+                <span>Pago</span>
+
+                <strong>
+                  {selectedSale.payment.payment_method}
+                </strong>
+
+                <small>
+                  {formatMoney(
+                    selectedSale.payment.amount,
+                  )}
+
+                  {" · "}
+
+                  {selectedSale.payment.status ===
+                  "cancelled"
+                    ? "Cancelado"
+                    : "Completado"}
+                </small>
+              </div>
+            )}
+
+
+            {selectedSale.notes && (
+              <div className="sale-detail-notes">
+                <span>Notas</span>
+
+                <p>
+                  {selectedSale.notes}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </Modal>
+
+
+      <Modal
+        open={
+          Boolean(
+            cancelTarget,
+          )
+        }
+        title="Anular venta"
+        description={
+          cancelTarget
+            ? `Venta ${cancelTarget.sale_number}`
+            : undefined
+        }
+        onClose={() => {
+          if (!cancelling) {
+            setCancelTarget(
+              null,
+            );
+
+            setCancelReason(
+              "",
+            );
+
+            setActionError(
+              "",
+            );
+          }
+        }}
+      >
+        <div className="sale-cancel-box">
+          <Ban size={25} />
+
+          <div>
+            <strong>
+              La venta no será eliminada.
+            </strong>
+
+            <p>
+              Quedará anulada, el pago se
+              cancelará y las unidades
+              regresarán al inventario
+              mediante movimientos de Kardex.
+            </p>
+          </div>
+        </div>
+
+
+        <label className="sale-field">
+          <span>
+            Motivo de anulación
+          </span>
+
+          <textarea
+            rows={4}
+            maxLength={500}
+            value={cancelReason}
+            onChange={(event) =>
+              setCancelReason(
+                event.target.value,
+              )
+            }
+            placeholder="Indica por qué se anula la venta."
+          />
+        </label>
+
+
+        {actionError && (
+          <p className="sale-inline-error">
+            {actionError}
+          </p>
+        )}
+
+
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={cancelling}
+            onClick={() => {
+              setCancelTarget(
+                null,
+              );
+
+              setActionError(
+                "",
+              );
+            }}
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            className="danger-button"
+            disabled={cancelling}
+            onClick={() =>
+              void handleCancel()
+            }
+          >
+            <Ban size={16} />
+
+            {cancelling
+              ? "Anulando..."
+              : "Confirmar anulación"}
+          </button>
+        </div>
+      </Modal>
     </section>
   );
 }

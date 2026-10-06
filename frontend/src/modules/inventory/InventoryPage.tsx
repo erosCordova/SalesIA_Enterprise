@@ -6,11 +6,15 @@ import {
 import {
   AlertTriangle,
   Boxes,
-  CheckCircle2,
-  PackageSearch,
+  History,
+  PackageCheck,
+  PackageX,
   RefreshCw,
-  ShieldAlert,
 } from "lucide-react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
 
 import DataTable, {
   type DataTableColumn,
@@ -33,15 +37,16 @@ import type {
   InventoryItem,
 } from "../../types/commercial";
 
+import "./inventory.css";
 
-const PAGE_SIZE = 8;
+
+const PAGE_SIZE = 10;
 
 
 function toNumber(
   value: number | string | null,
 ) {
-  const parsed =
-    Number(value ?? 0);
+  const parsed = Number(value ?? 0);
 
   return Number.isFinite(parsed)
     ? parsed
@@ -63,7 +68,7 @@ function formatQuantity(
 }
 
 
-function getStockLevel(
+function getStockState(
   item: InventoryItem,
 ) {
   const stock =
@@ -77,41 +82,102 @@ function getStockLevel(
     );
 
   if (stock <= 0) {
-    return "out";
+    return {
+      key: "out",
+      label: "Agotado",
+    };
   }
 
   if (stock <= minimum) {
-    return "low";
+    return {
+      key: "low",
+      label: "Stock bajo",
+    };
   }
 
-  return "normal";
+  return {
+    key: "ok",
+    label: "Disponible",
+  };
 }
 
 
 function InventoryPage() {
+  const navigate =
+    useNavigate();
+
   const {
     data,
     loading,
     error,
     reload,
-  } = useApiResource(
-    getInventory,
-  );
-
+  } =
+    useApiResource(
+      getInventory,
+    );
 
   const [
     search,
     setSearch,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     page,
     setPage,
-  ] = useState(1);
+  ] =
+    useState(1);
 
 
   const inventory =
     data ?? [];
+
+
+  const totalUnits =
+    inventory.reduce(
+      (total, item) =>
+        total +
+        toNumber(
+          item.stock_quantity,
+        ),
+      0,
+    );
+
+
+  const outOfStock =
+    inventory.filter(
+      (item) =>
+        toNumber(
+          item.stock_quantity,
+        ) <= 0,
+    ).length;
+
+
+  const lowStock =
+    inventory.filter(
+      (item) => {
+        const stock =
+          toNumber(
+            item.stock_quantity,
+          );
+
+        const minimum =
+          toNumber(
+            item.minimum_stock,
+          );
+
+        return (
+          stock > 0 &&
+          stock <= minimum
+        );
+      },
+    ).length;
+
+
+  const healthyStock =
+    inventory.length -
+    outOfStock -
+    lowStock;
 
 
   const filteredInventory =
@@ -127,20 +193,30 @@ function InventoryPage() {
         }
 
         return inventory.filter(
-          (item) =>
-            [
+          (item) => {
+            const state =
+              getStockState(
+                item,
+              );
+
+            return [
               item.sku,
               item.product_name,
-              item.stock_status,
+              state.label,
               item.stock_quantity,
               item.minimum_stock,
               item.maximum_stock,
             ].some(
               (value) =>
-                String(value ?? "")
+                String(
+                  value ?? "",
+                )
                   .toLowerCase()
-                  .includes(query),
-            ),
+                  .includes(
+                    query,
+                  ),
+            );
+          },
         );
       },
       [
@@ -168,84 +244,13 @@ function InventoryPage() {
 
 
   const paginatedInventory =
-    useMemo(
-      () => {
-        const start =
-          (safePage - 1) *
-          PAGE_SIZE;
+    filteredInventory.slice(
+      (safePage - 1) *
+        PAGE_SIZE,
 
-        return filteredInventory.slice(
-          start,
-          start + PAGE_SIZE,
-        );
-      },
-      [
-        filteredInventory,
-        safePage,
-      ],
+      safePage *
+        PAGE_SIZE,
     );
-
-
-  const outOfStock =
-    inventory.filter(
-      (item) =>
-        getStockLevel(item) ===
-        "out",
-    ).length;
-
-
-  const lowStock =
-    inventory.filter(
-      (item) =>
-        getStockLevel(item) ===
-        "low",
-    ).length;
-
-
-  const normalStock =
-    inventory.filter(
-      (item) =>
-        getStockLevel(item) ===
-        "normal",
-    ).length;
-
-
-  const alertCount =
-    outOfStock +
-    lowStock;
-
-
-  const healthyPercentage =
-    inventory.length > 0
-      ? Math.round(
-          (
-            normalStock /
-            inventory.length
-          ) * 100,
-        )
-      : 0;
-
-
-  const alertPercentage =
-    inventory.length > 0
-      ? Math.round(
-          (
-            alertCount /
-            inventory.length
-          ) * 100,
-        )
-      : 0;
-
-
-  const outPercentage =
-    inventory.length > 0
-      ? Math.round(
-          (
-            outOfStock /
-            inventory.length
-          ) * 100,
-        )
-      : 0;
 
 
   const columns:
@@ -253,12 +258,11 @@ function InventoryPage() {
       {
         key: "product",
         label: "Producto",
+
         render: (item) => (
-          <div className="customer-cell">
-            <div className="customer-avatar">
-              <PackageSearch
-                size={17}
-              />
+          <div className="inventory-product-cell">
+            <div className="inventory-product-icon">
+              <Boxes size={17} />
             </div>
 
             <div>
@@ -277,118 +281,62 @@ function InventoryPage() {
       {
         key: "stock",
         label: "Stock actual",
-        render: (item) => {
-          const level =
-            getStockLevel(item);
 
-          return (
-            <div>
-              <strong>
-                {formatQuantity(
-                  item.stock_quantity,
-                )}
-              </strong>
-
-              <div
-                className="table-detail"
-                style={{
-                  marginTop: 4,
-                }}
-              >
-                {level === "normal" ? (
-                  <CheckCircle2
-                    size={13}
-                  />
-                ) : (
-                  <AlertTriangle
-                    size={13}
-                  />
-                )}
-
-                Existencias
-              </div>
-            </div>
-          );
-        },
+        render: (item) => (
+          <strong className="inventory-stock-value">
+            {formatQuantity(
+              item.stock_quantity,
+            )}
+          </strong>
+        ),
       },
 
       {
         key: "minimum",
         label: "Stock mínimo",
-        render: (item) => (
-          <span className="table-detail">
-            <ShieldAlert
-              size={13}
-            />
 
-            {formatQuantity(
-              item.minimum_stock,
-            )}
-          </span>
-        ),
+        render: (item) =>
+          formatQuantity(
+            item.minimum_stock,
+          ),
       },
 
       {
         key: "maximum",
         label: "Stock máximo",
-        render: (item) => (
-          <span>
-            {item.maximum_stock ===
-            null
-              ? "No definido"
-              : formatQuantity(
-                  item.maximum_stock,
-                )}
-          </span>
-        ),
+
+        render: (item) =>
+          item.maximum_stock === null
+            ? "Sin límite"
+            : formatQuantity(
+                item.maximum_stock,
+              ),
       },
 
       {
-        key: "status",
-        label: "Nivel",
+        key: "availability",
+        label: "Disponibilidad",
+
         render: (item) => {
-          const level =
-            getStockLevel(item);
-
-          if (level === "out") {
-            return (
-              <span className="status-badge inactive">
-                Sin stock
-              </span>
+          const state =
+            getStockState(
+              item,
             );
-          }
-
-          if (level === "low") {
-            return (
-              <span className="status-badge warning">
-                Stock bajo
-              </span>
-            );
-          }
 
           return (
-            <span className="status-badge success">
-              Disponible
+            <span
+              className={`inventory-status inventory-status-${state.key}`}
+            >
+              {state.label}
             </span>
           );
         },
-      },
-
-      {
-        key: "backendStatus",
-        label: "Estado API",
-        render: (item) => (
-          <span>
-            {item.stock_status ||
-              "Sin estado"}
-          </span>
-        ),
       },
     ];
 
 
   return (
-    <section className="module-page">
+    <section className="module-page inventory-page">
       <div className="page-heading">
         <div>
           <span className="page-eyebrow">
@@ -396,66 +344,85 @@ function InventoryPage() {
           </span>
 
           <h1>
-            Gestión de inventario
+            Inventario
           </h1>
 
           <p>
-            Supervisa las existencias
-            reales, niveles mínimos,
-            máximos y alertas de stock
-            registradas en SalesIA
-            Enterprise.
+            Consulta existencias reales,
+            identifica productos críticos
+            y accede al Kardex para registrar
+            cualquier movimiento de stock.
           </p>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
+        <div className="inventory-heading-actions">
           <button
             type="button"
             className="secondary-button"
             disabled={loading}
-            onClick={() => {
-              void reload();
-            }}
+            onClick={() =>
+              void reload()
+            }
           >
-            <RefreshCw
-              size={16}
-            />
+            <RefreshCw size={16} />
 
             Actualizar
           </button>
 
-          <div className="module-main-icon">
-            <Boxes size={27} />
-          </div>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() =>
+              navigate(
+                "/kardex",
+              )
+            }
+          >
+            <History size={16} />
+
+            Abrir Kardex
+          </button>
+        </div>
+      </div>
+
+
+      <div className="inventory-guidance">
+        <div className="inventory-guidance-icon">
+          <History size={20} />
+        </div>
+
+        <div>
+          <strong>
+            El stock no se modifica directamente.
+          </strong>
+
+          <p>
+            Las entradas, salidas, devoluciones y
+            ajustes deben registrarse en Kardex
+            para conservar la trazabilidad de cada
+            movimiento.
+          </p>
         </div>
       </div>
 
 
       <div className="stats-grid">
         <StatCard
-          title="Productos controlados"
+          title="Productos"
           value={String(
             inventory.length,
           )}
-          change="100%"
-          caption="registros de inventario"
+          caption="productos con inventario"
           icon={Boxes}
         />
 
         <StatCard
-          title="Stock saludable"
-          value={String(
-            normalStock,
+          title="Unidades disponibles"
+          value={formatQuantity(
+            totalUnits,
           )}
-          change={`${healthyPercentage}%`}
-          caption="sobre el mínimo"
-          icon={CheckCircle2}
+          caption="existencias acumuladas"
+          icon={PackageCheck}
         />
 
         <StatCard
@@ -463,62 +430,74 @@ function InventoryPage() {
           value={String(
             lowStock,
           )}
-          change={`${alertPercentage}%`}
-          positive={
-            alertCount === 0
-          }
-          caption="requieren atención"
+          caption="requieren reposición"
           icon={AlertTriangle}
         />
 
         <StatCard
-          title="Sin stock"
+          title="Agotados"
           value={String(
             outOfStock,
           )}
-          change={`${outPercentage}%`}
-          positive={
-            outOfStock === 0
-          }
-          caption="existencia agotada"
-          icon={ShieldAlert}
+          caption="sin existencias"
+          icon={PackageX}
         />
       </div>
 
 
-      {alertCount > 0 && (
-        <div
-          className="module-development-notice"
-          style={{
-            marginBottom: 20,
-          }}
-        >
-          <AlertTriangle
-            size={20}
-          />
+      <div className="inventory-health-panel">
+        <div>
+          <span>
+            ESTADO DEL INVENTARIO
+          </span>
+
+          <strong>
+            {healthyStock} producto
+            {healthyStock === 1
+              ? ""
+              : "s"}{" "}
+            con disponibilidad normal
+          </strong>
+        </div>
+
+        <div className="inventory-health-summary">
+          <div>
+            <span className="inventory-dot inventory-dot-ok" />
+
+            Normal
+
+            <strong>
+              {healthyStock}
+            </strong>
+          </div>
 
           <div>
-            <strong>
-              Atención de inventario
-            </strong>
+            <span className="inventory-dot inventory-dot-low" />
 
-            <p>
-              {alertCount}{" "}
-              {alertCount === 1
-                ? "producto requiere"
-                : "productos requieren"}{" "}
-              revisión por encontrarse
-              en el mínimo o sin
-              existencias.
-            </p>
+            Bajo
+
+            <strong>
+              {lowStock}
+            </strong>
+          </div>
+
+          <div>
+            <span className="inventory-dot inventory-dot-out" />
+
+            Agotado
+
+            <strong>
+              {outOfStock}
+            </strong>
           </div>
         </div>
-      )}
+      </div>
 
 
       <article className="panel enterprise-data-panel">
         <TableToolbar
           search={search}
+          placeholder="Buscar por producto, SKU o estado..."
           onSearchChange={(value) => {
             setSearch(value);
             setPage(1);
@@ -531,7 +510,7 @@ function InventoryPage() {
           <ModuleState
             type="loading"
             title="Cargando inventario"
-            description="Consultando existencias registradas en PostgreSQL."
+            description="Consultando las existencias actuales."
           />
         ) : error ? (
           <div>
@@ -541,41 +520,32 @@ function InventoryPage() {
               description={error}
             />
 
-            <div
-              className="modal-actions"
-              style={{
-                padding:
-                  "0 20px 20px",
-              }}
-            >
+            <div className="inventory-retry">
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => {
-                  void reload();
-                }}
+                onClick={() =>
+                  void reload()
+                }
               >
-                <RefreshCw
-                  size={16}
-                />
+                <RefreshCw size={16} />
 
                 Reintentar
               </button>
             </div>
           </div>
-        ) : filteredInventory.length ===
-          0 ? (
+        ) : filteredInventory.length === 0 ? (
           <ModuleState
             type="empty"
             title={
               search
-                ? "No encontramos registros"
-                : "Todavía no existe inventario"
+                ? "No encontramos productos"
+                : "Inventario vacío"
             }
             description={
               search
-                ? "Prueba con otro SKU, producto o estado."
-                : "El inventario aparecerá cuando existan productos registrados."
+                ? "Prueba con otro producto, SKU o estado."
+                : "Los productos con inventario aparecerán aquí."
             }
           />
         ) : (

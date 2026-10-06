@@ -2041,3 +2041,86 @@
     grid-column: auto;
   }
 }
+
+/* =========================================================
+   DASHBOARD / TOPBAR FUNCIONAL
+   ========================================================= */
+
+.topbar-context {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.topbar-context span {
+  color: var(--slate-400);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.topbar-context strong {
+  overflow: hidden;
+  margin-top: 3px;
+
+  max-width: 420px;
+
+  color: var(--slate-700);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-period {
+  display: flex;
+  height: 40px;
+
+  align-items: center;
+  gap: 8px;
+
+  padding: 0 14px;
+
+  border: 1px solid var(--slate-200);
+  border-radius: 9px;
+
+  color: var(--slate-500);
+  background: white;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  box-shadow:
+    0 3px 12px rgba(15, 23, 42, 0.035);
+}
+
+.inventory-stats {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-inventory-panel {
+  grid-column: 1 / -1;
+}
+
+.text-action {
+  cursor: pointer;
+}
+
+@media (max-width: 650px) {
+  .topbar-context strong {
+    max-width: 150px;
+  }
+
+  .dashboard-period {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .inventory-stats {
+    grid-template-columns: 1fr;
+  }
+}

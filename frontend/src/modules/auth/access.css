@@ -574,3 +574,367 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   ACCESS V2
+   ========================================================= */
+
+.access-summary-v2 {
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 220px)
+    );
+}
+
+.access-toolbar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.access-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.access-role-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 14px;
+}
+
+.access-roles-section {
+  border:
+    1px solid
+    var(--v2-border, #e5eaf1);
+
+  border-radius: 16px;
+
+  padding: 19px;
+
+  background: white;
+
+  box-shadow:
+    0 8px 28px
+    rgba(15, 23, 42, 0.04);
+}
+
+.access-section-heading {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 18px;
+}
+
+.access-section-heading span {
+  color: #0891b2;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.13em;
+}
+
+.access-section-heading h2 {
+  margin: 5px 0 4px;
+
+  color: #172033;
+
+  font-size: 20px;
+}
+
+.access-section-heading p {
+  max-width: 680px;
+
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.access-role-card {
+  min-width: 0;
+
+  padding: 16px;
+
+  border:
+    1px solid #e5eaf1;
+
+  border-radius: 13px;
+
+  background: #fbfdff;
+}
+
+.access-role-card-icon {
+  display: grid;
+
+  width: 39px;
+  height: 39px;
+
+  margin-bottom: 12px;
+
+  place-items: center;
+
+  border-radius: 11px;
+
+  color: #2563eb;
+
+  background: #eff6ff;
+}
+
+.access-role-card strong {
+  color: #172033;
+
+  font-size: 13px;
+}
+
+.access-role-card p {
+  margin: 7px 0 8px;
+
+  color: #64748b;
+
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.access-role-card small {
+  color: #94a3b8;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+
+@media (max-width: 960px) {
+  .access-role-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
+  .access-summary-v2 {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+@media (max-width: 620px) {
+  .access-role-grid,
+  .access-summary-v2 {
+    grid-template-columns:
+      1fr;
+  }
+
+  .access-toolbar-buttons {
+    width: 100%;
+
+    flex-direction: column;
+  }
+
+  .access-toolbar-buttons button {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   ACCESS V2
+   ========================================================= */
+
+.access-summary-v2 {
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 220px)
+    );
+}
+
+.access-toolbar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.access-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.access-role-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 14px;
+}
+
+.access-roles-section {
+  border:
+    1px solid
+    var(--v2-border, #e5eaf1);
+
+  border-radius: 16px;
+
+  padding: 19px;
+
+  background: white;
+
+  box-shadow:
+    0 8px 28px
+    rgba(15, 23, 42, 0.04);
+}
+
+.access-section-heading {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 18px;
+}
+
+.access-section-heading span {
+  color: #0891b2;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.13em;
+}
+
+.access-section-heading h2 {
+  margin: 5px 0 4px;
+
+  color: #172033;
+
+  font-size: 20px;
+}
+
+.access-section-heading p {
+  max-width: 680px;
+
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.access-role-card {
+  min-width: 0;
+
+  padding: 16px;
+
+  border:
+    1px solid #e5eaf1;
+
+  border-radius: 13px;
+
+  background: #fbfdff;
+}
+
+.access-role-card-icon {
+  display: grid;
+
+  width: 39px;
+  height: 39px;
+
+  margin-bottom: 12px;
+
+  place-items: center;
+
+  border-radius: 11px;
+
+  color: #2563eb;
+
+  background: #eff6ff;
+}
+
+.access-role-card strong {
+  color: #172033;
+
+  font-size: 13px;
+}
+
+.access-role-card p {
+  margin: 7px 0 8px;
+
+  color: #64748b;
+
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.access-role-card small {
+  color: #94a3b8;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+
+@media (max-width: 960px) {
+  .access-role-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
+  .access-summary-v2 {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+@media (max-width: 620px) {
+  .access-role-grid,
+  .access-summary-v2 {
+    grid-template-columns:
+      1fr;
+  }
+
+  .access-toolbar-buttons {
+    width: 100%;
+
+    flex-direction: column;
+  }
+
+  .access-toolbar-buttons button {
+    width: 100%;
+  }
+}

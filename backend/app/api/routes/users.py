@@ -1,15 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
+
 from sqlalchemy import text
+
 from supabase import create_client
 
 from app.api.dependencies.auth import require_roles
 from app.core.config import settings
 from app.core.database import engine
+
 from app.schemas.users import (
     RoleResponse,
     UserCreateRequest,
     UserCreatedResponse,
     UserListItem,
+    UserUpdateRequest,
 )
 
 
@@ -25,8 +34,37 @@ ALLOWED_ROLES = {
 }
 
 
-def build_internal_email(dni: str) -> str:
+def build_internal_email(
+    dni: str,
+) -> str:
     return f"{dni}@salesia.local"
+
+
+def get_role(
+    connection,
+    role_name: str,
+):
+    role = connection.execute(
+        text("""
+            SELECT
+                id,
+                name
+            FROM roles
+            WHERE name = :role_name
+            LIMIT 1
+        """),
+        {
+            "role_name": role_name,
+        },
+    ).mappings().first()
+
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El rol seleccionado no existe.",
+        )
+
+    return role
 
 
 @router.get(
@@ -36,9 +74,11 @@ def build_internal_email(dni: str) -> str:
 )
 def list_roles(
     current_user: dict = Depends(
-        require_roles("Administrador")
+        require_roles(
+            "Administrador"
+        )
     ),
-) -> list[RoleResponse]:
+):
     with engine.connect() as connection:
         rows = connection.execute(
             text("""
@@ -75,9 +115,11 @@ def list_roles(
 )
 def list_users(
     current_user: dict = Depends(
-        require_roles("Administrador")
+        require_roles(
+            "Administrador"
+        )
     ),
-) -> list[UserListItem]:
+):
     with engine.connect() as connection:
         rows = connection.execute(
             text("""
@@ -95,13 +137,17 @@ def list_users(
                     ON r.id = u.role_id
                 INNER JOIN companies c
                     ON c.id = u.company_id
-                WHERE u.company_id = :company_id
+                WHERE
+                    u.company_id = :company_id
                 ORDER BY
                     u.first_name,
                     u.last_name
             """),
             {
-                "company_id": current_user["company_id"],
+                "company_id":
+                    current_user[
+                        "company_id"
+                    ],
             },
         ).mappings().all()
 
@@ -129,12 +175,18 @@ def list_users(
 def create_user(
     data: UserCreateRequest,
     current_user: dict = Depends(
-        require_roles("Administrador")
+        require_roles(
+            "Administrador"
+        )
     ),
-) -> UserCreatedResponse:
+):
     dni = data.dni.strip()
-    first_name = data.first_name.strip()
-    last_name = data.last_name.strip()
+    first_name = (
+        data.first_name.strip()
+    )
+    last_name = (
+        data.last_name.strip()
+    )
 
     phone = (
         data.phone.strip()
@@ -148,9 +200,15 @@ def create_user(
             detail="Rol no válido.",
         )
 
-    company_id = current_user["company_id"]
+    company_id = (
+        current_user[
+            "company_id"
+        ]
+    )
 
-    internal_email = build_internal_email(dni)
+    internal_email = (
+        build_internal_email(dni)
+    )
 
     with engine.connect() as connection:
         existing_user = connection.execute(
@@ -168,28 +226,16 @@ def create_user(
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Ya existe un usuario con ese DNI.",
+                detail=(
+                    "Ya existe un usuario "
+                    "con ese DNI."
+                ),
             )
 
-        role = connection.execute(
-            text("""
-                SELECT
-                    id,
-                    name
-                FROM roles
-                WHERE name = :role_name
-                LIMIT 1
-            """),
-            {
-                "role_name": data.role,
-            },
-        ).mappings().first()
-
-        if not role:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El rol seleccionado no existe.",
-            )
+        role = get_role(
+            connection,
+            data.role,
+        )
 
         company = connection.execute(
             text("""
@@ -201,14 +247,18 @@ def create_user(
                 LIMIT 1
             """),
             {
-                "company_id": company_id,
+                "company_id":
+                    company_id,
             },
         ).mappings().first()
 
         if not company:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="La empresa del administrador no existe.",
+                detail=(
+                    "La empresa del "
+                    "administrador no existe."
+                ),
             )
 
     supabase = create_client(
@@ -219,26 +269,39 @@ def create_user(
     auth_user_id = None
 
     try:
-        auth_response = supabase.auth.admin.create_user(
-            {
-                "email": internal_email,
-                "password": data.password,
-                "email_confirm": True,
-                "user_metadata": {
-                    "dni": dni,
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "role": data.role,
-                },
-            }
+        auth_response = (
+            supabase
+            .auth
+            .admin
+            .create_user(
+                {
+                    "email":
+                        internal_email,
+                    "password":
+                        data.password,
+                    "email_confirm":
+                        True,
+                    "user_metadata":
+                        {
+                            "dni":
+                                dni,
+                            "first_name":
+                                first_name,
+                            "last_name":
+                                last_name,
+                            "role":
+                                data.role,
+                        },
+                }
+            )
         )
 
         if not auth_response.user:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=(
-                    "Supabase Auth no devolvió "
-                    "el usuario creado."
+                    "Supabase Auth no "
+                    "devolvió el usuario."
                 ),
             )
 
@@ -250,7 +313,9 @@ def create_user(
         raise
 
     except Exception as error:
-        message = str(error).lower()
+        message = str(
+            error
+        ).lower()
 
         if (
             "already" in message
@@ -260,7 +325,7 @@ def create_user(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
-                    "Ya existe una cuenta de autenticación "
+                    "Ya existe una cuenta "
                     "asociada a este DNI."
                 ),
             )
@@ -268,64 +333,82 @@ def create_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
-                "No se pudo crear la cuenta "
-                "de autenticación."
+                "No se pudo crear la "
+                "cuenta de autenticación."
             ),
         )
 
     try:
         with engine.begin() as connection:
-            created_user = connection.execute(
-                text("""
-                    INSERT INTO users (
-                        auth_user_id,
-                        company_id,
-                        role_id,
-                        dni,
-                        first_name,
-                        last_name,
-                        email,
-                        phone,
-                        status
-                    )
-                    VALUES (
-                        :auth_user_id,
-                        :company_id,
-                        :role_id,
-                        :dni,
-                        :first_name,
-                        :last_name,
-                        :email,
-                        :phone,
-                        :status
-                    )
-                    RETURNING
-                        id,
-                        auth_user_id,
-                        dni,
-                        first_name,
-                        last_name,
-                        phone,
-                        status
-                """),
-                {
-                    "auth_user_id": auth_user_id,
-                    "company_id": company_id,
-                    "role_id": role["id"],
-                    "dni": dni,
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "email": internal_email,
-                    "phone": phone,
-                    "status": data.status,
-                },
-            ).mappings().one()
+            created_user = (
+                connection.execute(
+                    text("""
+                        INSERT INTO users (
+                            auth_user_id,
+                            company_id,
+                            role_id,
+                            dni,
+                            first_name,
+                            last_name,
+                            email,
+                            phone,
+                            status
+                        )
+                        VALUES (
+                            :auth_user_id,
+                            :company_id,
+                            :role_id,
+                            :dni,
+                            :first_name,
+                            :last_name,
+                            :email,
+                            :phone,
+                            :status
+                        )
+                        RETURNING
+                            id,
+                            auth_user_id,
+                            dni,
+                            first_name,
+                            last_name,
+                            phone,
+                            status
+                    """),
+                    {
+                        "auth_user_id":
+                            auth_user_id,
+                        "company_id":
+                            company_id,
+                        "role_id":
+                            role["id"],
+                        "dni":
+                            dni,
+                        "first_name":
+                            first_name,
+                        "last_name":
+                            last_name,
+                        "email":
+                            internal_email,
+                        "phone":
+                            phone,
+                        "status":
+                            data.status,
+                    },
+                )
+                .mappings()
+                .one()
+            )
 
     except Exception:
         if auth_user_id:
             try:
-                supabase.auth.admin.delete_user(
-                    auth_user_id
+                (
+                    supabase
+                    .auth
+                    .admin
+                    .delete_user(
+                        auth_user_id
+                    )
                 )
             except Exception:
                 pass
@@ -333,21 +416,214 @@ def create_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
-                "No se pudo registrar el usuario "
-                "en SalesIA Enterprise."
+                "No se pudo registrar "
+                "el usuario."
             ),
         )
 
     return UserCreatedResponse(
-        id=str(created_user["id"]),
+        id=str(
+            created_user["id"]
+        ),
         auth_user_id=str(
-            created_user["auth_user_id"]
+            created_user[
+                "auth_user_id"
+            ]
         ),
         dni=created_user["dni"],
-        first_name=created_user["first_name"],
-        last_name=created_user["last_name"],
+        first_name=created_user[
+            "first_name"
+        ],
+        last_name=created_user[
+            "last_name"
+        ],
         phone=created_user["phone"],
         role=role["name"],
         company=company["name"],
-        status=created_user["status"],
+        status=created_user[
+            "status"
+        ],
+    )
+
+
+@router.patch(
+    "/{user_id}",
+    response_model=UserListItem,
+    summary="Actualizar usuario",
+)
+def update_user(
+    user_id: str,
+    data: UserUpdateRequest,
+    current_user: dict = Depends(
+        require_roles(
+            "Administrador"
+        )
+    ),
+):
+    if data.role not in ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Rol no válido.",
+        )
+
+    company_id = (
+        current_user[
+            "company_id"
+        ]
+    )
+
+    first_name = (
+        data.first_name.strip()
+    )
+
+    last_name = (
+        data.last_name.strip()
+    )
+
+    phone = (
+        data.phone.strip()
+        if data.phone
+        else None
+    )
+
+    with engine.begin() as connection:
+        existing = connection.execute(
+            text("""
+                SELECT
+                    u.id,
+                    u.dni,
+                    u.status,
+                    r.name AS role
+                FROM users u
+                INNER JOIN roles r
+                    ON r.id = u.role_id
+                WHERE
+                    u.id = :user_id
+                    AND
+                    u.company_id = :company_id
+                LIMIT 1
+            """),
+            {
+                "user_id": user_id,
+                "company_id":
+                    company_id,
+            },
+        ).mappings().first()
+
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=(
+                    "Usuario no encontrado."
+                ),
+            )
+
+        is_self = (
+            str(existing["id"])
+            == str(
+                current_user["id"]
+            )
+        )
+
+        if is_self:
+            if (
+                data.status
+                != "active"
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "No puedes "
+                        "desactivar tu propia "
+                        "cuenta."
+                    ),
+                )
+
+            if (
+                data.role
+                != "Administrador"
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "No puedes retirar "
+                        "tu propio rol de "
+                        "Administrador."
+                    ),
+                )
+
+        role = get_role(
+            connection,
+            data.role,
+        )
+
+        row = connection.execute(
+            text("""
+                UPDATE users
+                SET
+                    first_name =
+                        :first_name,
+                    last_name =
+                        :last_name,
+                    phone =
+                        :phone,
+                    role_id =
+                        :role_id,
+                    status =
+                        :status,
+                    updated_at =
+                        NOW()
+                WHERE
+                    id = :user_id
+                    AND
+                    company_id =
+                        :company_id
+                RETURNING
+                    id,
+                    dni,
+                    first_name,
+                    last_name,
+                    phone,
+                    status
+            """),
+            {
+                "first_name":
+                    first_name,
+                "last_name":
+                    last_name,
+                "phone":
+                    phone,
+                "role_id":
+                    role["id"],
+                "status":
+                    data.status,
+                "user_id":
+                    user_id,
+                "company_id":
+                    company_id,
+            },
+        ).mappings().one()
+
+        company = connection.execute(
+            text("""
+                SELECT name
+                FROM companies
+                WHERE id = :company_id
+                LIMIT 1
+            """),
+            {
+                "company_id":
+                    company_id,
+            },
+        ).mappings().one()
+
+    return UserListItem(
+        id=str(row["id"]),
+        dni=row["dni"],
+        first_name=row["first_name"],
+        last_name=row["last_name"],
+        phone=row["phone"],
+        role=role["name"],
+        company=company["name"],
+        status=row["status"],
     )

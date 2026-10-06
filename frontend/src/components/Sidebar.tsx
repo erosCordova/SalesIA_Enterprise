@@ -4,16 +4,14 @@ import {
   Building2,
   ChevronRight,
   FileText,
+  History,
   LayoutDashboard,
   Lightbulb,
-  PackageSearch,
   Percent,
   Settings2,
   ShieldCheck,
   ShoppingCart,
   Sparkles,
-  Tags,
-  UsersRound,
   X,
 } from "lucide-react";
 
@@ -62,10 +60,17 @@ const ALL_ROLES: UserRole[] = [
 ];
 
 
-const COMMERCIAL_ROLES: UserRole[] = [
+const SALES_ROLES: UserRole[] = [
   "Administrador",
   "Gerente",
   "Vendedor",
+];
+
+
+const INVENTORY_ROLES: UserRole[] = [
+  "Administrador",
+  "Gerente",
+  "Almacén",
 ];
 
 
@@ -76,10 +81,9 @@ const ANALYTICS_ROLES: UserRole[] = [
 ];
 
 
-const INVENTORY_ROLES: UserRole[] = [
+const MANAGEMENT_ROLES: UserRole[] = [
   "Administrador",
   "Gerente",
-  "Almacén",
 ];
 
 
@@ -92,76 +96,34 @@ const menuSections: MenuSection[] = [
         path: "/dashboard",
         icon: LayoutDashboard,
         roles: ALL_ROLES,
+        end: true,
       },
     ],
   },
 
   {
-    title: "COMERCIAL",
+    title: "OPERACIÓN",
     items: [
-      {
-        label: "Clientes",
-        path: "/commercial",
-        icon: UsersRound,
-        roles: COMMERCIAL_ROLES,
-      },
       {
         label: "Ventas",
         path: "/sales",
         icon: ShoppingCart,
-        roles: COMMERCIAL_ROLES,
+        roles: SALES_ROLES,
         end: true,
       },
-      {
-        label: "Productos",
-        path: "/products",
-        icon: PackageSearch,
-        roles: [
-          "Administrador",
-          "Gerente",
-          "Vendedor",
-          "Almacén",
-        ],
-      },
-      {
-        label: "Categorías",
-        path: "/categories",
-        icon: Tags,
-        roles: [
-          "Administrador",
-          "Gerente",
-          "Almacén",
-        ],
-      },
-    ],
-  },
-
-  {
-    title: "OPERACIONES",
-    items: [
       {
         label: "Inventario",
         path: "/inventory",
         icon: Boxes,
         roles: INVENTORY_ROLES,
+        end: true,
       },
       {
-        label: "Empresa",
-        path: "/company",
-        icon: Building2,
-        roles: [
-          "Administrador",
-          "Gerente",
-        ],
-      },
-      {
-        label: "Sucursales",
-        path: "/branches",
-        icon: Building2,
-        roles: [
-          "Administrador",
-          "Gerente",
-        ],
+        label: "Kardex",
+        path: "/kardex",
+        icon: History,
+        roles: INVENTORY_ROLES,
+        end: true,
       },
     ],
   },
@@ -203,10 +165,7 @@ const menuSections: MenuSection[] = [
         label: "Mantenimiento",
         path: "/maintenance",
         icon: Settings2,
-        roles: [
-          "Administrador",
-          "Gerente",
-        ],
+        roles: MANAGEMENT_ROLES,
       },
     ],
   },
@@ -218,14 +177,6 @@ const menuSections: MenuSection[] = [
         label: "Auditoría",
         path: "/audit",
         icon: ShieldCheck,
-        roles: [
-          "Administrador",
-        ],
-      },
-      {
-        label: "Acceso y seguridad",
-        path: "/access",
-        icon: UsersRound,
         roles: [
           "Administrador",
         ],
@@ -268,6 +219,7 @@ function Sidebar({
     <>
       {open && (
         <button
+          type="button"
           className="sidebar-overlay"
           onClick={onClose}
           aria-label="Cerrar menú"
@@ -283,9 +235,7 @@ function Sidebar({
       >
         <div className="sidebar-header">
           <div className="brand-icon">
-            <Sparkles
-              size={21}
-            />
+            <Sparkles size={21} />
           </div>
 
           <div className="brand-text">
@@ -308,11 +258,10 @@ function Sidebar({
           </button>
         </div>
 
+
         <div className="sidebar-company">
           <div className="company-icon">
-            <Building2
-              size={19}
-            />
+            <Building2 size={19} />
           </div>
 
           <div>
@@ -326,28 +275,16 @@ function Sidebar({
           </div>
         </div>
 
-        <nav
-          className="sidebar-nav"
-          style={{
-            flex: 1,
-            overflowY: "auto",
-          }}
-        >
+
+        <nav className="sidebar-nav">
           {visibleSections.map(
             (section) => (
               <div
-                key={
-                  section.title
-                }
-                style={{
-                  marginBottom:
-                    "15px",
-                }}
+                className="sidebar-section"
+                key={section.title}
               >
                 <p className="sidebar-section-title">
-                  {
-                    section.title
-                  }
+                  {section.title}
                 </p>
 
                 {section.items.map(
@@ -357,18 +294,10 @@ function Sidebar({
 
                     return (
                       <NavLink
-                        key={
-                          item.path
-                        }
-                        to={
-                          item.path
-                        }
-                        end={
-                          item.end
-                        }
-                        onClick={
-                          onClose
-                        }
+                        key={item.path}
+                        to={item.path}
+                        end={item.end}
+                        onClick={onClose}
                         className={({
                           isActive,
                         }) =>
@@ -380,16 +309,13 @@ function Sidebar({
                         }
                       >
                         <span className="sidebar-item-left">
-                          <Icon
-                            size={18}
-                          />
+                          <Icon size={18} />
 
-                          {
-                            item.label
-                          }
+                          {item.label}
                         </span>
 
                         <ChevronRight
+                          className="sidebar-chevron"
                           size={14}
                         />
                       </NavLink>
@@ -400,6 +326,7 @@ function Sidebar({
             ),
           )}
         </nav>
+
 
         <div className="sidebar-profile">
           <div className="profile-avatar">

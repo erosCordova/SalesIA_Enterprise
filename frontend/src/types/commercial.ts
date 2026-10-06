@@ -301,3 +301,21 @@ export interface CustomerHistoryItem {
   status: string;
 
 }
+
+
+export interface SalePaymentInfo {
+  payment_method: string;
+  amount: DecimalValue;
+  payment_date: string;
+  reference: string | null;
+  status: string;
+}
+
+
+export interface SaleView
+  extends SaleListItem {
+  created_by_name: string;
+  notes: string | null;
+  payment: SalePaymentInfo | null;
+  items: SaleDetail[];
+}

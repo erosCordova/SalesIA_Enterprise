@@ -192,3 +192,32 @@ export function createSale(
     },
   );
 }
+
+
+export function getSaleDetail(
+  saleId: string,
+) {
+  return apiFetch<
+    import("../types/commercial").SaleView
+  >(
+    `/sales/${saleId}`,
+  );
+}
+
+
+export function cancelSale(
+  saleId: string,
+  reason: string,
+) {
+  return apiFetch<
+    import("../types/commercial").SaleView
+  >(
+    `/sales/${saleId}/cancel`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        reason,
+      }),
+    },
+  );
+}

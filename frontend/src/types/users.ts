@@ -3,6 +3,11 @@ import type {
 } from "./auth";
 
 
+export type UserStatus =
+  | "active"
+  | "inactive";
+
+
 export interface UserListItem {
   id: string;
   dni: string;
@@ -11,7 +16,7 @@ export interface UserListItem {
   phone: string | null;
   role: UserRole;
   company: string;
-  status: string;
+  status: UserStatus | string;
 }
 
 
@@ -22,7 +27,16 @@ export interface CreateUserRequest {
   password: string;
   role: UserRole;
   phone: string | null;
-  status: "active" | "inactive";
+  status: UserStatus;
+}
+
+
+export interface UpdateUserRequest {
+  first_name: string;
+  last_name: string;
+  role: UserRole;
+  phone: string | null;
+  status: UserStatus;
 }
 
 

@@ -243,6 +243,16 @@ def create_product(
             maximum_stock=data.maximum_stock,
         )
 
+        if data.initial_stock > 0:
+            repository.insert_initial_inventory_movement(
+                connection,
+                company_id=company_id,
+                inventory_id=inventory["id"],
+                product_id=product["id"],
+                user_id=current_user["id"],
+                quantity=data.initial_stock,
+            )
+
         category_name = None
 
         if data.category_id is not None:
@@ -954,3 +964,210 @@ def delete_product(
     return {
         "message": "Producto desactivado correctamente.",
     }
+
+
+def get_sale_detail(
+    sale_id: UUID,
+    current_user: dict,
+):
+    from app.schemas.commercial import (
+        SaleDetailResponse,
+        SalePaymentResponse,
+        SaleViewResponse,
+    )
+
+    created_by = None
+
+    if current_user["role"] == "Vendedor":
+        created_by = current_user["id"]
+
+    with engine.connect() as connection:
+        sale = repository.get_sale_detail_header(
+            connection,
+            current_user["company_id"],
+            sale_id,
+            created_by=created_by,
+        )
+
+        if not sale:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Venta no encontrada.",
+            )
+
+        detail_rows = (
+            repository.list_sale_detail_items(
+                connection,
+                sale_id,
+            )
+        )
+
+        payment_row = (
+            repository.get_sale_payment(
+                connection,
+                sale_id,
+            )
+        )
+
+    items = [
+        SaleDetailResponse(
+            product_id=row["product_id"],
+            product_name=row["product_name"],
+            quantity=row["quantity"],
+            unit_price=row["unit_price"],
+            discount=row["discount"],
+            subtotal=row["subtotal"],
+        )
+        for row in detail_rows
+    ]
+
+    payment = None
+
+    if payment_row:
+        payment = SalePaymentResponse(
+            payment_method=payment_row[
+                "payment_method"
+            ],
+            amount=payment_row["amount"],
+            payment_date=payment_row[
+                "payment_date"
+            ].isoformat(),
+            reference=payment_row[
+                "reference"
+            ],
+            status=payment_row["status"],
+        )
+
+    return SaleViewResponse(
+        id=sale["id"],
+        sale_number=sale["sale_number"],
+        customer_id=sale["customer_id"],
+        customer_name=sale[
+            "customer_name"
+        ],
+        created_by_name=sale[
+            "created_by_name"
+        ],
+        sale_date=sale[
+            "sale_date"
+        ].isoformat(),
+        subtotal=sale["subtotal"],
+        discount=sale["discount"],
+        tax=sale["tax"],
+        total=sale["total"],
+        status=sale["status"],
+        notes=sale["notes"],
+        payment=payment,
+        items=items,
+    )
+
+
+def cancel_sale(
+    sale_id: UUID,
+    reason: str,
+    current_user: dict,
+):
+    company_id = current_user[
+        "company_id"
+    ]
+
+    user_id = current_user["id"]
+
+    clean_reason = reason.strip()
+
+    with engine.begin() as connection:
+        sale = (
+            repository.get_sale_for_update(
+                connection,
+                company_id,
+                sale_id,
+            )
+        )
+
+        if not sale:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Venta no encontrada.",
+            )
+
+        if sale["status"] != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Solo se puede anular una "
+                    "venta completada."
+                ),
+            )
+
+        items = (
+            repository
+            .list_sale_items_for_cancellation(
+                connection,
+                company_id,
+                sale_id,
+            )
+        )
+
+        if not items:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "La venta no tiene productos "
+                    "para restaurar."
+                ),
+            )
+
+        for item in items:
+            (
+                repository
+                .restore_inventory_after_sale_cancel(
+                    connection,
+                    inventory_id=item[
+                        "inventory_id"
+                    ],
+                    quantity=item[
+                        "quantity"
+                    ],
+                )
+            )
+
+            (
+                repository
+                .insert_sale_cancellation_movement(
+                    connection,
+                    company_id=company_id,
+                    inventory_id=item[
+                        "inventory_id"
+                    ],
+                    product_id=item[
+                        "product_id"
+                    ],
+                    user_id=user_id,
+                    quantity=item[
+                        "quantity"
+                    ],
+                    sale_id=sale_id,
+                    reason=(
+                        "Entrada automática por "
+                        "anulación de venta. "
+                        f"Motivo: {clean_reason}"
+                    ),
+                )
+            )
+
+        repository.cancel_sale_payments(
+            connection,
+            sale_id,
+        )
+
+        repository.mark_sale_cancelled(
+            connection,
+            company_id=company_id,
+            sale_id=sale_id,
+            reason=clean_reason,
+        )
+
+    return get_sale_detail(
+        sale_id,
+        current_user,
+    )

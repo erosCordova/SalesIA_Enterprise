@@ -505,6 +505,55 @@ def list_inventory(
     ).mappings().all()
 
 
+def insert_initial_inventory_movement(
+    connection: Connection,
+    *,
+    company_id: UUID,
+    inventory_id: UUID,
+    product_id: UUID,
+    user_id: UUID,
+    quantity,
+):
+    return connection.execute(
+        text("""
+            INSERT INTO inventory_movements (
+                company_id,
+                inventory_id,
+                product_id,
+                user_id,
+                movement_type,
+                quantity,
+                reference_type,
+                reference_id,
+                reason,
+                movement_date
+            )
+            VALUES (
+                :company_id,
+                :inventory_id,
+                :product_id,
+                :user_id,
+                'entry',
+                :quantity,
+                'initial_stock',
+                :product_id,
+                'Stock inicial del producto',
+                NOW()
+            )
+            RETURNING
+                id,
+                movement_date
+        """),
+        {
+            "company_id": company_id,
+            "inventory_id": inventory_id,
+            "product_id": product_id,
+            "user_id": user_id,
+            "quantity": quantity,
+        },
+    ).mappings().one()
+
+
 def get_product_inventory_for_sale(
     connection: Connection,
     company_id: UUID,
@@ -1019,3 +1068,329 @@ def update_inventory_limits(
             "maximum_stock": maximum_stock,
         },
     ).mappings().first()
+
+
+def get_sale_detail_header(
+    connection: Connection,
+    company_id: UUID,
+    sale_id: UUID,
+    created_by: UUID | None = None,
+):
+    filters = """
+        WHERE
+            s.id = :sale_id
+            AND s.company_id = :company_id
+    """
+
+    params = {
+        "sale_id": sale_id,
+        "company_id": company_id,
+    }
+
+    if created_by is not None:
+        filters += """
+            AND s.created_by = :created_by
+        """
+
+        params["created_by"] = created_by
+
+    return connection.execute(
+        text(f"""
+            SELECT
+                s.id,
+                s.sale_number,
+                s.customer_id,
+
+                COALESCE(
+                    NULLIF(c.business_name, ''),
+                    NULLIF(
+                        CONCAT_WS(
+                            ' ',
+                            c.first_name,
+                            c.last_name
+                        ),
+                        ''
+                    ),
+                    'Cliente general'
+                ) AS customer_name,
+
+                COALESCE(
+                    NULLIF(
+                        CONCAT_WS(
+                            ' ',
+                            u.first_name,
+                            u.last_name
+                        ),
+                        ''
+                    ),
+                    'Sistema'
+                ) AS created_by_name,
+
+                s.sale_date,
+                s.subtotal,
+                s.discount,
+                s.tax,
+                s.total,
+                s.status,
+                s.notes
+
+            FROM sales s
+
+            LEFT JOIN customers c
+                ON c.id = s.customer_id
+
+            LEFT JOIN users u
+                ON u.id = s.created_by
+
+            {filters}
+
+            LIMIT 1
+        """),
+        params,
+    ).mappings().first()
+
+
+def list_sale_detail_items(
+    connection: Connection,
+    sale_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                sd.product_id,
+                p.name AS product_name,
+                sd.quantity,
+                sd.unit_price,
+                sd.discount,
+                sd.subtotal
+
+            FROM sale_details sd
+
+            INNER JOIN products p
+                ON p.id = sd.product_id
+
+            WHERE sd.sale_id = :sale_id
+
+            ORDER BY
+                sd.created_at,
+                sd.id
+        """),
+        {
+            "sale_id": sale_id,
+        },
+    ).mappings().all()
+
+
+def get_sale_payment(
+    connection: Connection,
+    sale_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                payment_method,
+                amount,
+                payment_date,
+                reference,
+                status
+
+            FROM payments
+
+            WHERE sale_id = :sale_id
+
+            ORDER BY
+                payment_date DESC,
+                created_at DESC
+
+            LIMIT 1
+        """),
+        {
+            "sale_id": sale_id,
+        },
+    ).mappings().first()
+
+
+def get_sale_for_update(
+    connection: Connection,
+    company_id: UUID,
+    sale_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                id,
+                sale_number,
+                status
+
+            FROM sales
+
+            WHERE
+                id = :sale_id
+                AND company_id = :company_id
+
+            FOR UPDATE
+        """),
+        {
+            "sale_id": sale_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
+def list_sale_items_for_cancellation(
+    connection: Connection,
+    company_id: UUID,
+    sale_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                sd.product_id,
+                sd.quantity,
+                i.id AS inventory_id
+
+            FROM sale_details sd
+
+            INNER JOIN inventory i
+                ON i.product_id = sd.product_id
+                AND i.company_id = :company_id
+
+            WHERE sd.sale_id = :sale_id
+
+            FOR UPDATE OF i
+        """),
+        {
+            "company_id": company_id,
+            "sale_id": sale_id,
+        },
+    ).mappings().all()
+
+
+def restore_inventory_after_sale_cancel(
+    connection: Connection,
+    *,
+    inventory_id: UUID,
+    quantity,
+):
+    connection.execute(
+        text("""
+            UPDATE inventory
+
+            SET
+                stock_quantity =
+                    stock_quantity + :quantity,
+
+                updated_at = NOW()
+
+            WHERE id = :inventory_id
+        """),
+        {
+            "inventory_id": inventory_id,
+            "quantity": quantity,
+        },
+    )
+
+
+def insert_sale_cancellation_movement(
+    connection: Connection,
+    *,
+    company_id: UUID,
+    inventory_id: UUID,
+    product_id: UUID,
+    user_id: UUID,
+    quantity,
+    sale_id: UUID,
+    reason: str,
+):
+    connection.execute(
+        text("""
+            INSERT INTO inventory_movements (
+                company_id,
+                inventory_id,
+                product_id,
+                user_id,
+                movement_type,
+                quantity,
+                reference_type,
+                reference_id,
+                reason,
+                movement_date
+            )
+            VALUES (
+                :company_id,
+                :inventory_id,
+                :product_id,
+                :user_id,
+                'entry',
+                :quantity,
+                'sale_cancellation',
+                :sale_id,
+                :reason,
+                NOW()
+            )
+        """),
+        {
+            "company_id": company_id,
+            "inventory_id": inventory_id,
+            "product_id": product_id,
+            "user_id": user_id,
+            "quantity": quantity,
+            "sale_id": sale_id,
+            "reason": reason,
+        },
+    )
+
+
+def cancel_sale_payments(
+    connection: Connection,
+    sale_id: UUID,
+):
+    connection.execute(
+        text("""
+            UPDATE payments
+
+            SET status = 'cancelled'
+
+            WHERE
+                sale_id = :sale_id
+                AND status <> 'cancelled'
+        """),
+        {
+            "sale_id": sale_id,
+        },
+    )
+
+
+def mark_sale_cancelled(
+    connection: Connection,
+    *,
+    company_id: UUID,
+    sale_id: UUID,
+    reason: str,
+):
+    connection.execute(
+        text("""
+            UPDATE sales
+
+            SET
+                status = 'cancelled',
+
+                notes = CONCAT_WS(
+                    E'\\n',
+                    NULLIF(notes, ''),
+                    :cancel_note
+                ),
+
+                updated_at = NOW()
+
+            WHERE
+                id = :sale_id
+                AND company_id = :company_id
+        """),
+        {
+            "sale_id": sale_id,
+            "company_id": company_id,
+            "cancel_note":
+                "Anulación: " + reason,
+        },
+    )

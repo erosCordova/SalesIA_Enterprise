@@ -1,14 +1,22 @@
-import type { LucideIcon } from "lucide-react";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import type {
+  LucideIcon,
+} from "lucide-react";
+
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+} from "lucide-react";
+
 
 interface StatCardProps {
   title: string;
   value: string;
-  change: string;
+  change?: string;
   positive?: boolean;
   caption: string;
   icon: LucideIcon;
 }
+
 
 function StatCard({
   title,
@@ -25,28 +33,35 @@ function StatCard({
           <Icon size={21} />
         </div>
 
-        <span
-          className={`stat-change ${
-            positive ? "positive" : "negative"
-          }`}
-        >
-          {positive ? (
-            <ArrowUpRight size={15} />
-          ) : (
-            <ArrowDownRight size={15} />
-          )}
+        {change ? (
+          <span
+            className={`stat-change ${
+              positive
+                ? "positive"
+                : "negative"
+            }`}
+          >
+            {positive ? (
+              <ArrowUpRight size={15} />
+            ) : (
+              <ArrowDownRight size={15} />
+            )}
 
-          {change}
-        </span>
+            {change}
+          </span>
+        ) : null}
       </div>
 
       <div className="stat-card-content">
         <span>{title}</span>
+
         <strong>{value}</strong>
+
         <small>{caption}</small>
       </div>
     </article>
   );
 }
+
 
 export default StatCard;

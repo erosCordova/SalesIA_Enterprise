@@ -11,6 +11,7 @@ RoleName = Literal[
     "Almacén",
 ]
 
+
 UserStatus = Literal[
     "active",
     "inactive",
@@ -23,8 +24,6 @@ class UserCreateRequest(BaseModel):
         min_length=8,
         max_length=8,
         pattern=r"^[0-9]{8}$",
-        examples=["12345678"],
-        description="DNI de 8 dígitos del usuario.",
     )
 
     first_name: str = Field(
@@ -53,6 +52,29 @@ class UserCreateRequest(BaseModel):
     )
 
     status: UserStatus = "active"
+
+
+class UserUpdateRequest(BaseModel):
+    first_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+    )
+
+    last_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+    )
+
+    role: RoleName
+
+    phone: str | None = Field(
+        default=None,
+        max_length=30,
+    )
+
+    status: UserStatus
 
 
 class UserCreatedResponse(BaseModel):

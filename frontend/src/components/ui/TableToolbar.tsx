@@ -1,5 +1,4 @@
 import {
-  Filter,
   Plus,
   Search,
 } from "lucide-react";
@@ -17,6 +16,8 @@ export interface TableToolbarProps {
   createLabel?: string;
 
   canCreate?: boolean;
+
+  placeholder?: string;
 }
 
 
@@ -26,6 +27,7 @@ function TableToolbar({
   onCreate,
   createLabel = "Nuevo registro",
   canCreate = true,
+  placeholder = "Buscar...",
 }: TableToolbarProps) {
   return (
     <div className="table-toolbar">
@@ -40,20 +42,12 @@ function TableToolbar({
               event.target.value,
             )
           }
-          placeholder="Buscar..."
+          placeholder={placeholder}
         />
       </div>
 
-      <div className="table-toolbar-actions">
-        <button
-          type="button"
-          className="secondary-button"
-        >
-          <Filter size={17} />
-          Filtros
-        </button>
-
-        {canCreate && onCreate && (
+      {canCreate && onCreate && (
+        <div className="table-toolbar-actions">
           <button
             type="button"
             className="primary-button"
@@ -63,24 +57,13 @@ function TableToolbar({
 
             {createLabel}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
 
-/*
- * Se mantienen ambas exportaciones.
- *
- * Esto permite:
- *
- * import TableToolbar from ".../TableToolbar";
- *
- * y tambien:
- *
- * import { TableToolbar } from ".../TableToolbar";
- */
 export {
   TableToolbar,
 };

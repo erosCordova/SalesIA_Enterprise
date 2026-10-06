@@ -138,6 +138,20 @@ const ADMIN_ONLY: UserRole[] = [
 ];
 
 
+function UsersMaintenance() {
+  return (
+    <AccessPage mode="users" />
+  );
+}
+
+
+function RolesMaintenance() {
+  return (
+    <AccessPage mode="roles" />
+  );
+}
+
+
 const CATALOGS: CatalogDefinition[] = [
   {
     key: "clientes",
@@ -191,7 +205,7 @@ const CATALOGS: CatalogDefinition[] = [
       "Usuarios autorizados para utilizar SalesIA Enterprise.",
     icon: UserRoundCog,
     roles: ADMIN_ONLY,
-    component: AccessPage,
+    component: UsersMaintenance,
   },
   {
     key: "roles",
@@ -200,7 +214,7 @@ const CATALOGS: CatalogDefinition[] = [
       "Roles disponibles y niveles de acceso al sistema.",
     icon: ShieldCheck,
     roles: ADMIN_ONLY,
-    component: AccessPage,
+    component: RolesMaintenance,
   },
 ];
 
@@ -857,16 +871,6 @@ function MantenimientoPage() {
 
 
           <div className="maintenance-module-host">
-            {currentCatalog.key ===
-              "roles" && (
-              <div className="maintenance-info">
-                Los roles se administran
-                conjuntamente con usuarios
-                desde el módulo de acceso y
-                seguridad.
-              </div>
-            )}
-
             <CurrentComponent />
           </div>
         </div>

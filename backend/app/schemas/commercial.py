@@ -471,6 +471,45 @@ class SaleListItem(BaseModel):
     status: str
 
 
+
+class SalePaymentResponse(BaseModel):
+    payment_method: str
+    amount: Decimal
+    payment_date: str
+    reference: str | None
+    status: str
+
+
+class SaleViewResponse(BaseModel):
+    id: UUID
+    sale_number: str
+
+    customer_id: UUID | None
+    customer_name: str
+    created_by_name: str
+
+    sale_date: str
+
+    subtotal: Decimal
+    discount: Decimal
+    tax: Decimal
+    total: Decimal
+
+    status: str
+    notes: str | None
+
+    payment: SalePaymentResponse | None
+    items: list[SaleDetailResponse]
+
+
+class SaleCancelRequest(BaseModel):
+    reason: str = Field(
+        ...,
+        min_length=3,
+        max_length=500,
+    )
+
+
 class InventoryItemResponse(BaseModel):
     inventory_id: UUID
     product_id: UUID

@@ -26,6 +26,7 @@ import DashboardPage from "../../modules/dashboard/DashboardPage";
 import EmpresaPage from "../../modules/empresa/EmpresaPage";
 import InsightsPage from "../../modules/insights/InsightsPage";
 import InventoryPage from "../../modules/inventory/InventoryPage";
+import KardexPage from "../../modules/kardex/KardexPage";
 import MantenimientoPage from "../../modules/mantenimiento/MantenimientoPage";
 import ProbabilidadPage from "../../modules/probabilidad/ProbabilidadPage";
 import ProductosPage from "../../modules/productos/ProductosPage";
@@ -233,6 +234,12 @@ export default function AppRouter() {
               path="/inventory"
               element={<InventoryPage />}
             />
+
+            <Route
+              path="/kardex"
+              element={<KardexPage />}
+            />
+
           </Route>
 
           <Route
