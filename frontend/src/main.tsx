@@ -6,6 +6,7 @@ import RootApp from "./App";
 import "./modules/auth/login.css";
 import "./styles/global.css";
 import "./styles/layout.css";
+import "./styles/cyan-theme.css";
 
 ReactDOM.createRoot(
   document.getElementById("root")!,
