@@ -1,4 +1,8 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? "https://salesia-enterprise.onrender.com/api/v1"
+    : "http://localhost:8000/api/v1");
 
 export class ApiError extends Error {
   status: number;
@@ -39,7 +43,7 @@ export async function apiFetch<T>(
     });
   } catch {
     throw new ApiError(
-      "No se pudo conectar con el servidor. Verifica que FastAPI esté ejecutándose.",
+      "No se pudo conectar con el servidor. Inténtalo nuevamente en unos segundos.",
       0,
     );
   }
@@ -49,7 +53,6 @@ export async function apiFetch<T>(
   if (!response.ok) {
     if (response.status === 401) {
       localStorage.removeItem("access_token");
-
       localStorage.removeItem("user");
     }
 
