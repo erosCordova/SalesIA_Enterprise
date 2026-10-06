@@ -272,9 +272,9 @@ function AnalyticsPage() {
             onClick={handleSalesAnalysis}
             disabled={salesAnalysisLoading}
           >
-            {salesAnalysisLoading
-              ? "Analizando ventas..."
-              : "Analizar ventas del período"}
+        {salesAnalysisLoading
+  ? "Analizando ventas..."
+  : ""}
           </button>
 
           {salesAnalysisError && (
