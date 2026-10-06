@@ -384,7 +384,6 @@ export default function SucursalesPage() {
                           event.target.value,
                       })
                     }
-                    placeholder="LIM-01"
                   />
                 </label>
 
@@ -399,7 +398,6 @@ export default function SucursalesPage() {
                           event.target.value,
                       })
                     }
-                    placeholder="Sucursal principal"
                   />
                 </label>
 
@@ -414,7 +412,6 @@ export default function SucursalesPage() {
                           event.target.value,
                       })
                     }
-                    placeholder="Lima"
                   />
                 </label>
 
