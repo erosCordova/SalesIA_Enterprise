@@ -89,9 +89,7 @@ def list_movements(
     ),
 )
 def register_movement(
-    data: (
-        InventoryMovementCreateRequest
-    ),
+    data: InventoryMovementCreateRequest,
     current_user: dict = Depends(
         require_roles(
             *INVENTORY_ROLES
