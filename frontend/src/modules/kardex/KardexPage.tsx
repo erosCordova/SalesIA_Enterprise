@@ -10,12 +10,16 @@ import {
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Box,
+  Boxes,
   ChevronLeft,
   ChevronRight,
-  PackageSearch,
+  ClipboardList,
+  Filter,
   Plus,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 
@@ -53,7 +57,7 @@ import type {
 import "./kardex-commercial.css";
 
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 
 type MovementFilter =
@@ -65,8 +69,7 @@ type MovementFilter =
 function toNumber(
   value: number | string,
 ) {
-  const parsed =
-    Number(value);
+  const parsed = Number(value);
 
   return Number.isFinite(parsed)
     ? parsed
@@ -91,8 +94,7 @@ function formatQuantity(
 function formatDate(
   value: string,
 ) {
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
   if (
     Number.isNaN(
@@ -105,8 +107,32 @@ function formatDate(
   return new Intl.DateTimeFormat(
     "es-PE",
     {
-      dateStyle: "short",
-      timeStyle: "short",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    },
+  ).format(date);
+}
+
+
+function formatTime(
+  value: string,
+) {
+  const date = new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-PE",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
     },
   ).format(date);
 }
@@ -162,7 +188,125 @@ function typeLabel(
     return "Salida";
   }
 
-  return value;
+  return value
+    .replaceAll("_", " ")
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase(),
+    );
+}
+
+
+function referenceTypeLabel(
+  value: string | null,
+) {
+  if (!value) {
+    return "Sin referencia";
+  }
+
+  const normalized =
+    value
+      .trim()
+      .toLowerCase();
+
+  const labels:
+    Record<string, string> = {
+      sale: "Venta",
+      purchase: "Compra",
+      manual: "Movimiento manual",
+      initial_stock: "Stock inicial",
+      initial: "Stock inicial",
+      sale_cancellation:
+        "Anulación de venta",
+      adjustment:
+        "Ajuste de inventario",
+    };
+
+  return (
+    labels[normalized]
+    ?? normalized
+      .replaceAll("_", " ")
+      .replace(
+        /\b\w/g,
+        (letter) =>
+          letter.toUpperCase(),
+      )
+  );
+}
+
+
+function stockStatusLabel(
+  value: string,
+) {
+  const normalized =
+    value
+      .trim()
+      .toLowerCase();
+
+  if (
+    [
+      "ok",
+      "normal",
+      "available",
+      "disponible",
+    ].includes(normalized)
+  ) {
+    return "Disponible";
+  }
+
+  if (
+    [
+      "low",
+      "low_stock",
+      "minimum",
+      "bajo",
+    ].includes(normalized)
+  ) {
+    return "Stock bajo";
+  }
+
+  if (
+    [
+      "out",
+      "out_of_stock",
+      "agotado",
+      "empty",
+    ].includes(normalized)
+  ) {
+    return "Agotado";
+  }
+
+  return value
+    .replaceAll("_", " ");
+}
+
+
+function stockStatusClass(
+  value: string,
+) {
+  const normalized =
+    value
+      .trim()
+      .toLowerCase();
+
+  if (
+    normalized.includes("out")
+    || normalized.includes("agot")
+    || normalized === "empty"
+  ) {
+    return "out";
+  }
+
+  if (
+    normalized.includes("low")
+    || normalized.includes("bajo")
+    || normalized.includes("minimum")
+  ) {
+    return "low";
+  }
+
+  return "ok";
 }
 
 
@@ -172,29 +316,27 @@ export default function KardexPage() {
       null,
     );
 
-
   const [
     exportError,
     setExportError,
   ] =
     useState("");
 
-
   const [
     movements,
     setMovements,
   ] =
-    useState<InventoryMovement[]>(
-      [],
-    );
+    useState<
+      InventoryMovement[]
+    >([]);
 
   const [
     inventory,
     setInventory,
   ] =
-    useState<InventoryItem[]>(
-      [],
-    );
+    useState<
+      InventoryItem[]
+    >([]);
 
   const [
     loading,
@@ -210,6 +352,17 @@ export default function KardexPage() {
       null,
     );
 
+  const [
+    selectedProductId,
+    setSelectedProductId,
+  ] =
+    useState("");
+
+  const [
+    productSearch,
+    setProductSearch,
+  ] =
+    useState("");
 
   const [
     search,
@@ -224,6 +377,12 @@ export default function KardexPage() {
     useState<MovementFilter>(
       "all",
     );
+
+  const [
+    referenceFilter,
+    setReferenceFilter,
+  ] =
+    useState("all");
 
   const [
     dateFrom,
@@ -243,7 +402,6 @@ export default function KardexPage() {
   ] =
     useState(1);
 
-
   const [
     formOpen,
     setFormOpen,
@@ -260,9 +418,9 @@ export default function KardexPage() {
     movementType,
     setMovementType,
   ] =
-    useState<InventoryMovementType>(
-      "entry",
-    );
+    useState<
+      InventoryMovementType
+    >("entry");
 
   const [
     quantity,
@@ -287,7 +445,9 @@ export default function KardexPage() {
     setFormMessage,
   ] =
     useState<{
-      type: "success" | "error";
+      type:
+        | "success"
+        | "error";
       text: string;
     } | null>(
       null,
@@ -316,6 +476,27 @@ export default function KardexPage() {
 
           setInventory(
             inventoryData,
+          );
+
+          setSelectedProductId(
+            (current) => {
+              if (
+                current
+                && inventoryData.some(
+                  (item) =>
+                    item.product_id
+                    === current,
+                )
+              ) {
+                return current;
+              }
+
+              return (
+                inventoryData[0]
+                  ?.product_id
+                ?? ""
+              );
+            },
           );
         } catch (
           requestError
@@ -350,11 +531,92 @@ export default function KardexPage() {
         inventory.find(
           (item) =>
             item.product_id ===
+            selectedProductId,
+        ) ?? null,
+      [
+        inventory,
+        selectedProductId,
+      ],
+    );
+
+
+  const formSelectedProduct =
+    useMemo(
+      () =>
+        inventory.find(
+          (item) =>
+            item.product_id ===
             productId,
         ) ?? null,
       [
         inventory,
         productId,
+      ],
+    );
+
+
+  const visibleProducts =
+    useMemo(
+      () => {
+        const query =
+          productSearch
+            .trim()
+            .toLowerCase();
+
+        return inventory
+          .filter(
+            (item) => {
+              if (!query) {
+                return true;
+              }
+
+              return (
+                item.product_name
+                  .toLowerCase()
+                  .includes(query)
+                || item.sku
+                  .toLowerCase()
+                  .includes(query)
+              );
+            },
+          )
+          .sort(
+            (a, b) =>
+              a.product_name
+                .localeCompare(
+                  b.product_name,
+                  "es",
+                ),
+          );
+      },
+      [
+        inventory,
+        productSearch,
+      ],
+    );
+
+
+  const referenceOptions =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            movements
+              .map(
+                (movement) =>
+                  movement
+                    .reference_type,
+              )
+              .filter(
+                (
+                  value,
+                ): value is string =>
+                  Boolean(value),
+              ),
+          ),
+        ).sort(),
+      [
+        movements,
       ],
     );
 
@@ -369,16 +631,37 @@ export default function KardexPage() {
 
         return movements.filter(
           (movement) => {
+            if (
+              selectedProductId
+              && movement.product_id
+                !== selectedProductId
+            ) {
+              return false;
+            }
+
             const normalizedType =
               normalizeType(
                 movement.movement_type,
               );
 
             if (
-              movementFilter !==
-                "all"
-              && normalizedType !==
-                movementFilter
+              movementFilter
+                !== "all"
+              && normalizedType
+                !== movementFilter
+            ) {
+              return false;
+            }
+
+            if (
+              referenceFilter
+                !== "all"
+              && (
+                movement
+                  .reference_type
+                ?? ""
+              ) !==
+                referenceFilter
             ) {
               return false;
             }
@@ -393,16 +676,16 @@ export default function KardexPage() {
 
             if (
               dateFrom
-              && movementDate <
-                dateFrom
+              && movementDate
+                < dateFrom
             ) {
               return false;
             }
 
             if (
               dateTo
-              && movementDate >
-                dateTo
+              && movementDate
+                > dateTo
             ) {
               return false;
             }
@@ -425,19 +708,72 @@ export default function KardexPage() {
                   value ?? "",
                 )
                   .toLowerCase()
-                  .includes(
-                    query,
-                  ),
+                  .includes(query),
             );
           },
         );
       },
       [
         movements,
+        selectedProductId,
         movementFilter,
+        referenceFilter,
         search,
         dateFrom,
         dateTo,
+      ],
+    );
+
+
+  const movementSummary =
+    useMemo(
+      () =>
+        filteredMovements.reduce(
+          (
+            summary,
+            movement,
+          ) => {
+            const type =
+              normalizeType(
+                movement
+                  .movement_type,
+              );
+
+            const amount =
+              toNumber(
+                movement.quantity,
+              );
+
+            summary.total += 1;
+
+            if (
+              type === "entry"
+            ) {
+              summary.entryCount += 1;
+              summary.entryQuantity +=
+                amount;
+            }
+
+            if (
+              type === "exit"
+            ) {
+              summary.exitCount += 1;
+              summary.exitQuantity +=
+                amount;
+            }
+
+            return summary;
+          },
+          {
+            total: 0,
+            entryCount: 0,
+            exitCount: 0,
+            entryQuantity: 0,
+            exitQuantity: 0,
+          },
+        ),
+      [
+        filteredMovements,
       ],
     );
 
@@ -446,8 +782,8 @@ export default function KardexPage() {
     Math.max(
       1,
       Math.ceil(
-        filteredMovements.length /
-          PAGE_SIZE,
+        filteredMovements.length
+        / PAGE_SIZE,
       ),
     );
 
@@ -459,73 +795,128 @@ export default function KardexPage() {
     );
 
 
-  const startIndex =
-    filteredMovements.length === 0
-      ? 0
-      : (
-          safePage - 1
-        ) * PAGE_SIZE + 1;
-
-
-  const endIndex =
-    Math.min(
-      safePage * PAGE_SIZE,
-      filteredMovements.length,
-    );
+  const startOffset =
+    (
+      safePage - 1
+    ) * PAGE_SIZE;
 
 
   const displayedMovements =
     filteredMovements.slice(
-      (
-        safePage - 1
-      ) * PAGE_SIZE,
-
-      safePage * PAGE_SIZE,
+      startOffset,
+      startOffset
+      + PAGE_SIZE,
     );
 
 
-  function exportRows(): ExportRow[] {
+  const startIndex =
+    filteredMovements.length === 0
+      ? 0
+      : startOffset + 1;
+
+
+  const endIndex =
+    Math.min(
+      startOffset
+      + PAGE_SIZE,
+      filteredMovements.length,
+    );
+
+
+  function exportRows():
+    ExportRow[] {
     return filteredMovements.map(
-      (movement) => ({
-        Fecha:
-          formatDate(
-            movement.movement_date,
-          ),
+      (
+        movement,
+        index,
+      ) => {
+        const normalized =
+          normalizeType(
+            movement
+              .movement_type,
+          );
 
-        SKU:
-          movement.sku,
+        return {
+          "#":
+            index + 1,
 
-        Producto:
-          movement.product_name,
+          Fecha:
+            formatDate(
+              movement
+                .movement_date,
+            ),
 
-        Tipo:
-          typeLabel(
-            movement.movement_type,
-          ),
+          Hora:
+            formatTime(
+              movement
+                .movement_date,
+            ),
 
-        Cantidad:
-          toNumber(
-            movement.quantity,
-          ),
+          SKU:
+            movement.sku,
 
-        Referencia:
-          movement.reference_label
-          || "—",
+          Producto:
+            movement
+              .product_name,
 
-        Motivo:
-          movement.reason
-          || "—",
+          Operación:
+            typeLabel(
+              movement
+                .movement_type,
+            ),
 
-        Usuario:
-          movement.user_name
-          || "—",
-      }),
+          Motivo:
+            movement.reason
+            || "—",
+
+          Referencia:
+            movement
+              .reference_label
+            || "—",
+
+          "Tipo de referencia":
+            referenceTypeLabel(
+              movement
+                .reference_type,
+            ),
+
+          Ingreso:
+            normalized ===
+              "entry"
+              ? toNumber(
+                  movement.quantity,
+                )
+              : 0,
+
+          Salida:
+            normalized ===
+              "exit"
+              ? toNumber(
+                  movement.quantity,
+                )
+              : 0,
+
+          Usuario:
+            movement
+              .user_name
+            || "—",
+        };
+      },
     );
   }
 
 
   function exportFilename() {
-    return `kardex-${exportDateStamp()}`;
+    const productPart =
+      selectedProduct
+        ?.sku
+        ?.toLowerCase()
+        ?? "general";
+
+    return (
+      `kardex-${productPart}-`
+      + exportDateStamp()
+    );
   }
 
 
@@ -536,9 +927,7 @@ export default function KardexPage() {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       await downloadVisualPdf(
@@ -549,7 +938,8 @@ export default function KardexPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo generar el PDF.",
       );
@@ -560,7 +950,6 @@ export default function KardexPage() {
   function handleCsv() {
     setExportError("");
 
-
     try {
       exportRowsToCsv(
         exportFilename(),
@@ -570,7 +959,8 @@ export default function KardexPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo generar el CSV.",
       );
@@ -580,7 +970,6 @@ export default function KardexPage() {
 
   async function handleExcel() {
     setExportError("");
-
 
     try {
       await exportRowsToExcel(
@@ -592,7 +981,8 @@ export default function KardexPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo generar el archivo Excel.",
       );
@@ -607,9 +997,7 @@ export default function KardexPage() {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       const file =
@@ -618,17 +1006,17 @@ export default function KardexPage() {
           exportFilename(),
         );
 
-
       await shareFile(
         file,
         "Kardex - SalesIA Enterprise",
-        "Historial de movimientos de inventario de SalesIA Enterprise.",
+        "Consulta de movimientos de inventario de SalesIA Enterprise.",
       );
     } catch (
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo compartir el Kardex.",
       );
@@ -641,9 +1029,34 @@ export default function KardexPage() {
     setMovementFilter(
       "all",
     );
+    setReferenceFilter(
+      "all",
+    );
     setDateFrom("");
     setDateTo("");
     setPage(1);
+  }
+
+
+  function selectProduct(
+    id: string,
+  ) {
+    setSelectedProductId(
+      id,
+    );
+
+    setPage(1);
+  }
+
+
+  function openMovementForm() {
+    setFormMessage(null);
+
+    setProductId(
+      selectedProductId,
+    );
+
+    setFormOpen(true);
   }
 
 
@@ -653,7 +1066,6 @@ export default function KardexPage() {
     event.preventDefault();
 
     setFormMessage(null);
-
 
     if (!productId) {
       setFormMessage({
@@ -665,10 +1077,8 @@ export default function KardexPage() {
       return;
     }
 
-
     const parsedQuantity =
       Number(quantity);
-
 
     if (
       !Number.isFinite(
@@ -685,7 +1095,6 @@ export default function KardexPage() {
       return;
     }
 
-
     if (
       reason
         .trim()
@@ -700,13 +1109,12 @@ export default function KardexPage() {
       return;
     }
 
-
     if (
       movementType === "exit"
-      && selectedProduct
+      && formSelectedProduct
       && parsedQuantity >
         toNumber(
-          selectedProduct
+          formSelectedProduct
             .stock_quantity,
         )
     ) {
@@ -718,7 +1126,6 @@ export default function KardexPage() {
 
       return;
     }
-
 
     setSaving(true);
 
@@ -737,10 +1144,12 @@ export default function KardexPage() {
           reason.trim(),
       });
 
-
-      setProductId("");
       setQuantity("");
       setReason("");
+
+      setSelectedProductId(
+        productId,
+      );
 
       setFormMessage({
         type: "success",
@@ -774,15 +1183,20 @@ export default function KardexPage() {
     >
       <header className="kardex-header">
         <div>
+          <span className="kardex-eyebrow">
+            Inventario
+          </span>
+
           <h1>
-            Kardex
+            Movimiento de Kardex
           </h1>
 
           <p>
-            Historial y registro de movimientos de inventario.
+            Consulta la trazabilidad
+            real de entradas y salidas
+            de cada producto.
           </p>
         </div>
-
 
         <div
           className="kardex-header-actions"
@@ -792,14 +1206,18 @@ export default function KardexPage() {
             disabled={
               loading
               || Boolean(error)
-              || filteredMovements.length === 0
+              || filteredMovements
+                .length === 0
             }
             onPdf={handlePdf}
             onCsv={handleCsv}
-            onExcel={handleExcel}
-            onShare={handleShare}
+            onExcel={
+              handleExcel
+            }
+            onShare={
+              handleShare
+            }
           />
-
 
           <button
             type="button"
@@ -821,19 +1239,23 @@ export default function KardexPage() {
             Actualizar
           </button>
 
-
           <button
             type="button"
             className="kardex-button-primary"
             onClick={() => {
-              setFormOpen(
-                (value) =>
-                  !value,
-              );
+              if (formOpen) {
+                setFormOpen(
+                  false,
+                );
 
-              setFormMessage(
-                null,
-              );
+                setFormMessage(
+                  null,
+                );
+
+                return;
+              }
+
+              openMovementForm();
             }}
           >
             {formOpen ? (
@@ -858,10 +1280,24 @@ export default function KardexPage() {
             handleSubmit
           }
         >
-          <div className="kardex-form-title">
-            Registrar movimiento
-          </div>
+          <div className="kardex-form-heading">
+            <div className="kardex-form-heading-icon">
+              <ClipboardList
+                size={19}
+              />
+            </div>
 
+            <div>
+              <strong>
+                Registrar movimiento
+              </strong>
+
+              <span>
+                Entrada o salida manual
+                de inventario.
+              </span>
+            </div>
+          </div>
 
           <div className="kardex-form-grid">
             <label>
@@ -875,7 +1311,9 @@ export default function KardexPage() {
                 }
                 onChange={(event) =>
                   setProductId(
-                    event.target.value,
+                    event
+                      .target
+                      .value,
                   )
                 }
                 required
@@ -888,13 +1326,18 @@ export default function KardexPage() {
                   (item) => (
                     <option
                       key={
-                        item.product_id
+                        item
+                          .product_id
                       }
                       value={
-                        item.product_id
+                        item
+                          .product_id
                       }
                     >
-                      {item.product_name}
+                      {
+                        item
+                          .product_name
+                      }
                       {" · "}
                       {item.sku}
                     </option>
@@ -902,17 +1345,16 @@ export default function KardexPage() {
                 )}
               </select>
 
-              {selectedProduct && (
+              {formSelectedProduct && (
                 <small>
-                  Stock actual:{" "}
+                  Stock disponible:{" "}
                   {formatQuantity(
-                    selectedProduct
+                    formSelectedProduct
                       .stock_quantity,
                   )}
                 </small>
               )}
             </label>
-
 
             <label>
               <span>
@@ -925,7 +1367,9 @@ export default function KardexPage() {
                 }
                 onChange={(event) =>
                   setMovementType(
-                    event.target.value as InventoryMovementType,
+                    event
+                      .target
+                      .value as InventoryMovementType,
                   )
                 }
               >
@@ -939,7 +1383,6 @@ export default function KardexPage() {
               </select>
             </label>
 
-
             <label>
               <span>
                 Cantidad
@@ -952,14 +1395,15 @@ export default function KardexPage() {
                 value={quantity}
                 onChange={(event) =>
                   setQuantity(
-                    event.target.value,
+                    event
+                      .target
+                      .value,
                   )
                 }
                 placeholder="0"
                 required
               />
             </label>
-
 
             <label className="kardex-reason-field">
               <span>
@@ -971,7 +1415,9 @@ export default function KardexPage() {
                 value={reason}
                 onChange={(event) =>
                   setReason(
-                    event.target.value,
+                    event
+                      .target
+                      .value,
                   )
                 }
                 placeholder={
@@ -985,15 +1431,20 @@ export default function KardexPage() {
             </label>
           </div>
 
-
           {formMessage && (
             <div
-              className={`kardex-form-message ${formMessage.type}`}
+              className={
+                `kardex-form-message ${
+                  formMessage.type
+                }`
+              }
             >
-              {formMessage.text}
+              {
+                formMessage
+                  .text
+              }
             </div>
           )}
-
 
           <div className="kardex-form-actions">
             <button
@@ -1001,8 +1452,13 @@ export default function KardexPage() {
               className="kardex-button-secondary"
               disabled={saving}
               onClick={() => {
-                setFormOpen(false);
-                setFormMessage(null);
+                setFormOpen(
+                  false,
+                );
+
+                setFormMessage(
+                  null,
+                );
               }}
             >
               Cancelar
@@ -1032,366 +1488,879 @@ export default function KardexPage() {
       )}
 
 
-      <section className="kardex-panel">
-        <div
-          className="kardex-toolbar"
-          data-export-hide="true"
-        >
-          <label className="kardex-search">
-            <Search size={16} />
-
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => {
-                setSearch(
-                  event.target.value,
-                );
-                setPage(1);
-              }}
-              placeholder="Buscar producto, SKU, usuario o motivo..."
-            />
-          </label>
-
-
-          <select
-            className="kardex-type-filter"
-            value={
-              movementFilter
-            }
-            onChange={(event) => {
-              setMovementFilter(
-                event.target.value as MovementFilter,
-              );
-              setPage(1);
-            }}
-          >
-            <option value="all">
-              Todos los movimientos
-            </option>
-
-            <option value="entry">
-              Entradas
-            </option>
-
-            <option value="exit">
-              Salidas
-            </option>
-          </select>
-
-
-          <label className="kardex-date-filter">
-            <span>
-              Desde
-            </span>
-
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(
-                  event.target.value,
-                );
-                setPage(1);
-              }}
-            />
-          </label>
-
-
-          <label className="kardex-date-filter">
-            <span>
-              Hasta
-            </span>
-
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(
-                  event.target.value,
-                );
-                setPage(1);
-              }}
-            />
-          </label>
-
+      {loading ? (
+        <div className="kardex-main-state">
+          <ModuleState
+            type="loading"
+            title="Cargando Kardex"
+            description="Consultando inventario y movimientos."
+          />
+        </div>
+      ) : error ? (
+        <div className="kardex-main-state">
+          <ModuleState
+            type="error"
+            title="No se pudo cargar el Kardex"
+            description={error}
+          />
 
           <button
             type="button"
-            className="kardex-clear-button"
-            onClick={
-              clearFilters
+            className="kardex-button-secondary"
+            onClick={() =>
+              void loadData()
             }
           >
-            Limpiar
+            <RefreshCw
+              size={15}
+            />
+
+            Reintentar
           </button>
         </div>
+      ) : (
+        <div className="kardex-layout">
+          <main className="kardex-main-column">
+            <section className="kardex-product-summary">
+              <div className="kardex-product-summary-main">
+                <div className="kardex-product-summary-icon">
+                  <Box size={30} />
+                </div>
+
+                <div className="kardex-product-summary-title">
+                  <span>
+                    Resumen del producto
+                  </span>
+
+                  <strong>
+                    {selectedProduct
+                      ?.product_name
+                      ?? "Sin producto seleccionado"}
+                  </strong>
+
+                  <small>
+                    {selectedProduct
+                      ? `Código: ${selectedProduct.sku}`
+                      : "Selecciona un producto del listado"}
+                  </small>
+                </div>
+              </div>
+
+              <div className="kardex-product-meta">
+                <div>
+                  <span>
+                    Código
+                  </span>
+
+                  <strong>
+                    {selectedProduct
+                      ?.sku
+                      ?? "—"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Stock mínimo
+                  </span>
+
+                  <strong>
+                    {selectedProduct
+                      ? formatQuantity(
+                          selectedProduct
+                            .minimum_stock,
+                        )
+                      : "—"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Stock máximo
+                  </span>
+
+                  <strong>
+                    {selectedProduct
+                      ?.maximum_stock
+                      !== null
+                      && selectedProduct
+                        ?.maximum_stock
+                        !== undefined
+                      ? formatQuantity(
+                          selectedProduct
+                            .maximum_stock,
+                        )
+                      : "—"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Estado
+                  </span>
+
+                  {selectedProduct ? (
+                    <strong
+                      className={
+                        `kardex-stock-status ${
+                          stockStatusClass(
+                            selectedProduct
+                              .stock_status,
+                          )
+                        }`
+                      }
+                    >
+                      {stockStatusLabel(
+                        selectedProduct
+                          .stock_status,
+                      )}
+                    </strong>
+                  ) : (
+                    <strong>
+                      —
+                    </strong>
+                  )}
+                </div>
+              </div>
+
+              <div className="kardex-current-stock">
+                <div className="kardex-current-stock-label">
+                  <Boxes size={20} />
+
+                  <span>
+                    Stock actual
+                  </span>
+                </div>
+
+                <strong>
+                  {selectedProduct
+                    ? formatQuantity(
+                        selectedProduct
+                          .stock_quantity,
+                      )
+                    : "0"}
+                </strong>
+
+                <small>
+                  unidades
+                </small>
+              </div>
+            </section>
 
 
-        {loading ? (
-          <div className="kardex-state">
-            <ModuleState
-              type="loading"
-              title="Cargando Kardex"
-            />
-          </div>
-        ) : error ? (
-          <div className="kardex-state">
-            <ModuleState
-              type="error"
-              title="No se pudo cargar el Kardex"
-              description={error}
-            />
+            <section className="kardex-movements-card">
+              <header className="kardex-card-header">
+                <div className="kardex-card-title">
+                  <div className="kardex-card-title-icon">
+                    <ClipboardList
+                      size={19}
+                    />
+                  </div>
 
-            <button
-              type="button"
-              className="kardex-button-secondary"
-              onClick={() =>
-                void loadData()
-              }
-            >
-              <RefreshCw size={15} />
+                  <div>
+                    <h2>
+                      Movimientos del producto
+                    </h2>
 
-              Reintentar
-            </button>
-          </div>
-        ) : displayedMovements.length ===
-          0 ? (
-          <div className="kardex-state">
-            <ModuleState
-              type="empty"
-              title={
-                movements.length === 0
-                  ? "No hay movimientos registrados"
-                  : "No se encontraron movimientos"
-              }
-            />
-          </div>
-        ) : (
-          <>
-            <div className="kardex-table-wrapper">
-              <table className="kardex-table">
-                <thead>
-                  <tr>
-                    <th>
-                      Fecha
-                    </th>
+                    <p>
+                      {
+                        filteredMovements
+                          .length
+                      }{" "}
+                      movimientos encontrados
+                    </p>
+                  </div>
+                </div>
 
-                    <th>
-                      Producto
-                    </th>
+                <label
+                  className="kardex-table-search"
+                  data-export-hide="true"
+                >
+                  <Search
+                    size={15}
+                  />
 
-                    <th>
-                      Tipo
-                    </th>
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(event) => {
+                      setSearch(
+                        event
+                          .target
+                          .value,
+                      );
 
-                    <th>
-                      Cantidad
-                    </th>
-
-                    <th>
-                      Referencia
-                    </th>
-
-                    <th>
-                      Motivo
-                    </th>
-
-                    <th>
-                      Usuario
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {displayedMovements.map(
-                    (
-                      movement,
-                    ) => {
-                      const normalized =
-                        normalizeType(
-                          movement
-                            .movement_type,
-                        );
-
-                      return (
-                        <tr
-                          key={
-                            movement.id
-                          }
-                        >
-                          <td>
-                            <span className="kardex-date">
-                              {formatDate(
-                                movement
-                                  .movement_date,
-                              )}
-                            </span>
-                          </td>
+                      setPage(1);
+                    }}
+                    placeholder="Buscar en movimientos..."
+                  />
+                </label>
+              </header>
 
 
-                          <td>
-                            <div className="kardex-product">
-                              <span className="kardex-product-icon">
-                                <PackageSearch
-                                  size={15}
-                                />
-                              </span>
+              {displayedMovements
+                .length === 0 ? (
+                <div className="kardex-empty-table">
+                  <ModuleState
+                    type="empty"
+                    title={
+                      movements
+                        .length === 0
+                        ? "No hay movimientos registrados"
+                        : "No se encontraron movimientos"
+                    }
+                    description="Prueba con otros filtros o selecciona otro producto."
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="kardex-table-wrapper">
+                    <table className="kardex-table">
+                      <thead>
+                        <tr>
+                          <th>
+                            #
+                          </th>
 
-                              <span>
-                                <strong>
-                                  {
-                                    movement
-                                      .product_name
-                                  }
-                                </strong>
+                          <th>
+                            Fecha
+                          </th>
 
-                                <small>
-                                  {
-                                    movement
-                                      .sku
-                                  }
-                                </small>
-                              </span>
-                            </div>
-                          </td>
+                          <th>
+                            Operación
+                          </th>
 
+                          <th>
+                            Motivo
+                          </th>
 
-                          <td>
-                            <span
-                              className={`kardex-type kardex-type-${normalized}`}
-                            >
-                              {normalized ===
-                              "entry" ? (
-                                <ArrowDownToLine
-                                  size={12}
-                                />
-                              ) : normalized ===
-                                "exit" ? (
-                                <ArrowUpFromLine
-                                  size={12}
-                                />
-                              ) : null}
+                          <th>
+                            Documento
+                          </th>
 
-                              {typeLabel(
+                          <th className="kardex-number-column">
+                            Ingreso
+                          </th>
+
+                          <th className="kardex-number-column">
+                            Salida
+                          </th>
+
+                          <th>
+                            Usuario
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {displayedMovements.map(
+                          (
+                            movement,
+                            index,
+                          ) => {
+                            const normalized =
+                              normalizeType(
                                 movement
                                   .movement_type,
-                              )}
-                            </span>
-                          </td>
+                              );
+
+                            return (
+                              <tr
+                                key={
+                                  movement
+                                    .id
+                                }
+                              >
+                                <td className="kardex-row-number">
+                                  {
+                                    startOffset
+                                    + index
+                                    + 1
+                                  }
+                                </td>
+
+                                <td>
+                                  <div className="kardex-date-cell">
+                                    <strong>
+                                      {formatDate(
+                                        movement
+                                          .movement_date,
+                                      )}
+                                    </strong>
+
+                                    <small>
+                                      {formatTime(
+                                        movement
+                                          .movement_date,
+                                      )}
+                                    </small>
+                                  </div>
+                                </td>
+
+                                <td>
+                                  <span
+                                    className={
+                                      `kardex-operation ${
+                                        normalized
+                                      }`
+                                    }
+                                  >
+                                    {normalized ===
+                                    "entry" ? (
+                                      <ArrowDownToLine
+                                        size={12}
+                                      />
+                                    ) : normalized ===
+                                      "exit" ? (
+                                      <ArrowUpFromLine
+                                        size={12}
+                                      />
+                                    ) : null}
+
+                                    {typeLabel(
+                                      movement
+                                        .movement_type,
+                                    )}
+                                  </span>
+                                </td>
+
+                                <td>
+                                  <span className="kardex-reason">
+                                    {
+                                      movement
+                                        .reason
+                                      || referenceTypeLabel(
+                                        movement
+                                          .reference_type,
+                                      )
+                                    }
+                                  </span>
+                                </td>
+
+                                <td>
+                                  <div className="kardex-reference-cell">
+                                    <strong>
+                                      {
+                                        movement
+                                          .reference_label
+                                        || "—"
+                                      }
+                                    </strong>
+
+                                    <small>
+                                      {referenceTypeLabel(
+                                        movement
+                                          .reference_type,
+                                      )}
+                                    </small>
+                                  </div>
+                                </td>
+
+                                <td className="kardex-number-column">
+                                  {normalized ===
+                                  "entry" ? (
+                                    <strong className="kardex-entry-value">
+                                      +
+                                      {formatQuantity(
+                                        movement
+                                          .quantity,
+                                      )}
+                                    </strong>
+                                  ) : (
+                                    <span className="kardex-zero-value">
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="kardex-number-column">
+                                  {normalized ===
+                                  "exit" ? (
+                                    <strong className="kardex-exit-value">
+                                      -
+                                      {formatQuantity(
+                                        movement
+                                          .quantity,
+                                      )}
+                                    </strong>
+                                  ) : (
+                                    <span className="kardex-zero-value">
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td>
+                                  <span className="kardex-user">
+                                    {
+                                      movement
+                                        .user_name
+                                      || "Sistema"
+                                    }
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          },
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <footer className="kardex-footer">
+                    <span>
+                      Mostrando{" "}
+                      <strong>
+                        {startIndex}
+                      </strong>
+                      {" - "}
+                      <strong>
+                        {endIndex}
+                      </strong>
+                      {" de "}
+                      <strong>
+                        {
+                          filteredMovements
+                            .length
+                        }
+                      </strong>
+                    </span>
+
+                    <div className="kardex-pagination">
+                      <button
+                        type="button"
+                        data-export-hide="true"
+                        disabled={
+                          safePage <= 1
+                        }
+                        onClick={() =>
+                          setPage(
+                            safePage - 1,
+                          )
+                        }
+                        aria-label="Página anterior"
+                      >
+                        <ChevronLeft
+                          size={15}
+                        />
+                      </button>
+
+                      <span>
+                        Página{" "}
+                        <strong>
+                          {safePage}
+                        </strong>
+                        {" de "}
+                        <strong>
+                          {totalPages}
+                        </strong>
+                      </span>
+
+                      <button
+                        type="button"
+                        data-export-hide="true"
+                        disabled={
+                          safePage >=
+                          totalPages
+                        }
+                        onClick={() =>
+                          setPage(
+                            safePage + 1,
+                          )
+                        }
+                        aria-label="Página siguiente"
+                      >
+                        <ChevronRight
+                          size={15}
+                        />
+                      </button>
+                    </div>
+                  </footer>
+                </>
+              )}
+            </section>
+          </main>
 
 
-                          <td>
-                            <strong className="kardex-quantity">
-                              {formatQuantity(
-                                movement
-                                  .quantity,
-                              )}
-                            </strong>
-                          </td>
+          <aside className="kardex-side-column">
+            <section className="kardex-side-card kardex-filter-card">
+              <header className="kardex-side-card-header">
+                <div>
+                  <Filter
+                    size={19}
+                  />
 
+                  <h2>
+                    Filtros de consulta
+                  </h2>
+                </div>
 
-                          <td>
-                            <span className="kardex-muted">
-                              {movement
-                                .reference_label
-                                || "—"}
-                            </span>
-                          </td>
-
-
-                          <td>
-                            <span className="kardex-reason">
-                              {movement.reason
-                                || "—"}
-                            </span>
-                          </td>
-
-
-                          <td>
-                            <span className="kardex-muted">
-                              {movement
-                                .user_name
-                                || "—"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-
-            <footer className="kardex-footer">
-              <span>
-                Mostrando{" "}
-                <strong>
-                  {startIndex}
-                </strong>
-                {" - "}
-                <strong>
-                  {endIndex}
-                </strong>
-                {" de "}
-                <strong>
-                  {filteredMovements.length}
-                </strong>
-              </span>
-
-
-              <div className="kardex-pagination">
                 <button
                   type="button"
+                  className="kardex-link-button"
                   data-export-hide="true"
-                  disabled={
-                    safePage <= 1
-                  }
-                  onClick={() =>
-                    setPage(
-                      safePage - 1,
-                    )
+                  onClick={
+                    clearFilters
                   }
                 >
-                  <ChevronLeft
-                    size={15}
-                  />
+                  Limpiar filtros
                 </button>
+              </header>
+
+              <div className="kardex-filter-grid">
+                <label>
+                  <span>
+                    Tipo de operación
+                  </span>
+
+                  <select
+                    value={
+                      movementFilter
+                    }
+                    onChange={(event) => {
+                      setMovementFilter(
+                        event
+                          .target
+                          .value as MovementFilter,
+                      );
+
+                      setPage(1);
+                    }}
+                  >
+                    <option value="all">
+                      Todos
+                    </option>
+
+                    <option value="entry">
+                      Entradas
+                    </option>
+
+                    <option value="exit">
+                      Salidas
+                    </option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>
+                    Referencia
+                  </span>
+
+                  <select
+                    value={
+                      referenceFilter
+                    }
+                    onChange={(event) => {
+                      setReferenceFilter(
+                        event
+                          .target
+                          .value,
+                      );
+
+                      setPage(1);
+                    }}
+                  >
+                    <option value="all">
+                      Todas
+                    </option>
+
+                    {referenceOptions.map(
+                      (option) => (
+                        <option
+                          key={
+                            option
+                          }
+                          value={
+                            option
+                          }
+                        >
+                          {referenceTypeLabel(
+                            option,
+                          )}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+
+                <label>
+                  <span>
+                    Desde
+                  </span>
+
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) => {
+                      setDateFrom(
+                        event
+                          .target
+                          .value,
+                      );
+
+                      setPage(1);
+                    }}
+                  />
+                </label>
+
+                <label>
+                  <span>
+                    Hasta
+                  </span>
+
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) => {
+                      setDateTo(
+                        event
+                          .target
+                          .value,
+                      );
+
+                      setPage(1);
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="kardex-filter-status">
+                <SlidersHorizontal
+                  size={15}
+                />
 
                 <span>
-                  Página{" "}
-                  <strong>
-                    {safePage}
-                  </strong>
-                  {" de "}
-                  <strong>
-                    {totalPages}
-                  </strong>
+                  Los filtros se aplican
+                  automáticamente.
+                </span>
+              </div>
+            </section>
+
+
+            <section className="kardex-side-card kardex-movement-summary">
+              <header className="kardex-side-card-header simple">
+                <div>
+                  <ClipboardList
+                    size={19}
+                  />
+
+                  <h2>
+                    Resumen de movimientos
+                  </h2>
+                </div>
+              </header>
+
+              <div className="kardex-summary-row">
+                <div>
+                  <span className="kardex-summary-dot entry" />
+
+                  <span>
+                    Entradas
+                  </span>
+                </div>
+
+                <strong className="entry">
+                  +
+                  {formatQuantity(
+                    movementSummary
+                      .entryQuantity,
+                  )}
+                </strong>
+              </div>
+
+              <div className="kardex-summary-bar">
+                <span
+                  className="entry"
+                  style={{
+                    width:
+                      movementSummary
+                        .total > 0
+                        ? `${
+                            (
+                              movementSummary
+                                .entryCount
+                              / movementSummary
+                                .total
+                            ) * 100
+                          }%`
+                        : "0%",
+                  }}
+                />
+              </div>
+
+              <div className="kardex-summary-row">
+                <div>
+                  <span className="kardex-summary-dot exit" />
+
+                  <span>
+                    Salidas
+                  </span>
+                </div>
+
+                <strong className="exit">
+                  -
+                  {formatQuantity(
+                    movementSummary
+                      .exitQuantity,
+                  )}
+                </strong>
+              </div>
+
+              <div className="kardex-summary-bar">
+                <span
+                  className="exit"
+                  style={{
+                    width:
+                      movementSummary
+                        .total > 0
+                        ? `${
+                            (
+                              movementSummary
+                                .exitCount
+                              / movementSummary
+                                .total
+                            ) * 100
+                          }%`
+                        : "0%",
+                  }}
+                />
+              </div>
+
+              <div className="kardex-summary-total">
+                <span>
+                  Movimientos consultados
                 </span>
 
-                <button
-                  type="button"
-                  data-export-hide="true"
-                  disabled={
-                    safePage >=
-                    totalPages
+                <strong>
+                  {
+                    movementSummary
+                      .total
                   }
-                  onClick={() =>
-                    setPage(
-                      safePage + 1,
+                </strong>
+              </div>
+            </section>
+
+
+            <section className="kardex-side-card kardex-products-card">
+              <header className="kardex-side-card-header simple">
+                <div>
+                  <Boxes
+                    size={19}
+                  />
+
+                  <div>
+                    <h2>
+                      Listado de productos
+                    </h2>
+
+                    <small>
+                      {
+                        inventory
+                          .length
+                      }{" "}
+                      productos
+                    </small>
+                  </div>
+                </div>
+              </header>
+
+              <label
+                className="kardex-product-search"
+                data-export-hide="true"
+              >
+                <Search
+                  size={15}
+                />
+
+                <input
+                  type="search"
+                  value={
+                    productSearch
+                  }
+                  onChange={(event) =>
+                    setProductSearch(
+                      event
+                        .target
+                        .value,
                     )
                   }
-                >
-                  <ChevronRight
-                    size={15}
-                  />
-                </button>
+                  placeholder="Buscar producto..."
+                />
+              </label>
+
+              <div className="kardex-products-head">
+                <span>
+                  Código
+                </span>
+
+                <span>
+                  Descripción
+                </span>
+
+                <span>
+                  Stock
+                </span>
               </div>
-            </footer>
-          </>
-        )}
-      </section>
+
+              <div className="kardex-products-list">
+                {visibleProducts
+                  .length === 0 ? (
+                  <div className="kardex-products-empty">
+                    No se encontraron productos.
+                  </div>
+                ) : (
+                  visibleProducts.map(
+                    (item) => (
+                      <button
+                        key={
+                          item
+                            .product_id
+                        }
+                        type="button"
+                        className={
+                          `kardex-product-row ${
+                            selectedProductId
+                              === item.product_id
+                              ? "active"
+                              : ""
+                          }`
+                        }
+                        onClick={() =>
+                          selectProduct(
+                            item
+                              .product_id,
+                          )
+                        }
+                      >
+                        <span className="kardex-product-row-sku">
+                          {
+                            item
+                              .sku
+                          }
+                        </span>
+
+                        <span className="kardex-product-row-name">
+                          {
+                            item
+                              .product_name
+                          }
+                        </span>
+
+                        <strong>
+                          {formatQuantity(
+                            item
+                              .stock_quantity,
+                          )}
+                        </strong>
+                      </button>
+                    ),
+                  )
+                )}
+              </div>
+            </section>
+          </aside>
+        </div>
+      )}
     </section>
   );
 }
