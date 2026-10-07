@@ -54,6 +54,7 @@ def login(
                         u.id,
                         u.auth_user_id,
                         u.company_id,
+                        u.customer_id,
                         u.role_id,
                         u.dni,
                         u.first_name,
@@ -119,21 +120,68 @@ def login(
         settings.SUPABASE_PUBLISHABLE_KEY,
     )
 
-    try:
-        auth_response = supabase.auth.sign_in_with_password(
-            {
-                "email": user["email"],
-                "password": credentials.password,
-            }
+    auth_response = None
+
+    candidate_emails = []
+
+    stored_email = (
+        str(user["email"]).strip()
+        if user.get("email")
+        else ""
+    )
+
+    internal_email = (
+        f"{dni}@salesia.local"
+    )
+
+    if stored_email:
+        candidate_emails.append(
+            stored_email
         )
 
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="DNI o contraseña incorrectos.",
+    if (
+        internal_email
+        not in candidate_emails
+    ):
+        candidate_emails.append(
+            internal_email
         )
 
-    if not auth_response.user or not auth_response.session:
+
+    for auth_email in candidate_emails:
+        try:
+            response = (
+                supabase.auth
+                .sign_in_with_password(
+                    {
+                        "email":
+                            auth_email,
+
+                        "password":
+                            credentials.password,
+                    }
+                )
+            )
+
+            if (
+                response.user
+                and
+                response.session
+            ):
+                auth_response = response
+                break
+
+        except Exception:
+            continue
+
+
+    if (
+        auth_response is None
+        or
+        not auth_response.user
+        or
+        not auth_response.session
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="DNI o contraseña incorrectos.",
@@ -191,6 +239,11 @@ def login(
             id=str(user["id"]),
             auth_user_id=str(user["auth_user_id"]),
             company_id=str(user["company_id"]),
+            customer_id=(
+                str(user["customer_id"])
+                if user["customer_id"]
+                else None
+            ),
             dni=user["dni"],
             first_name=user["first_name"],
             last_name=user["last_name"],
@@ -219,6 +272,15 @@ def get_me(
         ),
         company_id=str(
             current_user["company_id"]
+        ),
+        customer_id=(
+            str(
+                current_user["customer_id"]
+            )
+            if current_user.get(
+                "customer_id"
+            )
+            else None
         ),
         dni=current_user["dni"],
         first_name=current_user["first_name"],

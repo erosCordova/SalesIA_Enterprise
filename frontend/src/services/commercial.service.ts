@@ -155,6 +155,28 @@ export function updateProduct(
 }
 
 
+export function uploadProductImage(
+  id: string,
+  image: File,
+) {
+  const formData =
+    new FormData();
+
+  formData.append(
+    "image",
+    image,
+  );
+
+  return apiFetch<Product>(
+    `/products/${id}/image`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+}
+
+
 export function deleteProduct(
   id: string,
 ) {

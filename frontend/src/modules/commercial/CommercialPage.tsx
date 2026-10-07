@@ -967,7 +967,7 @@ function CommercialPage() {
 
             <label>
               <span>
-                Número de documento
+                DNI
               </span>
 
               <input
@@ -1450,7 +1450,7 @@ function CommercialPage() {
 
               <label>
                 <span>
-                  Número de documento
+                  DNI
                 </span>
 
                 <input

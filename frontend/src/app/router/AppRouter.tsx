@@ -21,7 +21,7 @@ import LoginPage from "../../modules/auth/LoginPage";
 import AnalyticsPage from "../../modules/analytics/AnalyticsPage";
 import AuditPage from "../../modules/audit/AuditPage";
 import CategoriasPage from "../../modules/categorias/CategoriasPage";
-import CommercialPage from "../../modules/commercial/CommercialPage";
+import ClientesPage from "../../modules/clientes/ClientesPage";
 import DashboardPage from "../../modules/dashboard/DashboardPage";
 import EmpresaPage from "../../modules/empresa/EmpresaPage";
 import InsightsPage from "../../modules/insights/InsightsPage";
@@ -172,7 +172,7 @@ export default function AppRouter() {
           >
             <Route
               path="/commercial"
-              element={<CommercialPage />}
+              element={<ClientesPage />}
             />
 
             <Route

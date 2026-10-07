@@ -70,7 +70,7 @@ type StatusFilter =
 
 const initialForm:
   CustomerCreate = {
-    document_type: "",
+    document_type: "DNI",
     document_number: "",
     first_name: "",
     last_name: "",
@@ -255,7 +255,7 @@ function exportRows(
         customer.document_type
         || "",
 
-      "Número de documento":
+      "DNI":
         customer.document_number
         || "",
 
@@ -1478,30 +1478,10 @@ export default function ClientesPage() {
 
 
           <div className="form-grid">
-            <label>
-              Tipo de documento
-
-              <input
-                value={
-                  form.document_type
-                }
-                onChange={(
-                  event,
-                ) =>
-                  updateFormField(
-                    "document_type",
-                    event
-                      .target
-                      .value,
-                  )
-                }
-                required
-              />
-            </label>
 
 
             <label>
-              Número de documento
+              DNI
 
               <input
                 value={
