@@ -39,9 +39,7 @@ INVENTORY_ROLES = (
 
 @router.get(
     "",
-    response_model=list[
-        InventoryItemResponse
-    ],
+    response_model=list[InventoryItemResponse],
     summary="Consultar inventario",
 )
 def list_inventory(
@@ -77,16 +75,9 @@ def list_movements(
 
 @router.post(
     "/movements",
-    response_model=(
-        InventoryMovementResponse
-    ),
-    status_code=(
-        status.HTTP_201_CREATED
-    ),
-    summary=(
-        "Registrar movimiento "
-        "manual de inventario"
-    ),
+    response_model=InventoryMovementResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar movimiento manual de inventario",
 )
 def register_movement(
     data: InventoryMovementCreateRequest,
@@ -104,15 +95,10 @@ def register_movement(
 
 @router.get(
     "/status",
-    summary=(
-        "Estado del módulo "
-        "de inventario"
-    ),
+    summary="Estado del módulo de inventario",
 )
 def inventory_status():
     return {
-        "module":
-            "Gestión de Inventario",
-        "status":
-            "ready",
+        "module": "Gestión de Inventario",
+        "status": "ready",
     }
