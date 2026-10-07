@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import ExportActions from "../../components/ui/ExportActions";
+import PeruBranchMap from "../../components/maps/PeruBranchMap";
 import Modal from "../../components/ui/Modal";
 
 import {
@@ -23,6 +24,10 @@ import {
 import {
   getAuditLogs,
 } from "../../services/audit.service";
+
+import {
+  getBranches,
+} from "../../services/organization.service";
 
 import {
   createVisualPdfFile,
@@ -37,6 +42,10 @@ import {
 import type {
   AuditLogItem,
 } from "../../types/audit";
+
+import type {
+  Branch,
+} from "../../types/organization";
 
 import "./audit-commercial.css";
 
@@ -546,6 +555,23 @@ function AuditPage() {
     );
 
 
+  const {
+    data:
+      branchData,
+    loading:
+      branchesLoading,
+    error:
+      branchesError,
+    reload:
+      reloadBranches,
+  } =
+    useApiResource<
+      Branch[]
+    >(
+      getBranches,
+    );
+
+
   const [
     search,
     setSearch,
@@ -599,6 +625,10 @@ function AuditPage() {
 
   const logs =
     data ?? [];
+
+
+  const branches =
+    branchData ?? [];
 
 
   const actionOptions =
@@ -1021,7 +1051,10 @@ function AuditPage() {
   async function handleReload() {
     setExportError("");
 
-    await reload();
+    await Promise.all([
+      reload(),
+      reloadBranches(),
+    ]);
   }
 
 
@@ -1121,6 +1154,19 @@ function AuditPage() {
             {exportError}
           </div>
         )}
+
+
+        <PeruBranchMap
+          branches={
+            branches
+          }
+          loading={
+            branchesLoading
+          }
+          error={
+            branchesError
+          }
+        />
 
 
         <section className="audit-panel">

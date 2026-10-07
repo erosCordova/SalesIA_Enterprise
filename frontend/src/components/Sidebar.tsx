@@ -5,6 +5,7 @@ import {
   History,
   LayoutDashboard,
   Lightbulb,
+  LogOut,
   Percent,
   Settings2,
   ShieldCheck,
@@ -33,6 +34,7 @@ import "../styles/sidebar-reference.css";
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
+  onLogout: () => void;
   user: AuthUser;
 }
 
@@ -91,7 +93,7 @@ const MANAGEMENT_ROLES: UserRole[] = [
 
 const menuSections: MenuSection[] = [
   {
-    title: "1. EJECUTIVO",
+    title: "EJECUTIVO",
     items: [
       {
         label: "Dashboard",
@@ -105,17 +107,17 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "2. OPERACIONES",
+    title: "OPERACIONES",
     items: [
       {
-        label: "Ventas",
+        label: "Ventas y Pedidos",
         path: "/sales",
         icon: ShoppingCart,
         roles: SALES_ROLES,
         end: true,
       },
       {
-        label: "Inventario",
+        label: "Inventario y Stock",
         path: "/inventory",
         icon: Boxes,
         roles: INVENTORY_ROLES,
@@ -132,16 +134,16 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "3. ANALÍTICA E IA",
+    title: "ANALÍTICA E IA",
     items: [
       {
-        label: "Analytics",
+        label: "Analytics Comercial",
         path: "/analytics",
         icon: BarChart3,
         roles: ANALYTICS_ROLES,
       },
       {
-        label: "Probabilidad",
+        label: "Probabilidades & Bayes",
         path: "/probability",
         icon: Percent,
         roles: ANALYTICS_ROLES,
@@ -153,7 +155,7 @@ const menuSections: MenuSection[] = [
         roles: ANALYTICS_ROLES,
       },
       {
-        label: "Insights",
+        label: "Motor de Insights",
         path: "/insights",
         icon: Lightbulb,
         roles: ANALYTICS_ROLES,
@@ -168,7 +170,7 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "4. ADMINISTRACIÓN",
+    title: "MANTENIMIENTO",
     items: [
       {
         label: "Mantenimiento",
@@ -180,10 +182,10 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "5. CONTROL",
+    title: "ADMINISTRACIÓN",
     items: [
       {
-        label: "Auditoría",
+        label: "Auditoría y Logs",
         path: "/audit",
         icon: ShieldCheck,
         roles: [
@@ -198,6 +200,7 @@ const menuSections: MenuSection[] = [
 function Sidebar({
   open,
   onClose,
+  onLogout,
   user,
 }: SidebarProps) {
   const initials =
@@ -248,13 +251,9 @@ function Sidebar({
           </div>
 
           <div className="brand-text">
-            <strong>
-              SALESIA ERP
-            </strong>
+            <strong>SalesIA</strong>
 
-            <span>
-              PREDICTIVE ENGINE V1.2
-            </span>
+            <span>Enterprise</span>
           </div>
 
           <button
@@ -269,11 +268,21 @@ function Sidebar({
 
         <nav className="sidebar-nav">
           {visibleSections.map(
-            (section) => (
+            (
+              section,
+              sectionIndex,
+            ) => (
               <div
                 className="sidebar-section"
                 key={section.title}
               >
+                {sectionIndex > 0 && (
+                  <div
+                    className="sidebar-section-divider"
+                    aria-hidden="true"
+                  />
+                )}
+
                 <p className="sidebar-section-title">
                   {section.title}
                 </p>
@@ -320,6 +329,22 @@ function Sidebar({
             ),
           )}
         </nav>
+
+        <button
+          type="button"
+          className="sidebar-logout"
+          onClick={() => {
+            onClose();
+            onLogout();
+          }}
+        >
+          <LogOut size={16} />
+
+          <span>
+            Cerrar sesión
+          </span>
+        </button>
+
 
         <div className="sidebar-profile">
           <div className="profile-avatar">

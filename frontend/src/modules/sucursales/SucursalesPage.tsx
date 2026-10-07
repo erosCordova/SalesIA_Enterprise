@@ -48,6 +48,8 @@ import type {
   BranchUpdate,
 } from "../../types/organization";
 
+import PeruLocationFields from "../../components/organization/PeruLocationFields";
+
 import "./sucursales-commercial.css";
 
 
@@ -59,6 +61,13 @@ interface BranchForm {
   name: string;
   address: string;
   city: string;
+  department: string;
+  province: string;
+  district: string;
+
+  latitude: string;
+  longitude: string;
+
   country: string;
   phone: string;
   email: string;
@@ -75,6 +84,13 @@ const initialForm:
     name: "",
     address: "",
     city: "",
+    department: "",
+    province: "",
+    district: "",
+
+    latitude: "",
+    longitude: "",
+
     country: "Perú",
     phone: "",
     email: "",
@@ -117,6 +133,7 @@ function locationLabel(
   return [
     branch.address,
     branch.city,
+    branch.department,
     branch.country,
   ]
     .filter(Boolean)
@@ -153,6 +170,18 @@ function exportRows(
 
       Ciudad:
         branch.city
+        ?? "",
+
+      Departamento:
+        branch.department
+        ?? "",
+
+      Latitud:
+        branch.latitude
+        ?? "",
+
+      Longitud:
+        branch.longitude
         ?? "",
 
       País:
@@ -290,6 +319,7 @@ export default function SucursalesPage() {
                 branch.name,
                 branch.address,
                 branch.city,
+                branch.department,
                 branch.country,
                 branch.phone,
                 branch.email,
@@ -532,6 +562,33 @@ export default function SucursalesPage() {
         branch.city
         ?? "",
 
+      department:
+        branch.department
+        ?? "",
+
+      province:
+        branch.province
+        ?? "",
+
+      district:
+        branch.district
+        ?? branch.city
+        ?? "",
+
+      latitude:
+        branch.latitude !== null
+          ? String(
+              branch.latitude,
+            )
+          : "",
+
+      longitude:
+        branch.longitude !== null
+          ? String(
+              branch.longitude,
+            )
+          : "",
+
       country:
         branch.country
         || "Perú",
@@ -601,6 +658,64 @@ export default function SucursalesPage() {
 
 
     if (
+      normalize(
+        form.country,
+      ) === "peru"
+      && !form.department.trim()
+    ) {
+      setFormError(
+        "Selecciona el departamento de la sucursal.",
+      );
+
+      return;
+    }
+
+
+    if (
+      !form.department.trim()
+    ) {
+      setFormError(
+        "Selecciona un departamento.",
+      );
+
+      return;
+    }
+
+
+    if (
+      !form.province.trim()
+    ) {
+      setFormError(
+        "Selecciona una provincia.",
+      );
+
+      return;
+    }
+
+
+    if (
+      !form.district.trim()
+    ) {
+      setFormError(
+        "Selecciona un distrito.",
+      );
+
+      return;
+    }
+
+
+    if (
+      !form.address.trim()
+    ) {
+      setFormError(
+        "Ingresa la dirección de la sucursal.",
+      );
+
+      return;
+    }
+
+
+    if (
       form.email.trim()
       && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
         form.email.trim(),
@@ -637,9 +752,39 @@ export default function SucursalesPage() {
               || null,
 
             city:
-              form.city
+              form.district
                 .trim()
               || null,
+
+            department:
+              form.department
+                .trim()
+              || null,
+
+            province:
+              form.province
+                .trim()
+              || null,
+
+            district:
+              form.district
+                .trim()
+              || null,
+
+
+            latitude:
+              form.latitude.trim()
+                ? Number(
+                    form.latitude,
+                  )
+                : null,
+
+            longitude:
+              form.longitude.trim()
+                ? Number(
+                    form.longitude,
+                  )
+                : null,
 
             country:
               form.country
@@ -685,9 +830,39 @@ export default function SucursalesPage() {
               || null,
 
             city:
-              form.city
+              form.district
                 .trim()
               || null,
+
+            department:
+              form.department
+                .trim()
+              || null,
+
+            province:
+              form.province
+                .trim()
+              || null,
+
+            district:
+              form.district
+                .trim()
+              || null,
+
+
+            latitude:
+              form.latitude.trim()
+                ? Number(
+                    form.latitude,
+                  )
+                : null,
+
+            longitude:
+              form.longitude.trim()
+                ? Number(
+                    form.longitude,
+                  )
+                : null,
 
             country:
               form.country
@@ -1224,73 +1399,116 @@ export default function SucursalesPage() {
             </label>
 
 
-            <label>
-              <span>
-                Ciudad
-              </span>
+            <PeruLocationFields
+              department={
+                form.department
+              }
+              province={
+                form.province
+              }
+              district={
+                form.district
+              }
+              address={
+                form.address
+              }
+              disabled={
+                saving
+              }
+              onDepartmentChange={(
+                value,
+              ) =>
+                setForm((
+                  current,
+                ) => ({
+                  ...current,
 
-              <input
-                value={
-                  form.city
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    city:
-                      event.target.value,
-                  })
-                }
-                placeholder="Lima"
-              />
-            </label>
+                  department:
+                    value,
 
+                  province:
+                    "",
 
-            <label>
-              <span>
-                País
-              </span>
+                  district:
+                    "",
 
-              <input
-                value={
-                  form.country
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    country:
-                      event.target.value,
-                  })
-                }
-                placeholder="Perú"
-              />
-            </label>
+                  city:
+                    "",
 
+                  address:
+                    "",
 
-            <label className="form-full">
-              <span>
-                Dirección
-              </span>
+                  latitude:
+                    "",
 
-              <input
-                value={
-                  form.address
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    address:
-                      event.target.value,
-                  })
-                }
-                placeholder="Dirección de la sucursal"
-              />
-            </label>
+                  longitude:
+                    "",
+                }))
+              }
+              onProvinceChange={(
+                value,
+              ) =>
+                setForm((
+                  current,
+                ) => ({
+                  ...current,
+
+                  province:
+                    value,
+
+                  district:
+                    "",
+
+                  city:
+                    "",
+
+                  address:
+                    "",
+
+                  latitude:
+                    "",
+
+                  longitude:
+                    "",
+                }))
+              }
+              onDistrictChange={(
+                value,
+              ) =>
+                setForm((
+                  current,
+                ) => ({
+                  ...current,
+
+                  district:
+                    value,
+
+                  city:
+                    value,
+
+                  address:
+                    "",
+
+                  latitude:
+                    "",
+
+                  longitude:
+                    "",
+                }))
+              }
+              onAddressChange={(
+                value,
+              ) =>
+                setForm((
+                  current,
+                ) => ({
+                  ...current,
+
+                  address:
+                    value,
+                }))
+              }
+            />
 
 
             <label>

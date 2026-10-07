@@ -3,6 +3,8 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
+    File,
+    UploadFile,
     status,
 )
 
@@ -18,6 +20,10 @@ from app.services.commercial import (
     get_product,
     get_products,
     update_product,
+)
+
+from app.services.product_images import (
+    upload_product_image as save_product_image,
 )
 
 
@@ -66,6 +72,29 @@ def register_product(
 ):
     return create_product(
         data,
+        current_user,
+    )
+
+
+@router.post(
+    "/{product_id}/image",
+    response_model=ProductResponse,
+    summary="Subir imagen de producto",
+)
+def upload_product_image(
+    product_id: UUID,
+    image: UploadFile = File(...),
+    current_user: dict = Depends(
+        require_roles(
+            "Administrador",
+            "Gerente",
+            "Almacén",
+        )
+    ),
+):
+    return save_product_image(
+        product_id,
+        image,
         current_user,
     )
 

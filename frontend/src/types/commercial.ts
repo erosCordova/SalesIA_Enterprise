@@ -104,6 +104,8 @@ export interface Product {
 
   description: string | null;
 
+  image_url: string | null;
+
   unit: string;
 
   sale_price: DecimalValue;
@@ -179,6 +181,8 @@ export interface InventoryItem {
   sku: string;
 
   product_name: string;
+
+  image_url: string | null;
 
   stock_quantity: DecimalValue;
 

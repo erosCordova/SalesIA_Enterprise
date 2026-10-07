@@ -369,6 +369,7 @@ class ProductResponse(BaseModel):
     sku: str
     name: str
     description: str | None
+    image_url: str | None = None
     unit: str
 
     sale_price: Decimal
@@ -516,6 +517,7 @@ class InventoryItemResponse(BaseModel):
 
     sku: str
     product_name: str
+    image_url: str | None = None
 
     stock_quantity: Decimal
     minimum_stock: Decimal

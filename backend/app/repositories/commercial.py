@@ -314,6 +314,7 @@ def list_products(
                 p.sku,
                 p.name,
                 p.description,
+                p.image_url,
                 p.unit,
                 p.sale_price,
                 p.cost_price,
@@ -483,6 +484,7 @@ def list_inventory(
                 p.id AS product_id,
                 p.sku,
                 p.name AS product_name,
+                p.image_url,
                 i.stock_quantity,
                 i.minimum_stock,
                 i.maximum_stock,
@@ -985,6 +987,7 @@ def get_product(
                 p.sku,
                 p.name,
                 p.description,
+                p.image_url,
                 p.unit,
                 p.sale_price,
                 p.cost_price,
@@ -1034,6 +1037,31 @@ def update_product(
         """),
         {
             **values,
+            "product_id": product_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+def update_product_image(
+    connection: Connection,
+    company_id: UUID,
+    product_id: UUID,
+    image_url: str | None,
+):
+    return connection.execute(
+        text("""
+            UPDATE products
+            SET
+                image_url = :image_url,
+                updated_at = NOW()
+            WHERE id = :product_id
+              AND company_id = :company_id
+            RETURNING
+                id,
+                image_url
+        """),
+        {
+            "image_url": image_url,
             "product_id": product_id,
             "company_id": company_id,
         },

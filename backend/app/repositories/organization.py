@@ -22,11 +22,37 @@ BRANCH_UPDATE_FIELDS = {
     "name",
     "address",
     "city",
+    "department",
+    "province",
+    "district",
+    "latitude",
+    "longitude",
     "country",
     "phone",
     "email",
     "status",
 }
+
+
+BRANCH_SELECT = """
+    id,
+    company_id,
+    code,
+    name,
+    address,
+    city,
+    department,
+    province,
+    district,
+    latitude,
+    longitude,
+    country,
+    phone,
+    email,
+    status,
+    created_at,
+    updated_at
+"""
 
 
 def get_company(
@@ -119,26 +145,17 @@ def list_branches(
     company_id: UUID,
 ):
     return connection.execute(
-        text("""
+        text(
+            f"""
             SELECT
-                id,
-                company_id,
-                code,
-                name,
-                address,
-                city,
-                country,
-                phone,
-                email,
-                status,
-                created_at,
-                updated_at
+                {BRANCH_SELECT}
             FROM branches
             WHERE company_id = :company_id
             ORDER BY
                 name,
                 code
-        """),
+            """
+        ),
         {
             "company_id": company_id,
         },
@@ -151,25 +168,16 @@ def find_branch_by_code(
     code: str,
 ):
     return connection.execute(
-        text("""
+        text(
+            f"""
             SELECT
-                id,
-                company_id,
-                code,
-                name,
-                address,
-                city,
-                country,
-                phone,
-                email,
-                status,
-                created_at,
-                updated_at
+                {BRANCH_SELECT}
             FROM branches
             WHERE company_id = :company_id
               AND lower(code) = lower(:code)
             LIMIT 1
-        """),
+            """
+        ),
         {
             "company_id": company_id,
             "code": code,
@@ -183,25 +191,16 @@ def get_branch(
     branch_id: UUID,
 ):
     return connection.execute(
-        text("""
+        text(
+            f"""
             SELECT
-                id,
-                company_id,
-                code,
-                name,
-                address,
-                city,
-                country,
-                phone,
-                email,
-                status,
-                created_at,
-                updated_at
+                {BRANCH_SELECT}
             FROM branches
             WHERE id = :branch_id
               AND company_id = :company_id
             LIMIT 1
-        """),
+            """
+        ),
         {
             "branch_id": branch_id,
             "company_id": company_id,
@@ -217,6 +216,11 @@ def create_branch(
     name: str,
     address: str | None,
     city: str | None,
+    department: str | None,
+    province: str | None,
+    district: str | None,
+    latitude: float | None,
+    longitude: float | None,
     country: str | None,
     phone: str | None,
     email: str | None,
@@ -230,6 +234,11 @@ def create_branch(
                 name,
                 address,
                 city,
+                department,
+                province,
+                district,
+                latitude,
+                longitude,
                 country,
                 phone,
                 email,
@@ -241,6 +250,11 @@ def create_branch(
                 :name,
                 :address,
                 :city,
+                :department,
+                :province,
+                :district,
+                :latitude,
+                :longitude,
                 :country,
                 :phone,
                 :email,
@@ -253,6 +267,11 @@ def create_branch(
                 name,
                 address,
                 city,
+                department,
+                province,
+                district,
+                latitude,
+                longitude,
                 country,
                 phone,
                 email,
@@ -266,6 +285,11 @@ def create_branch(
             "name": name,
             "address": address,
             "city": city,
+            "department": department,
+            "province": province,
+            "district": district,
+            "latitude": latitude,
+            "longitude": longitude,
             "country": country,
             "phone": phone,
             "email": email,
@@ -317,18 +341,7 @@ def update_branch(
             WHERE id = :branch_id
               AND company_id = :company_id
             RETURNING
-                id,
-                company_id,
-                code,
-                name,
-                address,
-                city,
-                country,
-                phone,
-                email,
-                status,
-                created_at,
-                updated_at
+                {BRANCH_SELECT}
             """
         ),
         params,

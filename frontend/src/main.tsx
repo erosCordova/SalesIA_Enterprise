@@ -8,6 +8,7 @@ import "./styles/global.css";
 import "./styles/layout.css";
 import "./styles/enterprise-v2.css";
 import "./styles/salesia-cyan-theme.css";
+import "./styles/modern-light.css";
 
 ReactDOM.createRoot(
   document.getElementById("root")!,

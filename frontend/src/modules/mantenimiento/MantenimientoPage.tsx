@@ -9,6 +9,7 @@ import type {
 } from "react";
 
 import {
+  BookOpenText,
   Building2,
   MapPin,
   PackageSearch,
@@ -29,6 +30,7 @@ import CategoriasPage from "../categorias/CategoriasPage";
 import EmpresaPage from "../empresa/EmpresaPage";
 import SucursalesPage from "../sucursales/SucursalesPage";
 import AccessPage from "../auth/AccessPage";
+import ManualesPage from "../manuales/ManualesPage";
 
 import {
   useAuth,
@@ -47,6 +49,7 @@ type CatalogKey =
   | "categorias"
   | "empresa"
   | "sucursales"
+  | "manuales"
   | "usuarios"
   | "roles";
 
@@ -147,6 +150,16 @@ const CATALOGS: CatalogDefinition[] = [
     icon: MapPin,
     roles: ADMIN_MANAGER,
     component: SucursalesPage,
+  },
+  {
+    key: "manuales",
+    label: "Manuales",
+    description:
+      "Manual de usuario y documentación técnica disponible en el acceso al sistema.",
+    group: "Acceso",
+    icon: BookOpenText,
+    roles: ADMIN_MANAGER,
+    component: ManualesPage,
   },
   {
     key: "usuarios",

@@ -1,419 +1,628 @@
-.login-page {
+.salesia-login {
+  display: grid;
+  grid-template-columns:
+    minmax(390px, 0.93fr)
+    minmax(470px, 1.07fr);
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: #172033;
+  background: #f5f7f9;
+}
+
+
+.salesia-login-brand-panel {
   position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   overflow: hidden;
+  padding: 34px 44px;
+  color: #ffffff;
   background:
     radial-gradient(
-      circle at 10% 20%,
-      rgba(37, 99, 235, 0.08),
-      transparent 28%
+      circle at 13% 12%,
+      rgba(23, 195, 154, 0.18),
+      transparent 32%
     ),
-    #f5f7fb;
-  padding: 32px;
+    radial-gradient(
+      circle at 90% 85%,
+      rgba(14, 158, 177, 0.2),
+      transparent 37%
+    ),
+    linear-gradient(
+      155deg,
+      #061722 0%,
+      #08293a 100%
+    );
 }
 
-.login-background-shape {
+
+.salesia-login-brand-panel::before {
   position: absolute;
+  top: -150px;
+  right: -170px;
+  width: 430px;
+  height: 430px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
   border-radius: 50%;
-  pointer-events: none;
-  filter: blur(2px);
+  content: "";
 }
 
-.login-background-shape-one {
-  width: 520px;
-  height: 520px;
-  top: -280px;
-  right: -150px;
-  background: rgba(37, 99, 235, 0.08);
+
+.salesia-login-brand-panel::after {
+  position: absolute;
+  right: -90px;
+  bottom: -125px;
+  width: 330px;
+  height: 330px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 50%;
+  content: "";
 }
 
-.login-background-shape-two {
-  width: 380px;
-  height: 380px;
-  bottom: -230px;
-  left: -120px;
-  background: rgba(6, 182, 212, 0.06);
-}
 
-.login-container {
-  width: min(1120px, 100%);
-  min-height: 680px;
-  display: grid;
-  grid-template-columns: 1fr 0.95fr;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow:
-    0 24px 70px rgba(15, 23, 42, 0.12);
+.salesia-login-brand {
   position: relative;
   z-index: 1;
-}
-
-.login-brand-panel {
-  background:
-    linear-gradient(
-      145deg,
-      #0f172a 0%,
-      #16213b 58%,
-      #1e3a5f 100%
-    );
-  color: white;
-  padding: 52px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  overflow: hidden;
-}
-
-.login-brand-panel::after {
-  content: "";
-  position: absolute;
-  width: 420px;
-  height: 420px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-  right: -220px;
-  bottom: -220px;
-}
-
-.login-brand {
   display: flex;
   align-items: center;
-  gap: 13px;
-  position: relative;
-  z-index: 1;
+  gap: 11px;
 }
 
-.login-brand-mark {
+
+.salesia-login-logo {
+  display: grid;
   width: 44px;
   height: 44px;
-  display: grid;
   place-items: center;
-  border-radius: 12px;
-  background: #2563eb;
-  color: white;
-  font-size: 21px;
-  font-weight: 800;
+  border-radius: 11px;
+  color: #ffffff;
+  background:
+    linear-gradient(
+      135deg,
+      #16bc92,
+      #0d91a2
+    );
   box-shadow:
-    0 10px 25px rgba(37, 99, 235, 0.3);
+    0 12px 25px
+    rgba(5, 175, 157, 0.21);
 }
 
-.login-brand strong {
-  display: block;
-  font-size: 19px;
-  letter-spacing: -0.02em;
-}
 
-.login-brand span {
-  display: block;
-  color: #94a3b8;
-  font-size: 12px;
-  margin-top: 2px;
-}
-
-.login-brand-content {
-  max-width: 500px;
-  position: relative;
-  z-index: 1;
-}
-
-.login-eyebrow {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: #60a5fa;
-  margin-bottom: 18px;
-}
-
-.login-brand-content h1 {
-  margin: 0;
-  font-size: clamp(38px, 4vw, 58px);
-  line-height: 1.02;
-  letter-spacing: -0.045em;
-}
-
-.login-brand-content p {
-  max-width: 470px;
-  margin: 24px 0 0;
-  color: #cbd5e1;
-  font-size: 15px;
-  line-height: 1.75;
-}
-
-.login-security {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  position: relative;
-  z-index: 1;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.login-security svg {
-  color: #38bdf8;
-  flex-shrink: 0;
-}
-
-.login-security strong,
-.login-security span {
-  display: block;
-}
-
-.login-security strong {
-  font-size: 13px;
-}
-
-.login-security span {
-  margin-top: 3px;
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.login-form-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 52px;
-  background: #ffffff;
-}
-
-.login-form-wrapper {
-  width: min(420px, 100%);
-}
-
-.login-form-header {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-
-.login-form-icon {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border-radius: 13px;
-  color: #2563eb;
-  background: #eff6ff;
-}
-
-.login-form-eyebrow {
-  display: block;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: #64748b;
-  margin-bottom: 4px;
-}
-
-.login-form-header h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 29px;
-  letter-spacing: -0.03em;
-}
-
-.login-form-description {
-  margin: 18px 0 32px;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.login-form {
+.salesia-login-brand > div:last-child {
   display: flex;
   flex-direction: column;
-  gap: 20px;
 }
 
-.login-field > span {
+
+.salesia-login-brand strong {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+
+.salesia-login-brand span {
+  margin-top: 4px;
+  color: #50d7c1;
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+
+.salesia-login-presentation {
+  position: relative;
+  z-index: 1;
+  width: min(555px, 100%);
+  margin: auto 0;
+}
+
+
+.salesia-login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(78, 218, 195, 0.19);
+  border-radius: 999px;
+  color: #65ddcb;
+  background: rgba(14, 158, 177, 0.09);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+
+.salesia-login-presentation h1 {
+  margin: 21px 0 0;
+  max-width: 560px;
+  color: #ffffff;
+  font-size:
+    clamp(
+      2.15rem,
+      4vw,
+      3.65rem
+    );
+  font-weight: 760;
+  line-height: 1.04;
+  letter-spacing: -0.05em;
+}
+
+
+.salesia-login-presentation h1 em {
   display: block;
-  margin-bottom: 8px;
-  color: #334155;
-  font-size: 13px;
-  font-weight: 700;
+  margin-top: 6px;
+  color: #38cfb2;
+  font-style: normal;
 }
 
-.login-input-wrapper {
-  height: 52px;
+
+.salesia-login-presentation > p {
+  max-width: 500px;
+  margin: 20px 0 0;
+  color: #9db2bf;
+  font-size: 0.94rem;
+  line-height: 1.7;
+}
+
+
+.salesia-login-features {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+  gap: 10px;
+  margin-top: 28px;
+}
+
+
+.salesia-login-features article {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 10px;
-  padding: 0 14px;
-  border: 1px solid #dbe1ea;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+
+.salesia-login-features article > span {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  color: #50d7c4;
+  background: rgba(80, 215, 196, 0.09);
+}
+
+
+.salesia-login-features strong,
+.salesia-login-features small {
+  display: block;
+}
+
+
+.salesia-login-features strong {
+  color: #f4f8fa;
+  font-size: 0.79rem;
+}
+
+
+.salesia-login-features small {
+  margin-top: 2px;
+  color: #7f98a7;
+  font-size: 0.66rem;
+  line-height: 1.4;
+}
+
+
+.salesia-login-brand-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #76909f;
+  font-size: 0.66rem;
+}
+
+
+.salesia-login-brand-footer small {
+  color: #617887;
+}
+
+
+.salesia-login-access-panel {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  padding: 38px;
+  background:
+    radial-gradient(
+      circle at 82% 8%,
+      rgba(14, 158, 177, 0.075),
+      transparent 30%
+    ),
+    #f7f9fb;
+}
+
+
+.salesia-login-card {
+  width: min(425px, 100%);
+  padding: 34px;
+  border: 1px solid #e1e7ec;
+  border-radius: 17px;
   background: #ffffff;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.login-input-wrapper:focus-within {
-  border-color: #2563eb;
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.1);
+    0 22px 55px
+    rgba(15, 23, 42, 0.085);
 }
 
-.login-input-wrapper > svg {
-  color: #94a3b8;
-  flex-shrink: 0;
+
+.salesia-login-card > header {
+  margin-bottom: 25px;
 }
 
-.login-input-wrapper input {
-  width: 100%;
-  height: 100%;
+
+.salesia-login-card-eyebrow {
+  color: #0e9eb1;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+
+.salesia-login-card h2 {
+  margin: 6px 0 0;
+  color: #111a2d;
+  font-size: 1.85rem;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+
+.salesia-login-card header p {
+  margin: 8px 0 0;
+  color: #718096;
+  font-size: 0.81rem;
+  line-height: 1.55;
+}
+
+
+.salesia-login-field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+
+.salesia-login-field > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #45566d;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+
+.salesia-login-input {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 11px;
+  border: 1px solid #dfe6ec;
+  border-radius: 10px;
+  color: #7890a2;
+  background: #fbfcfd;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+
+.salesia-login-input:focus-within {
+  border-color: #65c7d0;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 3px
+    rgba(14, 158, 177, 0.1);
+}
+
+
+.salesia-login-input input {
+  min-width: 0;
+  flex: 1;
   border: 0;
   outline: 0;
+  color: #26364d;
   background: transparent;
-  color: #0f172a;
-  font-size: 14px;
+  font: inherit;
+  font-size: 0.85rem;
 }
 
-.login-input-wrapper input::placeholder {
-  color: #94a3b8;
+
+.salesia-login-input input::placeholder {
+  color: #a1adba;
 }
 
-.login-password-toggle {
-  border: 0;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
+
+.salesia-login-eye {
   display: grid;
+  width: 32px;
+  height: 32px;
   place-items: center;
-  padding: 4px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #8090a3;
+  background: transparent;
+  cursor: pointer;
 }
 
-.login-password-toggle:hover {
-  color: #2563eb;
+
+.salesia-login-eye:hover:not(:disabled) {
+  color: #0e8194;
+  background: #eef9fa;
 }
 
-.login-error {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 12px 14px;
+
+.salesia-login-error {
+  margin: 2px 0 15px;
+  padding: 10px 12px;
   border: 1px solid #fecaca;
-  border-radius: 10px;
+  border-radius: 9px;
+  color: #b91c1c;
   background: #fef2f2;
-  color: #991b1b;
-  font-size: 12px;
+  font-size: 0.74rem;
   line-height: 1.45;
 }
 
-.login-submit {
-  height: 52px;
+
+.salesia-login-submit {
+  display: flex;
+  width: 100%;
+  min-height: 47px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background:
+    linear-gradient(
+      135deg,
+      #13b68a,
+      #0e8194
+    );
+  box-shadow:
+    0 10px 20px
+    rgba(14, 129, 148, 0.18);
+  font: inherit;
+  font-size: 0.81rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+
+.salesia-login-submit:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+
+.salesia-login-submit:disabled,
+.salesia-login-eye:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+
+.salesia-login-divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  border: 0;
-  border-radius: 11px;
-  background: #2563eb;
-  color: white;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-  box-shadow:
-    0 8px 20px rgba(37, 99, 235, 0.22);
-}
-
-.login-submit:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-.login-submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.login-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: login-spin 0.7s linear infinite;
-}
-
-.login-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 36px;
-  padding-top: 18px;
-  border-top: 1px solid #eef0f4;
+  margin: 22px 0 13px;
   color: #94a3b8;
-  font-size: 11px;
+  font-size: 0.66rem;
 }
 
-@keyframes login-spin {
-  to {
-    transform: rotate(360deg);
-  }
+
+.salesia-login-divider::before,
+.salesia-login-divider::after {
+  height: 1px;
+  flex: 1;
+  background: #edf1f4;
+  content: "";
 }
 
-@media (max-width: 850px) {
-  .login-page {
-    padding: 16px;
-  }
 
-  .login-container {
+.salesia-login-divider span {
+  padding: 0 10px;
+}
+
+
+.salesia-login-manuals {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+  gap: 8px;
+}
+
+
+.salesia-login-manuals button {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid #dde7eb;
+  border-radius: 9px;
+  color: #53687d;
+  background: #f9fbfc;
+  font: inherit;
+  font-size: 0.67rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+
+.salesia-login-manuals button:hover:not(:disabled) {
+  border-color: #95d5db;
+  color: #0e8194;
+  background: #f0fafb;
+}
+
+
+.salesia-login-manuals button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+
+.salesia-login-security {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 17px;
+  color: #8a98a9;
+  font-size: 0.65rem;
+}
+
+
+.salesia-login-security svg {
+  color: #0c9d78;
+}
+
+
+.salesia-manual-viewer {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+
+.salesia-manual-viewer-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(2, 12, 20, 0.68);
+  backdrop-filter: blur(4px);
+  cursor: default;
+}
+
+
+.salesia-manual-viewer-dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(1050px, 96vw);
+  height: min(820px, 92vh);
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid #dfe7ec;
+  border-radius: 15px;
+  background: #ffffff;
+  box-shadow:
+    0 30px 80px
+    rgba(0, 0, 0, 0.28);
+}
+
+
+.salesia-manual-viewer-dialog > header {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 15px;
+  border-bottom: 1px solid #e8edf1;
+}
+
+
+.salesia-manual-viewer-dialog header span {
+  color: #0e9eb1;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+
+.salesia-manual-viewer-dialog header h3 {
+  margin: 3px 0 0;
+  color: #172033;
+  font-size: 1rem;
+}
+
+
+.salesia-manual-close {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  place-items: center;
+  border: 1px solid #e1e8ed;
+  border-radius: 9px;
+  color: #64748b;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+
+.salesia-manual-viewer-dialog iframe {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  border: 0;
+  background: #eef2f5;
+}
+
+
+@media (max-width: 900px) {
+  .salesia-login {
     grid-template-columns: 1fr;
-    min-height: auto;
   }
 
-  .login-brand-panel {
-    min-height: 330px;
-    padding: 32px;
+  .salesia-login-brand-panel {
+    min-height: 390px;
   }
 
-  .login-brand-content h1 {
-    font-size: 38px;
-  }
-
-  .login-form-panel {
-    padding: 36px 28px;
+  .salesia-login-brand-footer {
+    margin-top: 32px;
   }
 }
 
-@media (max-width: 520px) {
-  .login-page {
-    padding: 0;
+
+@media (max-width: 560px) {
+  .salesia-login-brand-panel {
+    display: none;
   }
 
-  .login-container {
-    width: 100%;
-    border: 0;
-    border-radius: 0;
+  .salesia-login-access-panel {
     min-height: 100vh;
+    padding: 18px;
   }
 
-  .login-brand-panel {
-    min-height: 300px;
-    padding: 28px 24px;
+  .salesia-login-card {
+    padding: 27px 21px;
   }
 
-  .login-brand-content p {
-    font-size: 13px;
-  }
-
-  .login-form-panel {
-    padding: 32px 24px;
-  }
-
-  .login-footer {
-    flex-direction: column;
+  .salesia-login-manuals {
+    grid-template-columns: 1fr;
   }
 }

@@ -49,6 +49,14 @@ export interface Branch {
 
   address: string | null;
   city: string | null;
+
+  department: string | null;
+  province: string | null;
+  district: string | null;
+
+  latitude: number | null;
+  longitude: number | null;
+
   country: string | null;
 
   phone: string | null;
@@ -67,6 +75,14 @@ export interface BranchCreate {
 
   address?: string | null;
   city?: string | null;
+
+  department?: string | null;
+  province?: string | null;
+  district?: string | null;
+
+  latitude?: number | null;
+  longitude?: number | null;
+
   country?: string;
 
   phone?: string | null;
@@ -82,6 +98,14 @@ export interface BranchUpdate {
 
   address?: string | null;
   city?: string | null;
+
+  department?: string | null;
+  province?: string | null;
+  district?: string | null;
+
+  latitude?: number | null;
+  longitude?: number | null;
+
   country?: string | null;
 
   phone?: string | null;

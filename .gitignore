@@ -140,3 +140,4 @@ coverage/
 
 .vercel/
 .netlify/
+frontend/build_*.txt

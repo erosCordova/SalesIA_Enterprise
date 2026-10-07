@@ -37,8 +37,13 @@ export async function apiFetch<T>(
       options.headers,
     );
 
+  const bodyIsFormData =
+    typeof FormData !== "undefined"
+    && options.body instanceof FormData;
+
   if (
     options.body &&
+    !bodyIsFormData &&
     !headers.has(
       "Content-Type",
     )

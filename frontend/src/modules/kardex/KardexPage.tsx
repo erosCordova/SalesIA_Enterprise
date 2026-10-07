@@ -1524,7 +1524,24 @@ export default function KardexPage() {
             <section className="kardex-product-summary">
               <div className="kardex-product-summary-main">
                 <div className="kardex-product-summary-icon">
-                  <Box size={30} />
+                  {selectedProduct
+                    ?.image_url ? (
+                    <img
+                      className="kardex-product-summary-photo"
+                      src={
+                        selectedProduct
+                          .image_url
+                      }
+                      alt={
+                        selectedProduct
+                          .product_name
+                      }
+                    />
+                  ) : (
+                    <Box
+                      size={30}
+                    />
+                  )}
                 </div>
 
                 <div className="kardex-product-summary-title">

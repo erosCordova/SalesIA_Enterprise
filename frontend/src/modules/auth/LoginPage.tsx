@@ -1,290 +1,605 @@
-import { type FormEvent, useState } from "react";
-
 import {
+  BarChart3,
+  BookOpenText,
+  Boxes,
   Eye,
   EyeOff,
+  FileText,
   LockKeyhole,
   LogIn,
   ShieldCheck,
+  Sparkles,
   UserRound,
+  X,
 } from "lucide-react";
 
 import {
-  useAuth,
-} from "../../services/auth.context";
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 
-function LoginPage() {
-  const {
-    login,
-  } = useAuth();
+import {
+  login,
+} from "../../services/auth.service";
 
-  const [dni, setDni] =
+import {
+  getPublicManuals,
+  manualFileUrl,
+} from "../../services/manuals.service";
+
+import type {
+  ManualDocument,
+  ManualType,
+} from "../../types/manuals";
+
+import "./login.css";
+
+
+export default function LoginPage() {
+  const [
+    dni,
+    setDni,
+  ] =
     useState("");
 
-  const [password, setPassword] =
+
+  const [
+    password,
+    setPassword,
+  ] =
     useState("");
 
-  const [showPassword, setShowPassword] =
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] =
     useState(false);
 
-  const [loading, setLoading] =
+
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(false);
 
-  const [error, setError] =
+
+  const [
+    error,
+    setError,
+  ] =
     useState("");
+
+
+  const [
+    manuals,
+    setManuals,
+  ] =
+    useState<
+      ManualDocument[]
+    >([]);
+
+
+  const [
+    selectedManual,
+    setSelectedManual,
+  ] =
+    useState<
+      ManualType | null
+    >(null);
+
+
+  useEffect(
+    () => {
+      let mounted =
+        true;
+
+
+      getPublicManuals()
+        .then(
+          (
+            data,
+          ) => {
+            if (mounted) {
+              setManuals(
+                data,
+              );
+            }
+          },
+        )
+        .catch(
+          () => {
+            if (mounted) {
+              setManuals(
+                [],
+              );
+            }
+          },
+        );
+
+
+      return () => {
+        mounted =
+          false;
+      };
+    },
+    [],
+  );
+
+
+  const manualMap =
+    useMemo(
+      () =>
+        new Map(
+          manuals.map(
+            (
+              manual,
+            ) => [
+              manual.manual_type,
+              manual,
+            ],
+          ),
+        ),
+      [
+        manuals,
+      ],
+    );
+
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    setError("");
+    setError(
+      "",
+    );
 
-    if (!dni.trim()) {
+
+    if (
+      !dni.trim()
+      || !password
+    ) {
       setError(
-        "Ingresa tu DNI.",
+        "Ingresa tu DNI y contraseña.",
       );
 
       return;
     }
 
-    if (!password) {
-      setError(
-        "Ingresa tu contraseña.",
-      );
 
-      return;
-    }
+    setLoading(
+      true,
+    );
 
-    setLoading(true);
 
     try {
       await login({
-        dni: dni.trim(),
+        dni:
+          dni.trim(),
+
         password,
       });
-    } catch (err) {
+
+
+      window.location.replace(
+        "/dashboard",
+      );
+    } catch (
+      currentError
+    ) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "No fue posible iniciar sesión.",
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo iniciar sesión.",
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false,
+      );
     }
   }
 
+
+  const selectedDocument =
+    selectedManual
+      ? manualMap.get(
+          selectedManual,
+        )
+      : undefined;
+
+
   return (
-    <div className="login-page">
-      <div className="login-background-shape login-background-shape-one" />
-      <div className="login-background-shape login-background-shape-two" />
-
-      <main className="login-container">
-        <section className="login-brand-panel">
-          <div className="login-brand">
-            <div className="login-brand-mark">
-              S
-            </div>
-
-            <div>
-              <strong>
-                SalesIA
-              </strong>
-
-              <span>
-                Enterprise
-              </span>
-            </div>
+    <main className="salesia-login">
+      <section className="salesia-login-brand-panel">
+        <div className="salesia-login-brand">
+          <div className="salesia-login-logo">
+            <Sparkles
+              size={24}
+            />
           </div>
 
-          <div className="login-brand-content">
-            <span className="login-eyebrow">
-              PLATAFORMA EMPRESARIAL
+          <div>
+            <strong>
+              SalesIA
+            </strong>
+
+            <span>
+              ENTERPRISE
             </span>
-
-            <h1>
-              Gestión comercial
-              <br />
-              basada en datos.
-            </h1>
-
-            <p>
-              Administra ventas, inventario,
-              indicadores y análisis desde
-              una plataforma centralizada.
-            </p>
           </div>
+        </div>
 
-          <div className="login-security">
-            <ShieldCheck size={18} />
 
-            <div>
-              <strong>
-                Acceso protegido
-              </strong>
+        <div className="salesia-login-presentation">
+          <span className="salesia-login-badge">
+            <ShieldCheck
+              size={15}
+            />
 
+            Plataforma empresarial
+          </span>
+
+
+          <h1>
+            Gestiona tu negocio
+            <em>
+              con información inteligente.
+            </em>
+          </h1>
+
+
+          <p>
+            Ventas, inventario, análisis,
+            inteligencia comercial y control
+            empresarial en una sola plataforma.
+          </p>
+
+
+          <div className="salesia-login-features">
+            <article>
               <span>
-                Autenticación mediante DNI
-                y contraseña.
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <section className="login-form-panel">
-          <div className="login-form-wrapper">
-            <div className="login-form-header">
-              <span className="login-form-icon">
-                <LockKeyhole size={22} />
+                <BarChart3
+                  size={19}
+                />
               </span>
 
               <div>
-                <span className="login-form-eyebrow">
-                  ACCESO AL SISTEMA
-                </span>
+                <strong>
+                  Analítica comercial
+                </strong>
 
-                <h2>
-                  Iniciar sesión
-                </h2>
+                <small>
+                  Indicadores y comportamiento
+                  del negocio.
+                </small>
               </div>
-            </div>
+            </article>
 
-            <p className="login-form-description">
+
+            <article>
+              <span>
+                <Boxes
+                  size={19}
+                />
+              </span>
+
+              <div>
+                <strong>
+                  Operaciones
+                </strong>
+
+                <small>
+                  Ventas, inventario y Kardex.
+                </small>
+              </div>
+            </article>
+          </div>
+        </div>
+
+
+        <footer className="salesia-login-brand-footer">
+          <span>
+            SalesIA Enterprise
+          </span>
+
+          <small>
+            Sistema de gestión empresarial
+          </small>
+        </footer>
+      </section>
+
+
+      <section className="salesia-login-access-panel">
+        <div className="salesia-login-card">
+          <header>
+            <span className="salesia-login-card-eyebrow">
+              ACCESO SEGURO
+            </span>
+
+            <h2>
+              Bienvenido
+            </h2>
+
+            <p>
               Ingresa tus credenciales para
               acceder a SalesIA Enterprise.
             </p>
+          </header>
 
-            <form
-              className="login-form"
-              onSubmit={handleSubmit}
-            >
-              <label
-                className="login-field"
-                htmlFor="dni"
-              >
-                <span>
-                  DNI
-                </span>
 
-                <div className="login-input-wrapper">
-                  <UserRound size={18} />
+          <form
+            onSubmit={
+              handleSubmit
+            }
+          >
+            <label className="salesia-login-field">
+              <span>
+                DNI
+              </span>
 
-                  <input
-                    id="dni"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="username"
-                    placeholder="Ingresa tu DNI"
-                    value={dni}
-                    maxLength={20}
-                    disabled={loading}
-                    onChange={(event) =>
-                      setDni(
-                        event.target.value,
-                      )
-                    }
-                  />
-                </div>
-              </label>
+              <div className="salesia-login-input">
+                <UserRound
+                  size={18}
+                />
 
-              <label
-                className="login-field"
-                htmlFor="password"
-              >
-                <span>
-                  Contraseña
-                </span>
+                <input
+                  inputMode="numeric"
+                  autoComplete="username"
+                  value={
+                    dni
+                  }
+                  disabled={
+                    loading
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setDni(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Ingresa tu DNI"
+                />
+              </div>
+            </label>
 
-                <div className="login-input-wrapper">
-                  <LockKeyhole size={18} />
 
-                  <input
-                    id="password"
-                    type={
-                      showPassword
-                        ? "text"
-                        : "password"
-                    }
-                    autoComplete="current-password"
-                    placeholder="Ingresa tu contraseña"
-                    value={password}
-                    disabled={loading}
-                    onChange={(event) =>
-                      setPassword(
-                        event.target.value,
-                      )
-                    }
-                  />
+            <label className="salesia-login-field">
+              <span>
+                Contraseña
+              </span>
 
-                  <button
-                    type="button"
-                    className="login-password-toggle"
-                    aria-label={
-                      showPassword
-                        ? "Ocultar contraseña"
-                        : "Mostrar contraseña"
-                    }
-                    onClick={() =>
-                      setShowPassword(
-                        (value) =>
-                          !value,
-                      )
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff size={18} />
-                    ) : (
-                      <Eye size={18} />
+              <div className="salesia-login-input">
+                <LockKeyhole
+                  size={18}
+                />
+
+                <input
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
+                  autoComplete="current-password"
+                  value={
+                    password
+                  }
+                  disabled={
+                    loading
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setPassword(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Ingresa tu contraseña"
+                />
+
+                <button
+                  type="button"
+                  className="salesia-login-eye"
+                  disabled={
+                    loading
+                  }
+                  onClick={() =>
+                    setShowPassword(
+                      (
+                        current,
+                      ) =>
+                        !current,
+                    )
+                  }
+                  aria-label={
+                    showPassword
+                      ? "Ocultar contraseña"
+                      : "Mostrar contraseña"
+                  }
+                >
+                  {showPassword
+                    ? (
+                      <EyeOff
+                        size={17}
+                      />
+                    )
+                    : (
+                      <Eye
+                        size={17}
+                      />
                     )}
-                  </button>
-                </div>
-              </label>
+                </button>
+              </div>
+            </label>
 
-              {error && (
-                <div className="login-error">
-                  <strong>
-                    No se pudo iniciar sesión
-                  </strong>
 
-                  <span>
-                    {error}
-                  </span>
-                </div>
-              )}
+            {error && (
+              <div className="salesia-login-error">
+                {error}
+              </div>
+            )}
 
-              <button
-                type="submit"
-                className="login-submit"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="login-spinner" />
-                    Verificando...
-                  </>
-                ) : (
-                  <>
-                    <LogIn size={18} />
-                    Iniciar sesión
-                  </>
-                )}
-              </button>
-            </form>
 
-            <div className="login-footer">
-              <span>
-                SalesIA Enterprise
-              </span>
+            <button
+              type="submit"
+              className="salesia-login-submit"
+              disabled={
+                loading
+              }
+            >
+              <LogIn
+                size={18}
+              />
 
-              <span>
-                Sistema empresarial
-              </span>
-            </div>
+              {loading
+                ? "Ingresando..."
+                : "Iniciar sesión"}
+            </button>
+          </form>
+
+
+          <div className="salesia-login-divider">
+            <span>
+              Documentación
+            </span>
           </div>
-        </section>
-      </main>
-    </div>
+
+
+          <div className="salesia-login-manuals">
+            <button
+              type="button"
+              disabled={
+                !manualMap.has(
+                  "user",
+                )
+              }
+              title={
+                manualMap.has(
+                  "user",
+                )
+                  ? "Abrir manual de usuario"
+                  : "Manual todavía no publicado"
+              }
+              onClick={() =>
+                setSelectedManual(
+                  "user",
+                )
+              }
+            >
+              <BookOpenText
+                size={15}
+              />
+
+              Manual de usuario
+            </button>
+
+
+            <button
+              type="button"
+              disabled={
+                !manualMap.has(
+                  "technical",
+                )
+              }
+              title={
+                manualMap.has(
+                  "technical",
+                )
+                  ? "Abrir manual técnico"
+                  : "Manual todavía no publicado"
+              }
+              onClick={() =>
+                setSelectedManual(
+                  "technical",
+                )
+              }
+            >
+              <FileText
+                size={15}
+              />
+
+              Manual técnico
+            </button>
+          </div>
+
+
+          <div className="salesia-login-security">
+            <ShieldCheck
+              size={14}
+            />
+
+            Acceso protegido mediante roles y permisos.
+          </div>
+        </div>
+      </section>
+
+
+      {selectedManual
+        && selectedDocument
+        && (
+          <div className="salesia-manual-viewer">
+            <button
+              type="button"
+              className="salesia-manual-viewer-backdrop"
+              onClick={() =>
+                setSelectedManual(
+                  null,
+                )
+              }
+              aria-label="Cerrar manual"
+            />
+
+            <section className="salesia-manual-viewer-dialog">
+              <header>
+                <div>
+                  <span>
+                    SOLO LECTURA
+                  </span>
+
+                  <h3>
+                    {
+                      selectedDocument.title
+                    }
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  className="salesia-manual-close"
+                  onClick={() =>
+                    setSelectedManual(
+                      null,
+                    )
+                  }
+                  aria-label="Cerrar manual"
+                >
+                  <X
+                    size={19}
+                  />
+                </button>
+              </header>
+
+
+              <iframe
+                title={
+                  selectedDocument.title
+                }
+                src={
+                  `${
+                    manualFileUrl(
+                      selectedManual,
+                    )
+                  }#toolbar=0&navpanes=0`
+                }
+              />
+            </section>
+          </div>
+        )}
+    </main>
   );
 }
-
-export default LoginPage;

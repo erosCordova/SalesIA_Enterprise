@@ -1,0 +1,1902 @@
+/* =========================================================
+   SALESIA ENTERPRISE
+   VISTA CLARA MODERNA
+   REFERENCIA VISUAL APROBADA
+   ========================================================= */
+
+
+/* =========================================================
+   VARIABLES
+   ========================================================= */
+
+.reference-shell {
+  --ref-bg:
+    #f7f9fb;
+
+  --ref-white:
+    #ffffff;
+
+  --ref-border:
+    #e6ebf0;
+
+  --ref-text:
+    #101831;
+
+  --ref-soft:
+    #64748b;
+
+  --ref-muted:
+    #94a3b8;
+
+  --ref-sidebar:
+    #071b2a;
+
+  --ref-sidebar-end:
+    #09273a;
+
+  --ref-green:
+    #13b68a;
+
+  --ref-green-dark:
+    #0a9e76;
+
+  --ref-green-soft:
+    #e9faf4;
+}
+
+
+/* =========================================================
+   SHELL
+   ========================================================= */
+
+html body #root
+.reference-shell {
+  min-height:
+    100vh;
+
+  background:
+    var(--ref-bg) !important;
+}
+
+
+html body #root
+.reference-shell
+.app-content {
+  width:
+    calc(
+      100% - 215px
+    ) !important;
+
+  margin-left:
+    215px !important;
+
+  background:
+    var(--ref-bg) !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+html body #root
+.reference-shell
+.sidebar {
+  width:
+    215px !important;
+
+  color:
+    #ffffff !important;
+
+  border-right:
+    0 !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      #071927 0%,
+      #092639 100%
+    ) !important;
+
+  box-shadow:
+    5px 0 20px
+    rgba(
+      15,
+      23,
+      42,
+      0.07
+    ) !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-header {
+  min-height:
+    66px !important;
+
+  padding:
+    0 14px !important;
+
+  gap:
+    9px !important;
+
+  border-bottom:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.065
+    ) !important;
+}
+
+
+html body #root
+.reference-shell
+.brand-icon {
+  width:
+    34px !important;
+
+  height:
+    34px !important;
+
+  border:
+    0 !important;
+
+  border-radius:
+    9px !important;
+
+  color:
+    #ffffff !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #16c39a,
+      #0aa2a7
+    ) !important;
+
+  box-shadow:
+    none !important;
+}
+
+
+html body #root
+.reference-shell
+.brand-icon svg {
+  width:
+    18px !important;
+
+  height:
+    18px !important;
+}
+
+
+html body #root
+.reference-shell
+.brand-text strong {
+  color:
+    #ffffff !important;
+
+  font-size:
+    15px !important;
+
+  line-height:
+    1 !important;
+
+  font-weight:
+    800 !important;
+
+  letter-spacing:
+    -0.035em !important;
+}
+
+
+html body #root
+.reference-shell
+.brand-text span {
+  margin-top:
+    3px !important;
+
+  color:
+    #52dac4 !important;
+
+  font-size:
+    7px !important;
+
+  line-height:
+    1 !important;
+
+  font-weight:
+    700 !important;
+
+  letter-spacing:
+    0.05em !important;
+
+  text-transform:
+    none !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-company,
+html body #root
+.reference-shell
+.sidebar-section-title,
+html body #root
+.reference-shell
+.sidebar-profile {
+  display:
+    none !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-nav {
+  padding:
+    11px 8px !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-nav > div {
+  margin:
+    0 !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-item {
+  min-height:
+    36px !important;
+
+  margin:
+    0 0 2px !important;
+
+  padding:
+    0 10px !important;
+
+  border:
+    1px solid
+    transparent !important;
+
+  border-radius:
+    7px !important;
+
+  color:
+    #ced8e0 !important;
+
+  background:
+    transparent !important;
+
+  box-shadow:
+    none !important;
+
+  font-size:
+    10px !important;
+
+  font-weight:
+    500 !important;
+
+  line-height:
+    1 !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-item-left {
+  gap:
+    9px !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-item svg {
+  width:
+    14px !important;
+
+  height:
+    14px !important;
+
+  color:
+    #afc2cf !important;
+
+  stroke-width:
+    1.8 !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-item:hover {
+  transform:
+    none !important;
+
+  color:
+    #ffffff !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.055
+    ) !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-item.active {
+  color:
+    #ffffff !important;
+
+  border-color:
+    #15b98b !important;
+
+  background:
+    #13b68a !important;
+
+  box-shadow:
+    0 4px 11px
+    rgba(
+      16,
+      185,
+      129,
+      0.17
+    ) !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-item.active svg {
+  color:
+    #ffffff !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-chevron {
+  width:
+    11px !important;
+
+  opacity:
+    0.55 !important;
+}
+
+
+/* =========================================================
+   TOPBAR
+   ========================================================= */
+
+html body #root
+.reference-shell
+.topbar {
+  height:
+    57px !important;
+
+  padding:
+    0 18px !important;
+
+  border-bottom:
+    1px solid
+    #e8edf2 !important;
+
+  background:
+    #ffffff !important;
+
+  box-shadow:
+    none !important;
+
+  backdrop-filter:
+    none !important;
+}
+
+
+html body #root
+.reference-shell
+.topbar-left {
+  min-width:
+    0;
+
+  flex:
+    1;
+}
+
+
+html body #root
+.reference-shell
+.topbar-search {
+  width:
+    min(
+      470px,
+      100%
+    ) !important;
+
+  height:
+    34px !important;
+
+  padding:
+    0 10px !important;
+
+  gap:
+    7px !important;
+
+  border:
+    1px solid
+    #dfe5eb !important;
+
+  border-radius:
+    6px !important;
+
+  color:
+    #8a9aac !important;
+
+  background:
+    #ffffff !important;
+
+  box-shadow:
+    none !important;
+}
+
+
+html body #root
+.reference-shell
+.topbar-search svg {
+  width:
+    14px;
+
+  height:
+    14px;
+}
+
+
+html body #root
+.reference-shell
+.topbar-search input {
+  font-size:
+    9px !important;
+
+  color:
+    #334155 !important;
+}
+
+
+html body #root
+.reference-shell
+.topbar-search
+input::placeholder {
+  color:
+    #a1adba !important;
+}
+
+
+html body #root
+.reference-shell
+.topbar-actions {
+  gap:
+    5px !important;
+}
+
+
+html body #root
+.reference-shell
+.modern-topbar-icon {
+  width:
+    31px !important;
+
+  height:
+    31px !important;
+
+  border:
+    0 !important;
+
+  color:
+    #53677d !important;
+
+  background:
+    transparent !important;
+}
+
+
+html body #root
+.reference-shell
+.modern-topbar-icon:hover {
+  color:
+    #0b9f77 !important;
+
+  background:
+    #f2faf7 !important;
+}
+
+
+html body #root
+.reference-shell
+.topbar-divider {
+  height:
+    26px !important;
+
+  margin:
+    0 5px !important;
+
+  background:
+    #e8edf2 !important;
+}
+
+
+html body #root
+.reference-shell
+.user-avatar {
+  width:
+    32px !important;
+
+  height:
+    32px !important;
+
+  border-radius:
+    8px !important;
+
+  color:
+    #ffffff !important;
+
+  background:
+    #0d9996 !important;
+
+  box-shadow:
+    none !important;
+
+  font-size:
+    8px !important;
+}
+
+
+html body #root
+.reference-shell
+.user-info strong {
+  color:
+    #182039 !important;
+
+  font-size:
+    9px !important;
+
+  font-weight:
+    700 !important;
+}
+
+
+html body #root
+.reference-shell
+.user-info span {
+  margin-top:
+    1px !important;
+
+  color:
+    #8996a6 !important;
+
+  font-size:
+    7px !important;
+}
+
+
+html body #root
+.reference-shell
+.modern-user-menu {
+  min-width:
+    145px !important;
+
+  gap:
+    7px !important;
+}
+
+
+html body #root
+.reference-shell
+.modern-user-chevron {
+  color:
+    #8493a6 !important;
+}
+
+
+html body #root
+.reference-shell
+.modern-logout-button {
+  display:
+    none !important;
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
+
+html body #root
+.reference-shell
+.main-content {
+  padding:
+    18px 21px 28px !important;
+
+  background:
+    #f7f9fb !important;
+}
+
+
+html body #root
+.reference-shell
+.dashboard-reference-page {
+  width:
+    100%;
+
+  max-width:
+    1280px !important;
+
+  margin:
+    0 auto;
+}
+
+
+/* =========================================================
+   DASHBOARD HEADER
+   ========================================================= */
+
+.reference-dashboard-heading {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    18px;
+
+  margin-bottom:
+    14px;
+}
+
+
+.reference-dashboard-heading h1 {
+  margin:
+    0;
+
+  color:
+    #111933;
+
+  font-size:
+    24px;
+
+  line-height:
+    1;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    -0.045em;
+}
+
+
+.reference-dashboard-heading p {
+  margin:
+    5px 0 0;
+
+  color:
+    #708096;
+
+  font-size:
+    9px;
+}
+
+
+.reference-heading-actions {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    7px;
+}
+
+
+.reference-date-card {
+  display:
+    flex;
+
+  min-width:
+    132px;
+
+  height:
+    44px;
+
+  align-items:
+    center;
+
+  gap:
+    8px;
+
+  padding:
+    0 10px;
+
+  border:
+    1px solid
+    #e4e9ef;
+
+  border-radius:
+    8px;
+
+  color:
+    #516b86;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0 2px 7px
+    rgba(
+      15,
+      23,
+      42,
+      0.02
+    );
+}
+
+
+.reference-date-card svg {
+  width:
+    15px;
+
+  height:
+    15px;
+}
+
+
+.reference-date-card div {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+}
+
+
+.reference-date-card span {
+  color:
+    #8997a8;
+
+  font-size:
+    7px;
+}
+
+
+.reference-date-card strong {
+  margin-top:
+    2px;
+
+  color:
+    #40546d;
+
+  font-size:
+    8px;
+
+  font-weight:
+    650;
+
+  text-transform:
+    capitalize;
+}
+
+
+/* =========================================================
+   EXPORT BUTTON
+   ========================================================= */
+
+.dashboard-export-menu {
+  position:
+    relative;
+}
+
+
+.dashboard-export-menu > summary {
+  display:
+    grid;
+
+  width:
+    33px;
+
+  height:
+    33px;
+
+  place-items:
+    center;
+
+  list-style:
+    none;
+
+  border:
+    1px solid
+    #e3e9ef;
+
+  border-radius:
+    7px;
+
+  color:
+    #617388;
+
+  background:
+    #ffffff;
+
+  cursor:
+    pointer;
+}
+
+
+.dashboard-export-menu
+> summary::-webkit-details-marker {
+  display:
+    none;
+}
+
+
+.dashboard-export-popover {
+  position:
+    absolute;
+
+  z-index:
+    100;
+
+  top:
+    calc(
+      100% + 6px
+    );
+
+  right:
+    0;
+
+  min-width:
+    220px;
+
+  padding:
+    8px;
+
+  border:
+    1px solid
+    #e3e9ef;
+
+  border-radius:
+    9px;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0 12px 34px
+    rgba(
+      15,
+      23,
+      42,
+      0.12
+    );
+}
+
+
+/* =========================================================
+   KPI CARDS
+   ========================================================= */
+
+.reference-kpis {
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap:
+    10px;
+
+  margin-bottom:
+    11px;
+}
+
+
+.reference-kpi-card {
+  display:
+    flex;
+
+  min-width:
+    0;
+
+  min-height:
+    94px;
+
+  align-items:
+    flex-start;
+
+  gap:
+    9px;
+
+  padding:
+    12px;
+
+  border:
+    1px solid
+    #e5ebf0;
+
+  border-radius:
+    9px;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0 3px 11px
+    rgba(
+      15,
+      23,
+      42,
+      0.022
+    );
+}
+
+
+.reference-kpi-icon {
+  display:
+    grid;
+
+  width:
+    31px;
+
+  height:
+    31px;
+
+  place-items:
+    center;
+
+  flex:
+    0 0 auto;
+
+  border-radius:
+    7px;
+}
+
+
+.reference-kpi-icon svg {
+  width:
+    16px;
+
+  height:
+    16px;
+}
+
+
+.reference-kpi-icon.green {
+  color:
+    #0b9f73;
+
+  background:
+    #e9faf3;
+}
+
+
+.reference-kpi-icon.blue {
+  color:
+    #2384ed;
+
+  background:
+    #eaf4ff;
+}
+
+
+.reference-kpi-icon.purple {
+  color:
+    #7055df;
+
+  background:
+    #f0ecff;
+}
+
+
+.reference-kpi-icon.red {
+  color:
+    #e95353;
+
+  background:
+    #fff0f0;
+}
+
+
+.reference-kpi-content {
+  display:
+    flex;
+
+  min-width:
+    0;
+
+  flex-direction:
+    column;
+}
+
+
+.reference-kpi-content > span {
+  color:
+    #66768a;
+
+  font-size:
+    8px;
+
+  font-weight:
+    600;
+}
+
+
+.reference-kpi-content > strong {
+  margin-top:
+    5px;
+
+  overflow:
+    hidden;
+
+  color:
+    #111933;
+
+  font-size:
+    17px;
+
+  line-height:
+    1;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    -0.035em;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+
+.reference-kpi-content small {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    3px;
+
+  margin-top:
+    8px;
+
+  color:
+    #8c99a9;
+
+  font-size:
+    6.8px;
+}
+
+
+.reference-positive {
+  color:
+    #0b9c71 !important;
+}
+
+
+.reference-danger {
+  color:
+    #df5353 !important;
+}
+
+
+/* =========================================================
+   MAIN PANELS
+   ========================================================= */
+
+.reference-dashboard-grid {
+  display:
+    grid;
+
+  grid-template-columns:
+    minmax(
+      0,
+      1.65fr
+    )
+    minmax(
+      270px,
+      0.78fr
+    );
+
+  gap:
+    10px;
+}
+
+
+.reference-panel {
+  min-width:
+    0;
+
+  border:
+    1px solid
+    #e5ebf0;
+
+  border-radius:
+    9px;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0 3px 11px
+    rgba(
+      15,
+      23,
+      42,
+      0.022
+    );
+}
+
+
+.reference-chart-panel {
+  padding:
+    13px 14px 10px;
+}
+
+
+.reference-panel-header {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    12px;
+
+  margin-bottom:
+    4px;
+}
+
+
+.reference-panel-header > div:first-child {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+}
+
+
+.reference-panel-header h2,
+.reference-list-title h2 {
+  margin:
+    0;
+
+  color:
+    #17213a;
+
+  font-size:
+    10px;
+
+  font-weight:
+    750;
+}
+
+
+.reference-panel-header strong {
+  margin-top:
+    10px;
+
+  color:
+    #101935;
+
+  font-size:
+    18px;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    -0.035em;
+}
+
+
+.reference-panel-header span {
+  margin-top:
+    2px;
+
+  color:
+    #8a98a9;
+
+  font-size:
+    7px;
+}
+
+
+.reference-growth-pill {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    3px;
+
+  padding:
+    4px 7px;
+
+  border-radius:
+    999px;
+
+  color:
+    #07966d;
+
+  background:
+    #e9faf3;
+
+  font-size:
+    7px;
+
+  font-weight:
+    750;
+}
+
+
+.reference-chart {
+  width:
+    100%;
+
+  height:
+    225px;
+}
+
+
+/* =========================================================
+   PRODUCT PANEL
+   ========================================================= */
+
+.reference-list-panel {
+  padding:
+    13px;
+}
+
+
+.reference-list-title {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    8px;
+
+  padding-bottom:
+    9px;
+
+  border-bottom:
+    1px solid
+    #edf1f4;
+}
+
+
+.reference-list-title > div {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+}
+
+
+.reference-list-title
+> div
+> span,
+.reference-list-title
+> span {
+  margin-top:
+    2px;
+
+  color:
+    #8a98a9;
+
+  font-size:
+    6.8px;
+}
+
+
+.reference-products-list {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+}
+
+
+.reference-product-row {
+  display:
+    grid;
+
+  grid-template-columns:
+    20px
+    34px
+    minmax(
+      0,
+      1fr
+    )
+    auto;
+
+  min-height:
+    43px;
+
+  align-items:
+    center;
+
+  gap:
+    7px;
+
+  border-bottom:
+    1px solid
+    #edf1f4;
+}
+
+
+.reference-product-row:last-child {
+  border-bottom:
+    0;
+}
+
+
+.reference-product-position {
+  color:
+    #8494a7;
+
+  font-size:
+    7px;
+
+  font-weight:
+    700;
+
+  text-align:
+    center;
+}
+
+
+.reference-product-photo {
+  display:
+    grid;
+
+  width:
+    32px;
+
+  height:
+    32px;
+
+  place-items:
+    center;
+
+  overflow:
+    hidden;
+
+  border:
+    1px solid
+    #edf1f4;
+
+  border-radius:
+    7px;
+
+  color:
+    #7890a4;
+
+  background:
+    #f8fafc;
+}
+
+
+.reference-product-photo img {
+  width:
+    100%;
+
+  height:
+    100%;
+
+  padding:
+    2px;
+
+  object-fit:
+    contain;
+
+  background:
+    #ffffff;
+}
+
+
+.reference-product-main {
+  display:
+    flex;
+
+  min-width:
+    0;
+
+  flex-direction:
+    column;
+}
+
+
+.reference-product-main strong {
+  overflow:
+    hidden;
+
+  color:
+    #26354d;
+
+  font-size:
+    7.8px;
+
+  font-weight:
+    700;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+
+.reference-product-main span {
+  overflow:
+    hidden;
+
+  margin-top:
+    2px;
+
+  color:
+    #8a98a9;
+
+  font-size:
+    6.5px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+
+.reference-product-stock {
+  display:
+    flex;
+
+  align-items:
+    flex-end;
+
+  flex-direction:
+    column;
+}
+
+
+.reference-product-stock strong {
+  color:
+    #26354d;
+
+  font-size:
+    8px;
+
+  font-weight:
+    750;
+}
+
+
+.reference-product-stock span {
+  margin-top:
+    1px;
+
+  color:
+    #8a98a9;
+
+  font-size:
+    6px;
+}
+
+
+.reference-empty-list,
+.reference-chart-empty {
+  display:
+    grid;
+
+  min-height:
+    190px;
+
+  place-items:
+    center;
+
+  color:
+    #8997a8;
+
+  font-size:
+    8px;
+}
+
+
+/* =========================================================
+   GLOBAL PRIMARY
+   ========================================================= */
+
+html body #root
+.reference-shell
+.primary-button {
+  border-color:
+    #0ca578 !important;
+
+  background:
+    #11ad80 !important;
+
+  box-shadow:
+    none !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (
+  max-width: 1100px
+) {
+  .reference-kpis {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+
+  .reference-dashboard-grid {
+    grid-template-columns:
+      1fr;
+  }
+}
+
+
+@media (
+  max-width: 980px
+) {
+  html body #root
+  .reference-shell
+  .app-content {
+    width:
+      100% !important;
+
+    margin-left:
+      0 !important;
+  }
+
+
+  html body #root
+  .reference-shell
+  .sidebar {
+    width:
+      215px !important;
+  }
+}
+
+
+@media (
+  max-width: 620px
+) {
+  html body #root
+  .reference-shell
+  .main-content {
+    padding:
+      13px !important;
+  }
+
+
+  .reference-kpis {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .reference-dashboard-heading {
+    flex-direction:
+      column;
+  }
+
+
+  .reference-heading-actions {
+    width:
+      100%;
+  }
+
+
+  .reference-date-card {
+    flex:
+      1;
+  }
+
+
+  html body #root
+  .reference-shell
+  .user-info,
+  html body #root
+  .reference-shell
+  .modern-user-chevron,
+  html body #root
+  .reference-shell
+  .topbar-divider {
+    display:
+      none !important;
+  }
+
+
+  html body #root
+  .reference-shell
+  .modern-user-menu {
+    min-width:
+      auto !important;
+  }
+}
+
+
+/* =========================================================
+   SIDEBAR - MOSTRAR DEFINITIVAMENTE LOS TITULOS DE SECCION
+   ========================================================= */
+
+html body #root
+.reference-shell
+.sidebar
+.sidebar-nav
+.sidebar-section
+.sidebar-section-title {
+  display: block !important;
+
+  position: static !important;
+
+  width: auto !important;
+  height: auto !important;
+
+  margin:
+    0
+    8px
+    8px !important;
+
+  padding: 0 !important;
+
+  overflow: visible !important;
+
+  clip: auto !important;
+  clip-path: none !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.48
+    ) !important;
+
+  background: transparent !important;
+
+  font-size: 8px !important;
+  font-weight: 800 !important;
+
+  line-height: 1.3 !important;
+
+  letter-spacing:
+    0.12em !important;
+
+  text-align: left !important;
+  text-transform: uppercase !important;
+
+  white-space: nowrap !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar
+.sidebar-section-divider {
+  display: block !important;
+
+  width:
+    calc(
+      100% - 14px
+    ) !important;
+
+  height: 1px !important;
+
+  margin:
+    10px
+    7px
+    10px !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.11
+    ) !important;
+
+  opacity: 1 !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar
+.sidebar-section:first-child
+.sidebar-section-divider {
+  display: none !important;
+}
+
+
+/* =========================================================
+   SIDEBAR - CERRAR SESION
+   ========================================================= */
+
+html body #root
+.reference-shell
+.sidebar-nav {
+  flex:
+    1 1 auto !important;
+
+  overflow-y:
+    auto !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-logout {
+  display:
+    flex !important;
+
+  width:
+    calc(
+      100% - 20px
+    ) !important;
+
+  min-height:
+    38px !important;
+
+  flex:
+    0 0 auto !important;
+
+  align-items:
+    center !important;
+
+  gap:
+    10px !important;
+
+  margin:
+    7px
+    10px
+    12px !important;
+
+  padding:
+    0
+    11px !important;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.10
+    ) !important;
+
+  border-radius:
+    7px !important;
+
+  color:
+    #cbd8e1 !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    ) !important;
+
+  font-size:
+    10.5px !important;
+
+  font-weight:
+    600 !important;
+
+  text-align:
+    left !important;
+
+  cursor:
+    pointer !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-logout svg {
+  width:
+    15px !important;
+
+  height:
+    15px !important;
+
+  flex:
+    0 0 auto !important;
+
+  color:
+    #aebfca !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-logout:hover {
+  color:
+    #ffffff !important;
+
+  border-color:
+    rgba(
+      248,
+      113,
+      113,
+      0.24
+    ) !important;
+
+  background:
+    rgba(
+      239,
+      68,
+      68,
+      0.10
+    ) !important;
+}
+
+
+html body #root
+.reference-shell
+.sidebar-logout:hover svg {
+  color:
+    #fca5a5 !important;
+}

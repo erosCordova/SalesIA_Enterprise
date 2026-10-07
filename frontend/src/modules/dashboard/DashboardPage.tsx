@@ -1,19 +1,12 @@
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-import {
+  Activity,
   AlertTriangle,
-  ArrowRight,
-  Banknote,
+  Boxes,
   CalendarDays,
-  Package,
-  ReceiptText,
-  ShoppingBag,
+  ChevronRight,
+  PackageCheck,
+  RefreshCw,
+  ShoppingCart,
   TrendingUp,
   UsersRound,
 } from "lucide-react";
@@ -22,18 +15,37 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import ExportActions from "../../components/ui/ExportActions";
-import StatCard from "../../components/ui/StatCard";
+import ModuleState from "../../components/ui/ModuleState";
 
 import {
   apiFetch,
 } from "../../services/api";
+
+import {
+  getProducts,
+} from "../../services/commercial.service";
+
+import type {
+  Product,
+} from "../../types/commercial";
 
 import {
   createVisualPdfFile,
@@ -45,28 +57,23 @@ import {
   type ExportRow,
 } from "../../utils/exporting";
 
+import "./dashboard-reference.css";
+
 
 interface DashboardSummary {
-  sales_count?:
-    number | null;
+  sales_count?: number | null;
 
-  revenue?:
-    number | null;
+  revenue?: number | null;
 
-  active_customers?:
-    number | null;
+  active_customers?: number | null;
 
-  average_ticket?:
-    number | null;
+  average_ticket?: number | null;
 
-  products_count?:
-    number | null;
+  products_count?: number | null;
 
-  low_stock_count?:
-    number | null;
+  low_stock_count?: number | null;
 
-  growth_percentage?:
-    number | null;
+  growth_percentage?: number | null;
 
   sales_by_day?: Array<{
     day?: string;
@@ -88,14 +95,12 @@ interface DashboardSummary {
     stock_quantity?: number;
     stock_status?: string;
   }> | null;
-
-  scope?: string;
 }
 
 
 function numberValue(
   value: unknown,
-): number {
+) {
   const parsed =
     Number(value);
 
@@ -113,19 +118,12 @@ function formatCurrency(
   return new Intl.NumberFormat(
     "es-PE",
     {
-      style:
-        "currency",
-
-      currency:
-        "PEN",
-
-      minimumFractionDigits:
-        2,
+      style: "currency",
+      currency: "PEN",
+      minimumFractionDigits: 2,
     },
   ).format(
-    numberValue(
-      value,
-    ),
+    numberValue(value),
   );
 }
 
@@ -136,54 +134,32 @@ function formatNumber(
   return new Intl.NumberFormat(
     "es-PE",
   ).format(
-    numberValue(
-      value,
-    ),
+    numberValue(value),
   );
 }
 
 
-function formatDate(
-  value?: string,
+function formatPercent(
+  value: number,
 ) {
-  if (!value) {
-    return "Fecha no disponible";
-  }
-
-  const date =
-    new Date(value);
-
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
-    return "Fecha no disponible";
-  }
-
-  return date.toLocaleDateString(
-    "es-PE",
-    {
-      day:
-        "2-digit",
-
-      month:
-        "short",
-
-      year:
-        "numeric",
-    },
-  );
+  return `${value.toFixed(1)}%`;
 }
 
 
 function formatChartDate(
-  value: string,
+  value?: string,
 ) {
+  if (!value) {
+    return "";
+  }
+
+  const normalized =
+    value.includes("T")
+      ? value
+      : `${value}T00:00:00`;
+
   const date =
-    new Date(
-      `${value}T00:00:00`,
-    );
+    new Date(normalized);
 
   if (
     Number.isNaN(
@@ -196,175 +172,38 @@ function formatChartDate(
   return date.toLocaleDateString(
     "es-PE",
     {
-      day:
-        "2-digit",
-
-      month:
-        "short",
+      day: "2-digit",
+      month: "short",
     },
-  );
-}
-
-
-function normalizeSaleStatus(
-  status?: string,
-) {
-  switch (
-    status?.toLowerCase()
-  ) {
-    case "completed":
-      return "Completada";
-
-    case "cancelled":
-    case "canceled":
-      return "Cancelada";
-
-    case "pending":
-      return "Pendiente";
-
-    default:
-      return (
-        status
-        || "Registrada"
-      );
-  }
-}
-
-
-function DashboardLoading() {
-  return (
-    <section className="dashboard-page">
-      <div className="page-heading">
-        <div>
-          <span className="page-eyebrow">
-            CENTRO DE CONTROL
-          </span>
-
-          <h1>
-            Dashboard ejecutivo
-          </h1>
-
-          <p>
-            Cargando información empresarial...
-          </p>
-        </div>
-      </div>
-
-
-      <div className="stats-grid">
-        {[
-          1,
-          2,
-          3,
-          4,
-        ].map(
-          (
-            item,
-          ) => (
-            <div
-              key={
-                item
-              }
-              className="dashboard-skeleton-card"
-            />
-          ),
-        )}
-      </div>
-
-
-      <div className="dashboard-skeleton-panel" />
-    </section>
-  );
-}
-
-
-function DashboardError({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) {
-  return (
-    <section className="dashboard-page">
-      <div className="dashboard-error-state">
-        <div className="dashboard-error-icon">
-          <AlertTriangle
-            size={24}
-          />
-        </div>
-
-        <h2>
-          No fue posible cargar el dashboard
-        </h2>
-
-        <p>
-          {message}
-        </p>
-
-        <button
-          type="button"
-          className="dashboard-retry-button"
-          onClick={
-            onRetry
-          }
-        >
-          Reintentar
-        </button>
-      </div>
-    </section>
-  );
-}
-
-
-function DashboardEmpty() {
-  return (
-    <section className="dashboard-page">
-      <div className="dashboard-empty-state">
-        <Package
-          size={30}
-        />
-
-        <h2>
-          Sin información disponible
-        </h2>
-
-        <p>
-          No existe información disponible
-          para mostrar en el dashboard.
-        </p>
-      </div>
-    </section>
   );
 }
 
 
 function DashboardPage() {
   const exportRef =
-    useRef<HTMLElement>(
+    useRef<HTMLElement | null>(
       null,
     );
-
 
   const [
     summary,
     setSummary,
   ] =
-    useState<
-      DashboardSummary | null
-    >(
+    useState<DashboardSummary | null>(
       null,
     );
 
+  const [
+    products,
+    setProducts,
+  ] =
+    useState<Product[]>([]);
 
   const [
     loading,
     setLoading,
   ] =
-    useState(
-      true,
-    );
-
+    useState(true);
 
   const [
     error,
@@ -372,10 +211,15 @@ function DashboardPage() {
   ] =
     useState("");
 
+  const [
+    operationError,
+    setOperationError,
+  ] =
+    useState("");
 
   const [
-    exportError,
-    setExportError,
+    successMessage,
+    setSuccessMessage,
   ] =
     useState("");
 
@@ -383,51 +227,43 @@ function DashboardPage() {
   const loadDashboard =
     useCallback(
       async () => {
-        setLoading(
-          true,
-        );
-
-        setError(
-          "",
-        );
-
-        setExportError(
-          "",
-        );
+        setLoading(true);
+        setError("");
 
         try {
-          const data =
-            await apiFetch<
-              DashboardSummary
-            >(
-              "/dashboard/summary",
-            );
+          const [
+            dashboardData,
+            productsData,
+          ] =
+            await Promise.all([
+              apiFetch<DashboardSummary>(
+                "/dashboard/summary",
+              ),
+              getProducts(),
+            ]);
 
           setSummary(
-            data || {},
+            dashboardData || {},
+          );
+
+          setProducts(
+            Array.isArray(
+              productsData,
+            )
+              ? productsData
+              : [],
           );
         } catch (
-          currentError
+          requestError
         ) {
-          console.error(
-            "Error Dashboard:",
-            currentError,
-          );
-
-          setSummary(
-            null,
-          );
-
           setError(
-            currentError
+            requestError
               instanceof Error
-              ? currentError.message
-              : "No fue posible obtener la información del dashboard.",
+              ? requestError.message
+              : "No fue posible cargar el Dashboard.",
           );
         } finally {
-          setLoading(
-            false,
-          );
+          setLoading(false);
         }
       },
       [],
@@ -444,356 +280,301 @@ function DashboardPage() {
   );
 
 
-  const dashboardData =
+  const salesCount =
+    numberValue(
+      summary?.sales_count,
+    );
+
+  const revenue =
+    numberValue(
+      summary?.revenue,
+    );
+
+  const activeCustomers =
+    numberValue(
+      summary?.active_customers,
+    );
+
+  const growth =
+    numberValue(
+      summary?.growth_percentage,
+    );
+
+  const productCount =
+    products.length > 0
+      ? products.length
+      : numberValue(
+          summary?.products_count,
+        );
+
+
+  const chartData =
     useMemo(
-      () => {
-        const salesCount =
-          numberValue(
-            summary
-              ?.sales_count,
-          );
+      () =>
+        (
+          summary?.sales_by_day
+          ?? []
+        ).map(
+          (
+            item,
+            index,
+          ) => ({
+            day:
+              formatChartDate(
+                item.day,
+              )
+              || `${index + 1}`,
 
-        const revenue =
-          numberValue(
-            summary
-              ?.revenue,
-          );
+            revenue:
+              numberValue(
+                item.revenue,
+              ),
 
-        const activeCustomers =
-          numberValue(
-            summary
-              ?.active_customers,
-          );
-
-        const averageTicket =
-          numberValue(
-            summary
-              ?.average_ticket,
-          );
-
-        const productsCount =
-          numberValue(
-            summary
-              ?.products_count,
-          );
-
-        const lowStockCount =
-          numberValue(
-            summary
-              ?.low_stock_count,
-          );
-
-        const growth =
-          numberValue(
-            summary
-              ?.growth_percentage,
-          );
-
-
-        const salesByDay =
-          Array.isArray(
-            summary
-              ?.sales_by_day,
-          )
-            ? summary
-                .sales_by_day
-            : [];
-
-
-        const recentSales =
-          Array.isArray(
-            summary
-              ?.recent_sales,
-          )
-            ? summary
-                .recent_sales
-            : [];
-
-
-        const stockAlerts =
-          Array.isArray(
-            summary
-              ?.stock_alerts,
-          )
-            ? summary
-                .stock_alerts
-            : [];
-
-
-        const chartData =
-          salesByDay.map(
-            (
-              item,
-              index,
-            ) => ({
-              day:
-                item.day
-                  ? formatChartDate(
-                      item.day,
-                    )
-                  : `Día ${index + 1}`,
-
-              rawDay:
-                item.day
-                ?? "",
-
-              revenue:
-                numberValue(
-                  item.revenue,
-                ),
-
-              sales:
-                numberValue(
-                  item.sales,
-                ),
-            }),
-          );
-
-
-        return {
-          salesCount,
-          revenue,
-          activeCustomers,
-          averageTicket,
-          productsCount,
-          lowStockCount,
-          growth,
-          salesByDay,
-          recentSales,
-          stockAlerts,
-          chartData,
-        };
-      },
+            sales:
+              numberValue(
+                item.sales,
+              ),
+          }),
+        ),
       [
-        summary,
+        summary?.sales_by_day,
       ],
     );
 
 
-  if (
-    loading
-  ) {
+  const inventoryState =
+    useMemo(
+      () => {
+        let healthy = 0;
+        let low = 0;
+        let empty = 0;
+
+        products.forEach(
+          (product) => {
+            const stock =
+              numberValue(
+                product.stock_quantity,
+              );
+
+            const minimum =
+              numberValue(
+                product.minimum_stock,
+              );
+
+            if (
+              stock <= 0
+            ) {
+              empty += 1;
+
+              return;
+            }
+
+            if (
+              stock <= minimum
+            ) {
+              low += 1;
+
+              return;
+            }
+
+            healthy += 1;
+          },
+        );
+
+        return {
+          healthy,
+          low,
+          empty,
+        };
+      },
+      [
+        products,
+      ],
+    );
+
+
+  const stockHealth =
+    productCount > 0
+      ? (
+          inventoryState.healthy
+          / productCount
+        ) * 100
+      : 0;
+
+
+  const inventoryDistribution =
+    useMemo(
+      () => [
+        {
+          name:
+            "Disponible",
+
+          value:
+            inventoryState.healthy,
+
+          color:
+            "#14b8a6",
+        },
+
+        {
+          name:
+            "Stock bajo",
+
+          value:
+            inventoryState.low,
+
+          color:
+            "#f59e0b",
+        },
+
+        {
+          name:
+            "Agotado",
+
+          value:
+            inventoryState.empty,
+
+          color:
+            "#ef4444",
+        },
+      ],
+      [
+        inventoryState,
+      ],
+    );
+
+
+  const alertProducts =
+    useMemo(
+      () =>
+        products
+          .filter(
+            (product) => {
+              const stock =
+                numberValue(
+                  product.stock_quantity,
+                );
+
+              const minimum =
+                numberValue(
+                  product.minimum_stock,
+                );
+
+              return (
+                stock <= minimum
+              );
+            },
+          )
+          .slice(
+            0,
+            3,
+          ),
+      [
+        products,
+      ],
+    );
+
+
+  const exportRows =
+    useMemo<ExportRow[]>(
+      () => {
+        const rows:
+          ExportRow[] = [
+            {
+              Sección:
+                "Resumen ejecutivo",
+
+              Indicador:
+                "Ingresos",
+
+              Valor:
+                revenue,
+            },
+            {
+              Sección:
+                "Resumen ejecutivo",
+
+              Indicador:
+                "Ventas procesadas",
+
+              Valor:
+                salesCount,
+            },
+            {
+              Sección:
+                "Resumen ejecutivo",
+
+              Indicador:
+                "Clientes activos",
+
+              Valor:
+                activeCustomers,
+            },
+            {
+              Sección:
+                "Resumen ejecutivo",
+
+              Indicador:
+                "Salud de inventario",
+
+              Valor:
+                stockHealth,
+            },
+          ];
+
+        chartData.forEach(
+          (item) => {
+            rows.push({
+              Sección:
+                "Tendencia",
+
+              Indicador:
+                item.day,
+
+              Valor:
+                item.revenue,
+            });
+          },
+        );
+
+        products.forEach(
+          (product) => {
+            rows.push({
+              Sección:
+                "Inventario",
+
+              Indicador:
+                product.name,
+
+              Código:
+                product.sku,
+
+              Valor:
+                numberValue(
+                  product.stock_quantity,
+                ),
+            });
+          },
+        );
+
+        return rows;
+      },
+      [
+        revenue,
+        salesCount,
+        activeCustomers,
+        stockHealth,
+        chartData,
+        products,
+      ],
+    );
+
+
+  function filename() {
     return (
-      <DashboardLoading />
-    );
-  }
-
-
-  if (
-    error
-  ) {
-    return (
-      <DashboardError
-        message={
-          error
-        }
-        onRetry={
-          loadDashboard
-        }
-      />
-    );
-  }
-
-
-  if (
-    !summary
-  ) {
-    return (
-      <DashboardEmpty />
-    );
-  }
-
-
-  const {
-    salesCount,
-    revenue,
-    activeCustomers,
-    averageTicket,
-    productsCount,
-    lowStockCount,
-    growth,
-    salesByDay,
-    recentSales,
-    stockAlerts,
-    chartData,
-  } =
-    dashboardData;
-
-
-  const growthPositive =
-    growth >= 0;
-
-
-  function exportRows():
-    ExportRow[] {
-    const rows:
-      ExportRow[] = [
-      {
-        Sección:
-          "Resumen",
-
-        Indicador:
-          "Ventas registradas",
-
-        Valor:
-          salesCount,
-      },
-      {
-        Sección:
-          "Resumen",
-
-        Indicador:
-          "Ingresos",
-
-        Valor:
-          revenue,
-      },
-      {
-        Sección:
-          "Resumen",
-
-        Indicador:
-          "Clientes activos",
-
-        Valor:
-          activeCustomers,
-      },
-      {
-        Sección:
-          "Resumen",
-
-        Indicador:
-          "Ticket promedio",
-
-        Valor:
-          averageTicket,
-      },
-      {
-        Sección:
-          "Resumen",
-
-        Indicador:
-          "Crecimiento (%)",
-
-        Valor:
-          growth,
-      },
-      {
-        Sección:
-          "Inventario",
-
-        Indicador:
-          "Productos activos",
-
-        Valor:
-          productsCount,
-      },
-      {
-        Sección:
-          "Inventario",
-
-        Indicador:
-          "Productos con alerta",
-
-        Valor:
-          lowStockCount,
-      },
-    ];
-
-
-    salesByDay.forEach(
-      (
-        item,
-      ) => {
-        rows.push({
-          Sección:
-            "Ingresos por día",
-
-          Fecha:
-            item.day
-            ?? "",
-
-          Ventas:
-            numberValue(
-              item.sales,
-            ),
-
-          Ingresos:
-            numberValue(
-              item.revenue,
-            ),
-        });
-      },
-    );
-
-
-    recentSales.forEach(
-      (
-        sale,
-      ) => {
-        rows.push({
-          Sección:
-            "Ventas recientes",
-
-          Venta:
-            sale.sale_number
-            ?? sale.id
-            ?? "",
-
-          Fecha:
-            sale.sale_date
-            ?? "",
-
-          Cliente:
-            sale.customer_name
-            ?? "Cliente no especificado",
-
-          Total:
-            numberValue(
-              sale.total,
-            ),
-
-          Estado:
-            normalizeSaleStatus(
-              sale.status,
-            ),
-        });
-      },
-    );
-
-
-    stockAlerts.forEach(
-      (
-        alert,
-      ) => {
-        rows.push({
-          Sección:
-            "Alertas de stock",
-
-          Producto:
-            alert.product_name
-            ?? "",
-
-          Stock:
-            numberValue(
-              alert.stock_quantity,
-            ),
-
-          Estado:
-            alert.stock_status
-            ?? "Stock bajo",
-        });
-      },
-    );
-
-
-    return rows;
-  }
-
-
-  function exportFilename() {
-    return (
-      `dashboard-ejecutivo-${exportDateStamp()}`
+      `dashboard-salesia-${
+        exportDateStamp()
+      }`
     );
   }
 
@@ -805,24 +586,20 @@ function DashboardPage() {
       return;
     }
 
-
-    setExportError(
-      "",
-    );
-
+    setOperationError("");
 
     try {
       await downloadVisualPdf(
         exportRef.current,
-        exportFilename(),
+        filename(),
       );
     } catch (
-      currentError
+      exportError
     ) {
-      setExportError(
-        currentError
+      setOperationError(
+        exportError
           instanceof Error
-          ? currentError.message
+          ? exportError.message
           : "No se pudo generar el PDF.",
       );
     }
@@ -830,23 +607,18 @@ function DashboardPage() {
 
 
   function handleCsv() {
-    setExportError(
-      "",
-    );
-
-
     try {
       exportRowsToCsv(
-        exportFilename(),
-        exportRows(),
+        filename(),
+        exportRows,
       );
     } catch (
-      currentError
+      exportError
     ) {
-      setExportError(
-        currentError
+      setOperationError(
+        exportError
           instanceof Error
-          ? currentError.message
+          ? exportError.message
           : "No se pudo generar el CSV.",
       );
     }
@@ -854,25 +626,20 @@ function DashboardPage() {
 
 
   async function handleExcel() {
-    setExportError(
-      "",
-    );
-
-
     try {
       await exportRowsToExcel(
-        exportFilename(),
+        filename(),
         "Dashboard",
-        exportRows(),
+        exportRows,
       );
     } catch (
-      currentError
+      exportError
     ) {
-      setExportError(
-        currentError
+      setOperationError(
+        exportError
           instanceof Error
-          ? currentError.message
-          : "No se pudo generar el archivo Excel.",
+          ? exportError.message
+          : "No se pudo generar Excel.",
       );
     }
   }
@@ -885,71 +652,115 @@ function DashboardPage() {
       return;
     }
 
-
-    setExportError(
-      "",
-    );
-
-
     try {
       const file =
         await createVisualPdfFile(
           exportRef.current,
-          exportFilename(),
+          filename(),
         );
 
+      const result =
+        await shareFile(
+          file,
+          "Dashboard SalesIA",
+          "Resumen ejecutivo de SalesIA Enterprise.",
+        );
 
-      await shareFile(
-        file,
-        "Dashboard ejecutivo - SalesIA Enterprise",
-        "Resumen ejecutivo de SalesIA Enterprise.",
-      );
+      if (
+        result ===
+        "downloaded"
+      ) {
+        setSuccessMessage(
+          "El PDF fue descargado para compartirlo.",
+        );
+      }
     } catch (
-      currentError
+      shareError
     ) {
-      setExportError(
-        currentError
+      setOperationError(
+        shareError
           instanceof Error
-          ? currentError.message
-          : "No se pudo compartir el Dashboard.",
+          ? shareError.message
+          : "No se pudo compartir.",
       );
     }
   }
 
 
+  if (loading) {
+    return (
+      <section className="executive-dashboard-page">
+        <ModuleState
+          type="loading"
+          title="Cargando Dashboard"
+          description="Consultando la información actual del negocio."
+        />
+      </section>
+    );
+  }
+
+
+  if (error) {
+    return (
+      <section className="executive-dashboard-page">
+        <ModuleState
+          type="error"
+          title="No se pudo cargar el Dashboard"
+          description={error}
+        />
+
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() =>
+            void loadDashboard()
+          }
+        >
+          Reintentar
+        </button>
+      </section>
+    );
+  }
+
+
   return (
     <section
-      ref={
-        exportRef
-      }
-      className="dashboard-page"
+      ref={exportRef}
+      className="executive-dashboard-page"
     >
-      <div className="page-heading">
-        <div>
-          <span className="page-eyebrow">
-            CENTRO DE CONTROL
-          </span>
+      <div className="executive-breadcrumb">
+        <span>
+          1. Ejecutivo
+        </span>
 
+        <ChevronRight
+          size={12}
+        />
+
+        <strong>
+          DASHBOARD
+        </strong>
+      </div>
+
+
+      <header className="executive-dashboard-header">
+        <div>
           <h1>
-            Dashboard ejecutivo
+            Dashboard
           </h1>
 
           <p>
-            Resumen general de la actividad
-            comercial, ingresos, clientes e
-            inventario de SalesIA Enterprise.
+            Resumen integral del estado comercial,
+            operativo e inventario de SalesIA Enterprise.
           </p>
         </div>
 
-
         <div
-          className="dashboard-heading-actions"
+          className="executive-header-actions"
           data-export-hide="true"
         >
-          <ExportActions
-            disabled={
-              false
-            }
+                    <ExportActions
+            disabled={false}
             onPdf={
               handlePdf
             }
@@ -966,175 +777,189 @@ function DashboardPage() {
 
           <button
             type="button"
-            className="date-filter-button"
+            className="executive-refresh"
+            onClick={() =>
+              void loadDashboard()
+            }
           >
-            <CalendarDays
-              size={17}
+            <RefreshCw
+              size={14}
             />
 
-            Últimos 30 días
+            Actualizar
           </button>
         </div>
-      </div>
+      </header>
 
 
-      {exportError && (
-        <div
-          className="dashboard-export-error"
-          data-export-hide="true"
-        >
-          {exportError}
-        </div>
+      {operationError && (
+        <ModuleState
+          type="error"
+          title="No se pudo completar la operación"
+          description={
+            operationError
+          }
+        />
       )}
 
 
-      <div className="dashboard-highlight">
-        <div>
-          <span>
-            RESUMEN COMERCIAL
-          </span>
-
-          <h2>
-            Información empresarial actualizada
-            directamente desde SalesIA.
-          </h2>
-
-          <p>
-            Los indicadores muestran el
-            comportamiento de los últimos 30 días
-            y se comparan con el período
-            inmediatamente anterior.
-          </p>
-        </div>
+      {successMessage && (
+        <ModuleState
+          type="success"
+          title="Operación completada"
+          description={
+            successMessage
+          }
+        />
+      )}
 
 
-        <div className="highlight-metric">
-          <TrendingUp
-            size={21}
-          />
-
-          <div>
-            <strong>
-              {growth > 0
-                ? "+"
-                : ""}
-              {growth.toFixed(
-                1,
-              )}
-              %
-            </strong>
-
+      <div className="executive-kpi-grid">
+        <article className="executive-kpi">
+          <div className="executive-kpi-heading">
             <span>
-              crecimiento vs. período anterior
+              Ingresos del período
+            </span>
+
+            <div className="executive-kpi-icon cyan">
+              <ShoppingCart
+                size={16}
+              />
+            </div>
+          </div>
+
+          <strong>
+            {formatCurrency(
+              revenue,
+            )}
+          </strong>
+
+          <small className="positive">
+            <TrendingUp
+              size={11}
+            />
+
+            {growth >= 0
+              ? "+"
+              : ""}
+            {formatPercent(
+              growth,
+            )} vs. período anterior
+          </small>
+        </article>
+
+
+        <article className="executive-kpi">
+          <div className="executive-kpi-heading">
+            <span>
+              Ventas procesadas
+            </span>
+
+            <div className="executive-kpi-icon green">
+              <PackageCheck
+                size={16}
+              />
+            </div>
+          </div>
+
+          <strong>
+            {formatNumber(
+              salesCount,
+            )}
+          </strong>
+
+          <small>
+            operaciones registradas
+          </small>
+        </article>
+
+
+        <article className="executive-kpi">
+          <div className="executive-kpi-heading">
+            <span>
+              Salud del inventario
+            </span>
+
+            <div className="executive-kpi-icon purple">
+              <Boxes
+                size={16}
+              />
+            </div>
+          </div>
+
+          <strong>
+            {formatPercent(
+              stockHealth,
+            )}
+          </strong>
+
+          <small>
+            {formatNumber(
+              inventoryState.healthy,
+            )} productos disponibles
+          </small>
+        </article>
+
+
+        <article className="executive-kpi">
+          <div className="executive-kpi-heading">
+            <span>
+              Clientes activos
+            </span>
+
+            <div className="executive-kpi-icon blue">
+              <UsersRound
+                size={16}
+              />
+            </div>
+          </div>
+
+          <strong>
+            {formatNumber(
+              activeCustomers,
+            )}
+          </strong>
+
+          <small>
+            clientes registrados
+          </small>
+        </article>
+      </div>
+
+
+      <div className="executive-analysis-grid">
+        <article className="executive-panel executive-trend-panel">
+          <header className="executive-panel-header">
+            <div>
+              <h2>
+                Tendencia de ingresos
+              </h2>
+
+              <p>
+                Evolución registrada durante el período analizado.
+              </p>
+            </div>
+
+            <div className="executive-period">
+              <CalendarDays
+                size={13}
+              />
+
+              Últimos 30 días
+            </div>
+          </header>
+
+
+          <div className="executive-chart-legend">
+            <span>
+              <i />
+
+              Ingresos registrados
             </span>
           </div>
-        </div>
-      </div>
 
 
-      <div className="stats-grid">
-        <StatCard
-          title="Ventas registradas"
-          value={
-            formatNumber(
-              salesCount,
-            )
-          }
-          change={
-            `${growth > 0 ? "+" : ""}${growth.toFixed(1)}%`
-          }
-          positive={
-            growthPositive
-          }
-          caption="vs. período anterior"
-          icon={
-            ShoppingBag
-          }
-        />
-
-
-        <StatCard
-          title="Ingresos"
-          value={
-            formatCurrency(
-              revenue,
-            )
-          }
-          change={
-            `${growth > 0 ? "+" : ""}${growth.toFixed(1)}%`
-          }
-          positive={
-            growthPositive
-          }
-          caption="últimos 30 días"
-          icon={
-            Banknote
-          }
-        />
-
-
-        <StatCard
-          title="Clientes activos"
-          value={
-            formatNumber(
-              activeCustomers,
-            )
-          }
-          change="—"
-          positive
-          caption="clientes registrados"
-          icon={
-            UsersRound
-          }
-        />
-
-
-        <StatCard
-          title="Ticket promedio"
-          value={
-            formatCurrency(
-              averageTicket,
-            )
-          }
-          change="—"
-          positive
-          caption="promedio por venta"
-          icon={
-            ReceiptText
-          }
-        />
-      </div>
-
-
-      <div className="dashboard-main-grid">
-        <article className="panel panel-large">
-          <div className="panel-header">
-            <div>
-              <span className="panel-label">
-                RENDIMIENTO
-              </span>
-
-              <h3>
-                Ingresos por día
-              </h3>
-            </div>
-
-
-            <div className="panel-total">
-              <span>
-                Total del período
-              </span>
-
-              <strong>
-                {formatCurrency(
-                  revenue,
-                )}
-              </strong>
-            </div>
-          </div>
-
-
-          <div className="chart-container">
+          <div className="executive-main-chart">
             {chartData.length >
             0 ? (
               <ResponsiveContainer
@@ -1142,13 +967,17 @@ function DashboardPage() {
                 height="100%"
               >
                 <AreaChart
-                  data={
-                    chartData
-                  }
+                  data={chartData}
+                  margin={{
+                    top: 12,
+                    right: 10,
+                    left: -10,
+                    bottom: 0,
+                  }}
                 >
                   <defs>
                     <linearGradient
-                      id="salesGradient"
+                      id="executiveIncomeGradient"
                       x1="0"
                       y1="0"
                       x2="0"
@@ -1156,365 +985,291 @@ function DashboardPage() {
                     >
                       <stop
                         offset="0%"
-                        stopColor="#2563EB"
-                        stopOpacity={
-                          0.24
-                        }
+                        stopColor="#0ea5b7"
+                        stopOpacity={0.24}
                       />
 
                       <stop
                         offset="100%"
-                        stopColor="#2563EB"
-                        stopOpacity={
-                          0.02
-                        }
+                        stopColor="#0ea5b7"
+                        stopOpacity={0.02}
                       />
                     </linearGradient>
                   </defs>
 
-
                   <CartesianGrid
-                    strokeDasharray="4 4"
-                    vertical={
-                      false
-                    }
-                    stroke="#E9EEF5"
+                    vertical={false}
+                    stroke="#e8eef2"
+                    strokeDasharray="3 3"
                   />
-
 
                   <XAxis
                     dataKey="day"
-                    axisLine={
-                      false
-                    }
-                    tickLine={
-                      false
-                    }
+                    axisLine={false}
+                    tickLine={false}
+                    minTickGap={22}
                     tick={{
                       fill:
-                        "#64748B",
-
+                        "#7b8ba0",
                       fontSize:
-                        11,
+                        8,
                     }}
-                    minTickGap={
-                      24
-                    }
                   />
 
-
                   <YAxis
-                    axisLine={
-                      false
-                    }
-                    tickLine={
-                      false
-                    }
+                    axisLine={false}
+                    tickLine={false}
+                    width={60}
                     tick={{
                       fill:
-                        "#64748B",
-
+                        "#7b8ba0",
                       fontSize:
-                        11,
+                        8,
                     }}
                     tickFormatter={(
                       value,
                     ) =>
-                      `S/ ${numberValue(
+                      `S/ ${Number(
                         value,
                       ).toLocaleString(
                         "es-PE",
-                        {
-                          maximumFractionDigits:
-                            0,
-                        },
                       )}`
                     }
                   />
 
-
                   <Tooltip
                     formatter={(
                       value,
-                      name,
-                    ) => {
-                      if (
-                        name ===
-                        "Ingresos"
-                      ) {
-                        return [
-                          formatCurrency(
-                            value,
-                          ),
-                          "Ingresos",
-                        ];
-                      }
-
-                      return [
+                    ) => [
+                      formatCurrency(
                         value,
-                        name,
-                      ];
-                    }}
-                    labelFormatter={(
-                      label,
-                    ) =>
-                      `Fecha: ${label}`
-                    }
+                      ),
+                      "Ingresos",
+                    ]}
                   />
-
 
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    name="Ingresos"
-                    stroke="#2563EB"
-                    strokeWidth={
-                      2.5
-                    }
-                    fill="url(#salesGradient)"
+                    stroke="#0ea5b7"
+                    strokeWidth={2}
+                    fill="url(#executiveIncomeGradient)"
+                    dot={false}
+                    activeDot={{
+                      r: 4,
+                    }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="dashboard-chart-empty">
-                <Package
-                  size={24}
-                />
+              <div className="executive-empty-chart">
+                No hay datos diarios disponibles.
+              </div>
+            )}
+          </div>
+        </article>
+
+
+        <article className="executive-panel executive-distribution-panel">
+          <header className="executive-panel-header compact">
+            <div>
+              <h2>
+                Distribución de inventario
+              </h2>
+
+              <p>
+                Estado actual del catálogo.
+              </p>
+            </div>
+          </header>
+
+
+          <div className="executive-donut">
+            {productCount >
+            0 ? (
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <PieChart>
+                  <Pie
+                    data={
+                      inventoryDistribution
+                    }
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    stroke="none"
+                  >
+                    {inventoryDistribution.map(
+                      (
+                        item,
+                      ) => (
+                        <Cell
+                          key={
+                            item.name
+                          }
+                          fill={
+                            item.color
+                          }
+                        />
+                      ),
+                    )}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="executive-empty-chart">
+                Sin productos.
+              </div>
+            )}
+
+            {productCount >
+              0 && (
+              <div className="executive-donut-center">
+                <strong>
+                  {formatNumber(
+                    productCount,
+                  )}
+                </strong>
 
                 <span>
-                  No hay datos diarios disponibles.
+                  productos
                 </span>
               </div>
             )}
           </div>
-        </article>
 
 
-        <article className="panel">
-          <div className="panel-header">
-            <div>
-              <span className="panel-label">
-                OPERACIÓN
-              </span>
+          <div className="executive-donut-legend">
+            {inventoryDistribution.map(
+              (item) => (
+                <div
+                  key={
+                    item.name
+                  }
+                >
+                  <i
+                    style={{
+                      background:
+                        item.color,
+                    }}
+                  />
 
-              <h3>
-                Ventas recientes
-              </h3>
-            </div>
+                  <span>
+                    {item.name}
+                  </span>
 
-            <ArrowRight
-              size={18}
-            />
-          </div>
-
-
-          <div className="dashboard-list">
-            {recentSales.length ===
-            0 ? (
-              <div className="dashboard-list-empty">
-                No hay ventas recientes.
-              </div>
-            ) : (
-              recentSales.map(
-                (
-                  sale,
-                  index,
-                ) => {
-                  const saleKey =
-                    sale.id
-                    || sale.sale_number
-                    || `Venta-${index + 1}`;
-
-
-                  const saleNumber =
-                    sale.sale_number
-                    || `Venta ${index + 1}`;
-
-
-                  const customer =
-                    sale.customer_name
-                    || "Cliente no especificado";
-
-
-                  const date =
-                    formatDate(
-                      sale.sale_date,
-                    );
-
-
-                  const amount =
-                    sale.total
-                    ?? 0;
-
-
-                  return (
-                    <div
-                      className="dashboard-list-item"
-                      key={
-                        saleKey
-                      }
-                    >
-                      <div>
-                        <strong>
-                          {saleNumber}
-                        </strong>
-
-                        <span>
-                          {customer}
-                        </span>
-
-                        <small>
-                          {date}
-                        </small>
-                      </div>
-
-
-                      <div className="dashboard-list-value">
-                        <strong>
-                          {formatCurrency(
-                            amount,
-                          )}
-                        </strong>
-
-                        <span>
-                          {normalizeSaleStatus(
-                            sale.status,
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                },
-              )
-            )}
-          </div>
-        </article>
-
-
-        <article className="panel">
-          <div className="panel-header">
-            <div>
-              <span className="panel-label">
-                INVENTARIO
-              </span>
-
-              <h3>
-                Alertas de stock
-              </h3>
-            </div>
-
-            <AlertTriangle
-              size={18}
-            />
-          </div>
-
-
-          <div className="dashboard-list">
-            {stockAlerts.length ===
-            0 ? (
-              <div className="dashboard-list-empty">
-                No hay alertas de inventario.
-              </div>
-            ) : (
-              stockAlerts.map(
-                (
-                  alert,
-                  index,
-                ) => {
-                  const product =
-                    alert.product_name
-                    || `Producto ${index + 1}`;
-
-
-                  const stock =
-                    numberValue(
-                      alert.stock_quantity,
-                    );
-
-
-                  const level =
-                    alert.stock_status
-                    || "Stock bajo";
-
-
-                  return (
-                    <div
-                      className="dashboard-list-item"
-                      key={
-                        `${product}-${index}`
-                      }
-                    >
-                      <div>
-                        <strong>
-                          {product}
-                        </strong>
-
-                        <span>
-                          Stock disponible:
-                          {" "}
-                          {formatNumber(
-                            stock,
-                          )}
-                        </span>
-                      </div>
-
-
-                      <div className="dashboard-alert-level">
-                        <span>
-                          {level}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                },
-              )
+                  <strong>
+                    {formatNumber(
+                      item.value,
+                    )}
+                  </strong>
+                </div>
+              ),
             )}
           </div>
         </article>
       </div>
 
 
-      <div className="dashboard-highlight">
-        <div>
-          <span>
-            ESTADO DEL NEGOCIO
-          </span>
-
-          <h2>
-            Resumen operativo del inventario
-          </h2>
-
-          <p>
-            SalesIA supervisa productos activos
-            y existencias para detectar
-            situaciones que requieren atención.
-          </p>
-        </div>
-
-
-        <div className="highlight-metric">
-          <Package
-            size={21}
-          />
+      <div className="executive-status-grid">
+        <article className="executive-status-card warning">
+          <div className="executive-status-icon">
+            <AlertTriangle
+              size={16}
+            />
+          </div>
 
           <div>
+            <span>
+              Alertas de inventario
+            </span>
+
             <strong>
-              {formatNumber(
-                productsCount,
-              )}
+              {alertProducts.length >
+              0
+                ? `${alertProducts.length} productos requieren atención`
+                : "Sin alertas críticas"}
             </strong>
 
-            <span>
-              productos activos ·
-              {" "}
-              {formatNumber(
-                lowStockCount,
-              )}
-              {" "}
-              con alerta
-            </span>
+            <small>
+              {alertProducts.length >
+              0
+                ? alertProducts
+                    .map(
+                      (
+                        product,
+                      ) =>
+                        product.name,
+                    )
+                    .join(
+                      " · ",
+                    )
+                : "El inventario se encuentra dentro de los niveles registrados."}
+            </small>
           </div>
-        </div>
+        </article>
+
+
+        <article className="executive-status-card">
+          <div className="executive-status-icon cyan">
+            <Activity
+              size={16}
+            />
+          </div>
+
+          <div>
+            <span>
+              Resumen comercial
+            </span>
+
+            <strong>
+              {formatNumber(
+                salesCount,
+              )} ventas registradas
+            </strong>
+
+            <small>
+              Ingresos acumulados:{" "}
+              {formatCurrency(
+                revenue,
+              )}
+            </small>
+          </div>
+        </article>
+
+
+        <article className="executive-status-card">
+          <div className="executive-status-icon green">
+            <Boxes
+              size={16}
+            />
+          </div>
+
+          <div>
+            <span>
+              Estado del catálogo
+            </span>
+
+            <strong>
+              {formatNumber(
+                productCount,
+              )} productos
+            </strong>
+
+            <small>
+              Salud de inventario:{" "}
+              {formatPercent(
+                stockHealth,
+              )}
+            </small>
+          </div>
+        </article>
       </div>
     </section>
   );

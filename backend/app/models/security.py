@@ -108,6 +108,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
 
+    customer_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("customers.id"),
+        unique=True,
+        nullable=True,
+    )
+
     # El DNI será el identificador utilizado
     # por los usuarios para iniciar sesión.
     dni: Mapped[str] = mapped_column(

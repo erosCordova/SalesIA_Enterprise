@@ -99,6 +99,33 @@ class BranchCreateRequest(BaseModel):
         max_length=100,
     )
 
+    department: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    province: str | None = Field(
+        default=None,
+        max_length=120,
+    )
+
+    district: str | None = Field(
+        default=None,
+        max_length=150,
+    )
+
+    latitude: float | None = Field(
+        default=None,
+        ge=-90,
+        le=90,
+    )
+
+    longitude: float | None = Field(
+        default=None,
+        ge=-180,
+        le=180,
+    )
+
     country: str = Field(
         default="Perú",
         min_length=2,
@@ -141,6 +168,33 @@ class BranchUpdateRequest(BaseModel):
         max_length=100,
     )
 
+    department: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    province: str | None = Field(
+        default=None,
+        max_length=120,
+    )
+
+    district: str | None = Field(
+        default=None,
+        max_length=150,
+    )
+
+    latitude: float | None = Field(
+        default=None,
+        ge=-90,
+        le=90,
+    )
+
+    longitude: float | None = Field(
+        default=None,
+        ge=-180,
+        le=180,
+    )
+
     country: str | None = Field(
         default=None,
         max_length=100,
@@ -168,6 +222,14 @@ class BranchResponse(BaseModel):
 
     address: str | None
     city: str | None
+
+    department: str | None
+    province: str | None
+    district: str | None
+
+    latitude: float | None
+    longitude: float | None
+
     country: str | None
 
     phone: str | None

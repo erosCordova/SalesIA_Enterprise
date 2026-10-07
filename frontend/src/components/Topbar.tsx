@@ -1,6 +1,10 @@
 import {
+  Bell,
+  ChevronDown,
+  CircleHelp,
   LogOut,
   Menu,
+  Search,
 } from "lucide-react";
 
 import type {
@@ -32,36 +36,42 @@ function Topbar({
           className="mobile-menu-button"
           onClick={onMenuClick}
           aria-label="Abrir menú"
-          title="Abrir menú"
         >
-          <Menu size={22} />
+          <Menu size={20} />
         </button>
 
-        <div className="topbar-context">
-          <span>
-            SalesIA Enterprise
-          </span>
+        <label className="topbar-search">
+          <Search size={16} />
 
-          <strong>
-            {user.company || "Empresa activa"}
-          </strong>
-        </div>
+          <input
+            type="search"
+            placeholder="Buscar productos, clientes, ventas..."
+          />
+        </label>
       </div>
 
       <div className="topbar-actions">
         <button
           type="button"
-          className="icon-button"
-          onClick={onLogout}
-          title="Cerrar sesión"
-          aria-label="Cerrar sesión"
+          className="modern-topbar-icon notification-button"
+          title="Notificaciones"
         >
-          <LogOut size={20} />
+          <Bell size={17} />
+
+          <span className="notification-dot" />
+        </button>
+
+        <button
+          type="button"
+          className="modern-topbar-icon"
+          title="Ayuda"
+        >
+          <CircleHelp size={17} />
         </button>
 
         <div className="topbar-divider" />
 
-        <div className="user-menu">
+        <div className="user-menu modern-user-menu">
           <div className="user-avatar">
             {initials}
           </div>
@@ -76,7 +86,21 @@ function Topbar({
               {user.role}
             </span>
           </div>
+
+          <ChevronDown
+            className="modern-user-chevron"
+            size={14}
+          />
         </div>
+
+        <button
+          type="button"
+          className="modern-logout-button"
+          onClick={onLogout}
+          title="Cerrar sesión"
+        >
+          <LogOut size={16} />
+        </button>
       </div>
     </header>
   );

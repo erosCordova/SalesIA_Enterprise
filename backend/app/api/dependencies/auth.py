@@ -56,6 +56,7 @@ def get_current_user(
                     u.id,
                     u.auth_user_id,
                     u.company_id,
+                    u.customer_id,
                     u.role_id,
                     u.dni,
                     u.first_name,

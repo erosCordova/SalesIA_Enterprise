@@ -23,6 +23,7 @@ import ExportActions from "../../components/ui/ExportActions";
 import Modal from "../../components/ui/Modal";
 import ModuleState from "../../components/ui/ModuleState";
 import Pagination from "../../components/ui/Pagination";
+import ProductImagePicker from "../../components/products/ProductImagePicker";
 
 import {
   createProduct,
@@ -30,6 +31,7 @@ import {
   getCategories,
   getProducts,
   updateProduct,
+  uploadProductImage,
 } from "../../services/commercial.service";
 
 import {
@@ -312,6 +314,15 @@ export default function ProductosPage() {
     useState("");
 
 
+  const [
+    imageFile,
+    setImageFile,
+  ] =
+    useState<File | null>(
+      null,
+    );
+
+
   const products =
     productsResource.data
     ?? [];
@@ -448,9 +459,21 @@ export default function ProductosPage() {
         render: (product) => (
           <div className="product-cell">
             <div className="product-avatar">
-              <Boxes
-                size={16}
-              />
+              {product.image_url ? (
+                <img
+                  className="product-avatar-photo"
+                  src={
+                    product.image_url
+                  }
+                  alt={
+                    product.name
+                  }
+                />
+              ) : (
+                <Boxes
+                  size={16}
+                />
+              )}
             </div>
 
             <div>
@@ -619,6 +642,10 @@ export default function ProductosPage() {
     setFormError(
       "",
     );
+
+    setImageFile(
+      null,
+    );
   }
 
 
@@ -642,6 +669,10 @@ export default function ProductosPage() {
   function openEdit(
     product: Product,
   ) {
+    setImageFile(
+      null,
+    );
+
     setEditingProduct(
       product,
     );
@@ -778,6 +809,8 @@ export default function ProductosPage() {
 
 
     try {
+      let imageWarning = "";
+
       if (
         editingProduct
       ) {
@@ -838,11 +871,36 @@ export default function ProductosPage() {
         );
 
 
+        if (imageFile) {
+          try {
+            await uploadProductImage(
+              editingProduct.id,
+              imageFile,
+            );
+          } catch (
+            imageError
+          ) {
+            imageWarning =
+              imageError
+                instanceof Error
+                ? imageError.message
+                : "No se pudo subir la imagen.";
+          }
+        }
+
+
         setSuccessMessage(
-          "Producto actualizado correctamente.",
+          imageWarning
+            ? (
+                "Producto actualizado correctamente. "
+                + "La imagen no pudo cargarse: "
+                + imageWarning
+              )
+            : "Producto actualizado correctamente.",
         );
       } else {
-        await createProduct({
+        const createdProduct =
+          await createProduct({
           ...form,
 
           category_id:
@@ -899,8 +957,32 @@ export default function ProductosPage() {
         });
 
 
+        if (imageFile) {
+          try {
+            await uploadProductImage(
+              createdProduct.id,
+              imageFile,
+            );
+          } catch (
+            imageError
+          ) {
+            imageWarning =
+              imageError
+                instanceof Error
+                ? imageError.message
+                : "No se pudo subir la imagen.";
+          }
+        }
+
+
         setSuccessMessage(
-          "Producto registrado correctamente.",
+          imageWarning
+            ? (
+                "Producto registrado correctamente. "
+                + "La imagen no pudo cargarse: "
+                + imageWarning
+              )
+            : "Producto registrado correctamente.",
         );
       }
 
@@ -1487,7 +1569,8 @@ export default function ProductosPage() {
             handleSubmit
           }
         >
-          {formError && (
+          <div className="products-editor-scroll">
+            {formError && (
             <ModuleState
               type="error"
               title={
@@ -1500,6 +1583,27 @@ export default function ProductosPage() {
               }
             />
           )}
+
+
+          <ProductImagePicker
+            file={
+              imageFile
+            }
+            existingUrl={
+              editingProduct
+                ?.image_url
+                ?? null
+            }
+            disabled={
+              saving
+            }
+            onChange={
+              setImageFile
+            }
+            onError={
+              setFormError
+            }
+          />
 
 
           <div className="form-grid">
@@ -1841,7 +1945,10 @@ export default function ProductosPage() {
           </div>
 
 
-          <div className="modal-actions">
+          </div>
+
+
+          <div className="modal-actions products-editor-actions">
             <button
               type="button"
               className="secondary-button"
@@ -1870,7 +1977,7 @@ export default function ProductosPage() {
               {saving
                 ? "Guardando..."
                 : editingProduct
-                  ? "Actualizar producto"
+                  ? "Guardar cambios"
                   : "Guardar producto"}
             </button>
           </div>

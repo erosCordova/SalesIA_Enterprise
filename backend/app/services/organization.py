@@ -93,8 +93,7 @@ def update_current_company(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "No fue posible actualizar la empresa. "
-                "Verifique RUC/identificador tributario."
+                "No fue posible actualizar la empresa."
             ),
         ) from exc
 
@@ -166,6 +165,17 @@ def create_branch(
             city=clean_optional(
                 data.city
             ),
+            department=clean_optional(
+                data.department
+            ),
+            province=clean_optional(
+                data.province
+            ),
+            district=clean_optional(
+                data.district
+            ),
+            latitude=data.latitude,
+            longitude=data.longitude,
             country=clean_optional(
                 data.country
             ),
@@ -199,6 +209,9 @@ def update_branch(
         "name",
         "address",
         "city",
+        "department",
+        "province",
+        "district",
         "country",
         "phone",
         "email",

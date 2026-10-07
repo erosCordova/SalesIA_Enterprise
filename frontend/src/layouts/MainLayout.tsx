@@ -73,12 +73,13 @@ function MainLayout() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell reference-shell">
       <Sidebar
         open={sidebarOpen}
         onClose={() =>
           setSidebarOpen(false)
         }
+        onLogout={handleLogout}
         user={user}
       />
 

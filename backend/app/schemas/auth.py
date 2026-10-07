@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     id: str
     auth_user_id: str
     company_id: str
+    customer_id: str | None = None
 
     dni: str
     first_name: str

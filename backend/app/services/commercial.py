@@ -276,6 +276,7 @@ def create_product(
         sku=product["sku"],
         name=product["name"],
         description=product["description"],
+        image_url=None,
         unit=product["unit"],
         sale_price=product["sale_price"],
         cost_price=product["cost_price"],
