@@ -93,7 +93,7 @@ const MANAGEMENT_ROLES: UserRole[] = [
 
 const menuSections: MenuSection[] = [
   {
-    title: "EJECUTIVO",
+    title: "GENERAL",
     items: [
       {
         label: "Dashboard",
@@ -107,17 +107,17 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "OPERACIONES",
+    title: "OPERACIÓN",
     items: [
       {
-        label: "Ventas y Pedidos",
+        label: "Ventas",
         path: "/sales",
         icon: ShoppingCart,
         roles: SALES_ROLES,
         end: true,
       },
       {
-        label: "Inventario y Stock",
+        label: "Inventario",
         path: "/inventory",
         icon: Boxes,
         roles: INVENTORY_ROLES,
@@ -134,28 +134,28 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "ANALÍTICA E IA",
+    title: "INTELIGENCIA",
     items: [
       {
-        label: "Analytics Comercial",
+        label: "Analytics",
         path: "/analytics",
         icon: BarChart3,
         roles: ANALYTICS_ROLES,
       },
       {
-        label: "Probabilidades & Bayes",
+        label: "Probabilidad",
         path: "/probability",
         icon: Percent,
         roles: ANALYTICS_ROLES,
       },
       {
-        label: "Varianza y Desviación",
+        label: "Varianza",
         path: "/statistics",
         icon: Sigma,
         roles: ANALYTICS_ROLES,
       },
       {
-        label: "Motor de Insights",
+        label: "Insights",
         path: "/insights",
         icon: Lightbulb,
         roles: ANALYTICS_ROLES,
@@ -170,7 +170,7 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "MANTENIMIENTO",
+    title: "CONTROL",
     items: [
       {
         label: "Mantenimiento",
@@ -182,10 +182,10 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "ADMINISTRACIÓN",
+    title: "CONTROL",
     items: [
       {
-        label: "Auditoría y Logs",
+        label: "Auditoría",
         path: "/audit",
         icon: ShieldCheck,
         roles: [
