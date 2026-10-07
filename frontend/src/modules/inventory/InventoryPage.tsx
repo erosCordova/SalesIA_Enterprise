@@ -1,29 +1,24 @@
 import {
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
-  AlertTriangle,
   Boxes,
+  ChevronLeft,
+  ChevronRight,
   History,
-  PackageCheck,
-  PackageX,
   RefreshCw,
+  Search,
 } from "lucide-react";
 
 import {
   useNavigate,
 } from "react-router-dom";
 
-import DataTable, {
-  type DataTableColumn,
-} from "../../components/ui/DataTable";
-
+import ExportActions from "../../components/ui/ExportActions";
 import ModuleState from "../../components/ui/ModuleState";
-import Pagination from "../../components/ui/Pagination";
-import StatCard from "../../components/ui/StatCard";
-import TableToolbar from "../../components/ui/TableToolbar";
 
 import {
   getInventory,
@@ -32,6 +27,16 @@ import {
 import {
   useApiResource,
 } from "../../hooks/useApiResource";
+
+import {
+  createVisualPdfFile,
+  downloadVisualPdf,
+  exportDateStamp,
+  exportRowsToCsv,
+  exportRowsToExcel,
+  shareFile,
+  type ExportRow,
+} from "../../utils/exporting";
 
 import type {
   InventoryItem,
@@ -43,10 +48,18 @@ import "./inventory.css";
 const PAGE_SIZE = 10;
 
 
+type StockFilter =
+  | "all"
+  | "ok"
+  | "low"
+  | "out";
+
+
 function toNumber(
   value: number | string | null,
 ) {
-  const parsed = Number(value ?? 0);
+  const parsed =
+    Number(value ?? 0);
 
   return Number.isFinite(parsed)
     ? parsed
@@ -83,26 +96,39 @@ function getStockState(
 
   if (stock <= 0) {
     return {
-      key: "out",
+      key: "out" as const,
       label: "Agotado",
     };
   }
 
   if (stock <= minimum) {
     return {
-      key: "low",
+      key: "low" as const,
       label: "Stock bajo",
     };
   }
 
   return {
-    key: "ok",
+    key: "ok" as const,
     label: "Disponible",
   };
 }
 
 
-function InventoryPage() {
+export default function InventoryPage() {
+  const exportRef =
+    useRef<HTMLElement>(
+      null,
+    );
+
+
+  const [
+    exportError,
+    setExportError,
+  ] =
+    useState("");
+
+
   const navigate =
     useNavigate();
 
@@ -116,11 +142,20 @@ function InventoryPage() {
       getInventory,
     );
 
+
   const [
     search,
     setSearch,
   ] =
     useState("");
+
+  const [
+    filter,
+    setFilter,
+  ] =
+    useState<StockFilter>(
+      "all",
+    );
 
   const [
     page,
@@ -133,53 +168,6 @@ function InventoryPage() {
     data ?? [];
 
 
-  const totalUnits =
-    inventory.reduce(
-      (total, item) =>
-        total +
-        toNumber(
-          item.stock_quantity,
-        ),
-      0,
-    );
-
-
-  const outOfStock =
-    inventory.filter(
-      (item) =>
-        toNumber(
-          item.stock_quantity,
-        ) <= 0,
-    ).length;
-
-
-  const lowStock =
-    inventory.filter(
-      (item) => {
-        const stock =
-          toNumber(
-            item.stock_quantity,
-          );
-
-        const minimum =
-          toNumber(
-            item.minimum_stock,
-          );
-
-        return (
-          stock > 0 &&
-          stock <= minimum
-        );
-      },
-    ).length;
-
-
-  const healthyStock =
-    inventory.length -
-    outOfStock -
-    lowStock;
-
-
   const filteredInventory =
     useMemo(
       () => {
@@ -188,10 +176,6 @@ function InventoryPage() {
             .trim()
             .toLowerCase();
 
-        if (!query) {
-          return inventory;
-        }
-
         return inventory.filter(
           (item) => {
             const state =
@@ -199,13 +183,22 @@ function InventoryPage() {
                 item,
               );
 
+            const matchesFilter =
+              filter === "all"
+              || state.key === filter;
+
+            if (!matchesFilter) {
+              return false;
+            }
+
+            if (!query) {
+              return true;
+            }
+
             return [
-              item.sku,
               item.product_name,
+              item.sku,
               state.label,
-              item.stock_quantity,
-              item.minimum_stock,
-              item.maximum_stock,
             ].some(
               (value) =>
                 String(
@@ -222,6 +215,7 @@ function InventoryPage() {
       [
         inventory,
         search,
+        filter,
       ],
     );
 
@@ -243,6 +237,20 @@ function InventoryPage() {
     );
 
 
+  const startIndex =
+    filteredInventory.length === 0
+      ? 0
+      : (safePage - 1) *
+          PAGE_SIZE + 1;
+
+
+  const endIndex =
+    Math.min(
+      safePage * PAGE_SIZE,
+      filteredInventory.length,
+    );
+
+
   const paginatedInventory =
     filteredInventory.slice(
       (safePage - 1) *
@@ -253,330 +261,503 @@ function InventoryPage() {
     );
 
 
-  const columns:
-    DataTableColumn<InventoryItem>[] = [
-      {
-        key: "product",
-        label: "Producto",
-
-        render: (item) => (
-          <div className="inventory-product-cell">
-            <div className="inventory-product-icon">
-              <Boxes size={17} />
-            </div>
-
-            <div>
-              <strong>
-                {item.product_name}
-              </strong>
-
-              <span>
-                SKU {item.sku}
-              </span>
-            </div>
-          </div>
-        ),
-      },
-
-      {
-        key: "stock",
-        label: "Stock actual",
-
-        render: (item) => (
-          <strong className="inventory-stock-value">
-            {formatQuantity(
-              item.stock_quantity,
-            )}
-          </strong>
-        ),
-      },
-
-      {
-        key: "minimum",
-        label: "Stock mínimo",
-
-        render: (item) =>
-          formatQuantity(
-            item.minimum_stock,
-          ),
-      },
-
-      {
-        key: "maximum",
-        label: "Stock máximo",
-
-        render: (item) =>
-          item.maximum_stock === null
-            ? "Sin límite"
-            : formatQuantity(
-                item.maximum_stock,
-              ),
-      },
-
-      {
-        key: "availability",
-        label: "Disponibilidad",
-
-        render: (item) => {
-          const state =
-            getStockState(
-              item,
-            );
-
-          return (
-            <span
-              className={`inventory-status inventory-status-${state.key}`}
-            >
-              {state.label}
-            </span>
+  function exportRows(): ExportRow[] {
+    return filteredInventory.map(
+      (item) => {
+        const state =
+          getStockState(
+            item,
           );
-        },
+
+
+        return {
+          SKU:
+            item.sku,
+
+          Producto:
+            item.product_name,
+
+          "Stock actual":
+            toNumber(
+              item.stock_quantity,
+            ),
+
+          "Stock mínimo":
+            toNumber(
+              item.minimum_stock,
+            ),
+
+          "Stock máximo":
+            item.maximum_stock === null
+              ? "Sin límite"
+              : toNumber(
+                  item.maximum_stock,
+                ),
+
+          Estado:
+            state.label,
+        };
       },
-    ];
+    );
+  }
+
+
+  function exportFilename() {
+    return `inventario-${exportDateStamp()}`;
+  }
+
+
+  async function handlePdf() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+
+    setExportError("");
+
+
+    try {
+      await downloadVisualPdf(
+        exportRef.current,
+        exportFilename(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el PDF.",
+      );
+    }
+  }
+
+
+  function handleCsv() {
+    setExportError("");
+
+
+    try {
+      exportRowsToCsv(
+        exportFilename(),
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el CSV.",
+      );
+    }
+  }
+
+
+  async function handleExcel() {
+    setExportError("");
+
+
+    try {
+      await exportRowsToExcel(
+        exportFilename(),
+        "Inventario",
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el archivo Excel.",
+      );
+    }
+  }
+
+
+  async function handleShare() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+
+    setExportError("");
+
+
+    try {
+      const file =
+        await createVisualPdfFile(
+          exportRef.current,
+          exportFilename(),
+        );
+
+
+      await shareFile(
+        file,
+        "Inventario - SalesIA Enterprise",
+        "Estado actual del inventario de SalesIA Enterprise.",
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo compartir el inventario.",
+      );
+    }
+  }
+
+
+  function updateSearch(
+    value: string,
+  ) {
+    setSearch(value);
+    setPage(1);
+  }
+
+
+  function updateFilter(
+    value: StockFilter,
+  ) {
+    setFilter(value);
+    setPage(1);
+  }
 
 
   return (
-    <section className="module-page inventory-page">
-      <div className="page-heading">
+    <section
+      ref={exportRef}
+      className="inventory-page"
+    >
+      <header className="inventory-header">
         <div>
-          <span className="page-eyebrow">
-            CONTROL OPERATIVO
-          </span>
-
           <h1>
             Inventario
           </h1>
 
           <p>
-            Consulta existencias reales,
-            identifica productos críticos
-            y accede al Kardex para registrar
-            cualquier movimiento de stock.
+            Consulta existencias y disponibilidad de productos.
           </p>
         </div>
 
-        <div className="inventory-heading-actions">
+
+        <div
+          className="inventory-header-actions"
+          data-export-hide="true"
+        >
+          <ExportActions
+            disabled={
+              loading
+              || filteredInventory.length === 0
+            }
+            onPdf={handlePdf}
+            onCsv={handleCsv}
+            onExcel={handleExcel}
+            onShare={handleShare}
+          />
+
+
           <button
             type="button"
-            className="secondary-button"
+            className="inventory-button-secondary"
             disabled={loading}
             onClick={() =>
               void reload()
             }
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={15} />
 
             Actualizar
           </button>
 
           <button
             type="button"
-            className="primary-button"
+            className="inventory-button-primary"
             onClick={() =>
               navigate(
                 "/kardex",
               )
             }
           >
-            <History size={16} />
+            <History size={15} />
 
-            Abrir Kardex
+            Kardex
           </button>
         </div>
-      </div>
+      </header>
 
 
-      <div className="inventory-guidance">
-        <div className="inventory-guidance-icon">
-          <History size={20} />
+      {exportError && (
+        <div
+          className="inventory-export-error"
+          data-export-hide="true"
+        >
+          {exportError}
         </div>
-
-        <div>
-          <strong>
-            El stock no se modifica directamente.
-          </strong>
-
-          <p>
-            Las entradas, salidas, devoluciones y
-            ajustes deben registrarse en Kardex
-            para conservar la trazabilidad de cada
-            movimiento.
-          </p>
-        </div>
-      </div>
+      )}
 
 
-      <div className="stats-grid">
-        <StatCard
-          title="Productos"
-          value={String(
-            inventory.length,
-          )}
-          caption="productos con inventario"
-          icon={Boxes}
-        />
+      <section className="inventory-panel">
+        <div
+          className="inventory-toolbar"
+          data-export-hide="true"
+        >
+          <div className="inventory-search">
+            <Search size={16} />
 
-        <StatCard
-          title="Unidades disponibles"
-          value={formatQuantity(
-            totalUnits,
-          )}
-          caption="existencias acumuladas"
-          icon={PackageCheck}
-        />
-
-        <StatCard
-          title="Stock bajo"
-          value={String(
-            lowStock,
-          )}
-          caption="requieren reposición"
-          icon={AlertTriangle}
-        />
-
-        <StatCard
-          title="Agotados"
-          value={String(
-            outOfStock,
-          )}
-          caption="sin existencias"
-          icon={PackageX}
-        />
-      </div>
-
-
-      <div className="inventory-health-panel">
-        <div>
-          <span>
-            ESTADO DEL INVENTARIO
-          </span>
-
-          <strong>
-            {healthyStock} producto
-            {healthyStock === 1
-              ? ""
-              : "s"}{" "}
-            con disponibilidad normal
-          </strong>
-        </div>
-
-        <div className="inventory-health-summary">
-          <div>
-            <span className="inventory-dot inventory-dot-ok" />
-
-            Normal
-
-            <strong>
-              {healthyStock}
-            </strong>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) =>
+                updateSearch(
+                  event.target.value,
+                )
+              }
+              placeholder="Buscar producto o SKU..."
+            />
           </div>
 
-          <div>
-            <span className="inventory-dot inventory-dot-low" />
 
-            Bajo
+          <div className="inventory-filter">
+            <span>
+              Estado
+            </span>
 
-            <strong>
-              {lowStock}
-            </strong>
-          </div>
+            <select
+              value={filter}
+              onChange={(event) =>
+                updateFilter(
+                  event.target.value as StockFilter,
+                )
+              }
+            >
+              <option value="all">
+                Todos
+              </option>
 
-          <div>
-            <span className="inventory-dot inventory-dot-out" />
+              <option value="ok">
+                Disponible
+              </option>
 
-            Agotado
+              <option value="low">
+                Stock bajo
+              </option>
 
-            <strong>
-              {outOfStock}
-            </strong>
+              <option value="out">
+                Agotado
+              </option>
+            </select>
           </div>
         </div>
-      </div>
-
-
-      <article className="panel enterprise-data-panel">
-        <TableToolbar
-          search={search}
-          placeholder="Buscar por producto, SKU o estado..."
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          canCreate={false}
-        />
 
 
         {loading ? (
-          <ModuleState
-            type="loading"
-            title="Cargando inventario"
-            description="Consultando las existencias actuales."
-          />
+          <div className="inventory-state">
+            <ModuleState
+              type="loading"
+              title="Cargando inventario"
+            />
+          </div>
         ) : error ? (
-          <div>
+          <div className="inventory-state">
             <ModuleState
               type="error"
               title="No se pudo cargar el inventario"
               description={error}
             />
 
-            <div className="inventory-retry">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() =>
-                  void reload()
-                }
-              >
-                <RefreshCw size={16} />
+            <button
+              type="button"
+              className="inventory-button-secondary"
+              onClick={() =>
+                void reload()
+              }
+            >
+              <RefreshCw size={15} />
 
-                Reintentar
-              </button>
-            </div>
+              Reintentar
+            </button>
           </div>
-        ) : filteredInventory.length === 0 ? (
-          <ModuleState
-            type="empty"
-            title={
-              search
-                ? "No encontramos productos"
-                : "Inventario vacío"
-            }
-            description={
-              search
-                ? "Prueba con otro producto, SKU o estado."
-                : "Los productos con inventario aparecerán aquí."
-            }
-          />
+        ) : filteredInventory.length ===
+          0 ? (
+          <div className="inventory-state">
+            <ModuleState
+              type="empty"
+              title="No se encontraron productos"
+              description="Prueba con otra búsqueda o cambia el estado."
+            />
+          </div>
         ) : (
           <>
-            <DataTable
-              columns={columns}
-              data={
-                paginatedInventory
-              }
-              getRowKey={(
-                item,
-              ) =>
-                item.inventory_id
-              }
-            />
+            <div className="inventory-table-wrapper">
+              <table className="inventory-table">
+                <thead>
+                  <tr>
+                    <th>
+                      Producto
+                    </th>
 
-            <Pagination
-              page={safePage}
-              totalPages={
-                totalPages
-              }
-              onPageChange={
-                setPage
-              }
-            />
+                    <th>
+                      Stock actual
+                    </th>
+
+                    <th>
+                      Stock mínimo
+                    </th>
+
+                    <th>
+                      Stock máximo
+                    </th>
+
+                    <th>
+                      Estado
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {paginatedInventory.map(
+                    (item) => {
+                      const state =
+                        getStockState(
+                          item,
+                        );
+
+                      return (
+                        <tr
+                          key={
+                            item.inventory_id
+                          }
+                        >
+                          <td>
+                            <div className="inventory-product">
+                              <div className="inventory-product-icon">
+                                <Boxes size={16} />
+                              </div>
+
+                              <div>
+                                <strong>
+                                  {item.product_name}
+                                </strong>
+
+                                <span>
+                                  {item.sku}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td>
+                            <strong className="inventory-stock">
+                              {formatQuantity(
+                                item.stock_quantity,
+                              )}
+                            </strong>
+                          </td>
+
+                          <td>
+                            {formatQuantity(
+                              item.minimum_stock,
+                            )}
+                          </td>
+
+                          <td>
+                            {item.maximum_stock ===
+                            null
+                              ? "Sin límite"
+                              : formatQuantity(
+                                  item.maximum_stock,
+                                )}
+                          </td>
+
+                          <td>
+                            <span
+                              className={`inventory-status inventory-status-${state.key}`}
+                            >
+                              <i />
+
+                              {state.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+
+            <footer className="inventory-footer">
+              <span>
+                Mostrando{" "}
+                <strong>
+                  {startIndex}
+                </strong>
+                {" - "}
+                <strong>
+                  {endIndex}
+                </strong>
+                {" de "}
+                <strong>
+                  {filteredInventory.length}
+                </strong>
+              </span>
+
+
+              <div className="inventory-pagination">
+                <button
+                  type="button"
+                  data-export-hide="true"
+                  disabled={
+                    safePage <= 1
+                  }
+                  onClick={() =>
+                    setPage(
+                      safePage - 1,
+                    )
+                  }
+                >
+                  <ChevronLeft size={15} />
+                </button>
+
+                <span>
+                  Página{" "}
+                  <strong>
+                    {safePage}
+                  </strong>
+                  {" de "}
+                  <strong>
+                    {totalPages}
+                  </strong>
+                </span>
+
+                <button
+                  type="button"
+                  data-export-hide="true"
+                  disabled={
+                    safePage >=
+                    totalPages
+                  }
+                  onClick={() =>
+                    setPage(
+                      safePage + 1,
+                    )
+                  }
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+            </footer>
           </>
         )}
-      </article>
+      </section>
     </section>
   );
 }
-
-
-export default InventoryPage;

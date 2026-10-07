@@ -1,19 +1,16 @@
 import {
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
-  Banknote,
   Ban,
-  CheckCircle2,
   Eye,
   Plus,
   ReceiptText,
   RefreshCw,
-  TrendingUp,
   UserRound,
-  XCircle,
 } from "lucide-react";
 
 import {
@@ -24,10 +21,10 @@ import DataTable, {
   type DataTableColumn,
 } from "../../components/ui/DataTable";
 
+import ExportActions from "../../components/ui/ExportActions";
 import Modal from "../../components/ui/Modal";
 import ModuleState from "../../components/ui/ModuleState";
 import Pagination from "../../components/ui/Pagination";
-import StatCard from "../../components/ui/StatCard";
 import TableToolbar from "../../components/ui/TableToolbar";
 
 import {
@@ -43,6 +40,16 @@ import {
 import {
   useAuth,
 } from "../../services/auth.context";
+
+import {
+  createVisualPdfFile,
+  downloadVisualPdf,
+  exportDateStamp,
+  exportRowsToCsv,
+  exportRowsToExcel,
+  shareFile,
+  type ExportRow,
+} from "../../utils/exporting";
 
 import type {
   SaleListItem,
@@ -122,6 +129,19 @@ function statusLabel(
 
 
 function VentasPage() {
+  const exportRef =
+    useRef<HTMLElement>(
+      null,
+    );
+
+
+  const [
+    exportError,
+    setExportError,
+  ] =
+    useState("");
+
+
   const navigate =
     useNavigate();
 
@@ -216,40 +236,7 @@ function VentasPage() {
     ||
     user?.role === "Gerente";
 
-
-  const validSales =
-    sales.filter(
-      (sale) =>
-        sale.status !== "cancelled",
-    );
-
-
-  const cancelledCount =
-    sales.filter(
-      (sale) =>
-        sale.status === "cancelled",
-    ).length;
-
-
-  const revenue =
-    validSales.reduce(
-      (total, sale) =>
-        total +
-        toNumber(
-          sale.total,
-        ),
-      0,
-    );
-
-
-  const averageTicket =
-    validSales.length
-      ? revenue /
-        validSales.length
-      : 0;
-
-
-  const filteredSales =
+const filteredSales =
     useMemo(
       () => {
         const query =
@@ -312,6 +299,162 @@ function VentasPage() {
       safePage *
         PAGE_SIZE,
     );
+
+
+  function exportRows(): ExportRow[] {
+    return filteredSales.map(
+      (sale) => ({
+        Venta:
+          sale.sale_number,
+
+        Fecha:
+          formatDate(
+            sale.sale_date,
+          ),
+
+        Cliente:
+          sale.customer_name
+          || "Cliente general",
+
+        Subtotal:
+          toNumber(
+            sale.subtotal,
+          ),
+
+        Descuento:
+          toNumber(
+            sale.discount,
+          ),
+
+        Impuesto:
+          toNumber(
+            sale.tax,
+          ),
+
+        Total:
+          toNumber(
+            sale.total,
+          ),
+
+        Estado:
+          statusLabel(
+            sale.status,
+          ),
+      }),
+    );
+  }
+
+
+  function exportFilename() {
+    return `ventas-${exportDateStamp()}`;
+  }
+
+
+  async function handlePdf() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+
+    setExportError("");
+
+
+    try {
+      await downloadVisualPdf(
+        exportRef.current,
+        exportFilename(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el PDF.",
+      );
+    }
+  }
+
+
+  function handleCsv() {
+    setExportError("");
+
+
+    try {
+      exportRowsToCsv(
+        exportFilename(),
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el CSV.",
+      );
+    }
+  }
+
+
+  async function handleExcel() {
+    setExportError("");
+
+
+    try {
+      await exportRowsToExcel(
+        exportFilename(),
+        "Ventas",
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el archivo Excel.",
+      );
+    }
+  }
+
+
+  async function handleShare() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+
+    setExportError("");
+
+
+    try {
+      const file =
+        await createVisualPdfFile(
+          exportRef.current,
+          exportFilename(),
+        );
+
+
+      await shareFile(
+        file,
+        "Ventas - SalesIA Enterprise",
+        "Listado de ventas de SalesIA Enterprise.",
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo compartir el listado de ventas.",
+      );
+    }
+  }
 
 
   async function openDetail(
@@ -467,7 +610,10 @@ function VentasPage() {
 
 
   return (
-    <section className="module-page">
+    <section
+      ref={exportRef}
+      className="module-page"
+    >
       <div className="page-heading">
         <div>
           <span className="page-eyebrow">
@@ -487,7 +633,22 @@ function VentasPage() {
           </p>
         </div>
 
-        <div className="sale-toolbar-actions">
+        <div
+          className="sale-toolbar-actions"
+          data-export-hide="true"
+        >
+          <ExportActions
+            disabled={
+              loading
+              || filteredSales.length === 0
+            }
+            onPdf={handlePdf}
+            onCsv={handleCsv}
+            onExcel={handleExcel}
+            onShare={handleShare}
+          />
+
+
           <button
             type="button"
             className="secondary-button"
@@ -523,74 +684,50 @@ function VentasPage() {
 
 
       {success && (
-        <ModuleState
+        <div data-export-hide="true">
+          <ModuleState
           type="success"
           title="Venta actualizada"
           description={success}
-        />
+          />
+        </div>
       )}
 
 
       {actionError &&
         !cancelTarget && (
-        <ModuleState
+        <div data-export-hide="true">
+          <ModuleState
           type="error"
           title="No se pudo completar la acción"
           description={actionError}
-        />
+          />
+        </div>
+      )}
+
+      {exportError && (
+        <div
+          data-export-hide="true"
+          className="sale-export-error"
+        >
+          {exportError}
+        </div>
       )}
 
 
-      <div className="stats-grid">
-        <StatCard
-          title="Ventas vigentes"
-          value={String(
-            validSales.length,
-          )}
-          caption="operaciones válidas"
-          icon={CheckCircle2}
-        />
-
-        <StatCard
-          title="Anuladas"
-          value={String(
-            cancelledCount,
-          )}
-          caption="operaciones revertidas"
-          icon={XCircle}
-        />
-
-        <StatCard
-          title="Ingresos válidos"
-          value={formatMoney(
-            revenue,
-          )}
-          caption="sin anulaciones"
-          icon={Banknote}
-        />
-
-        <StatCard
-          title="Ticket promedio"
-          value={formatMoney(
-            averageTicket,
-          )}
-          caption="por venta vigente"
-          icon={TrendingUp}
-        />
-      </div>
-
-
       <article className="panel enterprise-data-panel">
-        <TableToolbar
-          search={search}
+        <div data-export-hide="true">
+          <TableToolbar
+            search={search}
           onSearchChange={(
             value,
           ) => {
             setSearch(value);
             setPage(1);
           }}
-          canCreate={false}
-        />
+            canCreate={false}
+          />
+        </div>
 
 
         {loading ? (

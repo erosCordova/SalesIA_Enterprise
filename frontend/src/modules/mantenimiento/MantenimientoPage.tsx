@@ -10,14 +10,9 @@ import type {
 
 import {
   Building2,
-  CircleCheckBig,
-  CircleOff,
-  Database,
   MapPin,
   PackageSearch,
-  RefreshCw,
   Search,
-  Settings2,
   ShieldCheck,
   Tags,
   UserRoundCog,
@@ -34,22 +29,6 @@ import CategoriasPage from "../categorias/CategoriasPage";
 import EmpresaPage from "../empresa/EmpresaPage";
 import SucursalesPage from "../sucursales/SucursalesPage";
 import AccessPage from "../auth/AccessPage";
-
-import {
-  getCategories,
-  getCustomers,
-  getProducts,
-} from "../../services/commercial.service";
-
-import {
-  getBranches,
-  getCompany,
-} from "../../services/organization.service";
-
-import {
-  getRoles,
-  getUsers,
-} from "../../services/users.service";
 
 import {
   useAuth,
@@ -72,59 +51,21 @@ type CatalogKey =
   | "roles";
 
 
+type CatalogGroup =
+  | "Comercial"
+  | "Organización"
+  | "Acceso";
+
+
 interface CatalogDefinition {
   key: CatalogKey;
   label: string;
   description: string;
+  group: CatalogGroup;
   icon: LucideIcon;
   roles: UserRole[];
   component: ComponentType;
 }
-
-
-interface CatalogStats {
-  total: number;
-  active: number;
-  inactive: number;
-}
-
-
-type SummaryState = Record<
-  CatalogKey,
-  CatalogStats
->;
-
-
-const EMPTY_STATS: CatalogStats = {
-  total: 0,
-  active: 0,
-  inactive: 0,
-};
-
-
-const INITIAL_SUMMARY: SummaryState = {
-  clientes: {
-    ...EMPTY_STATS,
-  },
-  productos: {
-    ...EMPTY_STATS,
-  },
-  categorias: {
-    ...EMPTY_STATS,
-  },
-  empresa: {
-    ...EMPTY_STATS,
-  },
-  sucursales: {
-    ...EMPTY_STATS,
-  },
-  usuarios: {
-    ...EMPTY_STATS,
-  },
-  roles: {
-    ...EMPTY_STATS,
-  },
-};
 
 
 const ADMIN_MANAGER: UserRole[] = [
@@ -140,14 +81,18 @@ const ADMIN_ONLY: UserRole[] = [
 
 function UsersMaintenance() {
   return (
-    <AccessPage mode="users" />
+    <AccessPage
+      mode="users"
+    />
   );
 }
 
 
 function RolesMaintenance() {
   return (
-    <AccessPage mode="roles" />
+    <AccessPage
+      mode="roles"
+    />
   );
 }
 
@@ -157,7 +102,8 @@ const CATALOGS: CatalogDefinition[] = [
     key: "clientes",
     label: "Clientes",
     description:
-      "Clientes, documentos, contacto y estado comercial.",
+      "Información comercial, documentos y contacto.",
+    group: "Comercial",
     icon: UsersRound,
     roles: ADMIN_MANAGER,
     component: ClientesPage,
@@ -166,7 +112,8 @@ const CATALOGS: CatalogDefinition[] = [
     key: "productos",
     label: "Productos",
     description:
-      "Productos, precios, stock y relación con categorías.",
+      "Catálogo, precios, stock y categorías.",
+    group: "Comercial",
     icon: PackageSearch,
     roles: ADMIN_MANAGER,
     component: ProductosPage,
@@ -175,7 +122,8 @@ const CATALOGS: CatalogDefinition[] = [
     key: "categorias",
     label: "Categorías",
     description:
-      "Clasificación maestra utilizada por los productos.",
+      "Clasificación de los productos.",
+    group: "Comercial",
     icon: Tags,
     roles: ADMIN_MANAGER,
     component: CategoriasPage,
@@ -185,6 +133,7 @@ const CATALOGS: CatalogDefinition[] = [
     label: "Empresa",
     description:
       "Información principal de la organización.",
+    group: "Organización",
     icon: Building2,
     roles: ADMIN_MANAGER,
     component: EmpresaPage,
@@ -193,7 +142,8 @@ const CATALOGS: CatalogDefinition[] = [
     key: "sucursales",
     label: "Sucursales",
     description:
-      "Sedes y puntos operativos de la empresa.",
+      "Sedes y puntos operativos.",
+    group: "Organización",
     icon: MapPin,
     roles: ADMIN_MANAGER,
     component: SucursalesPage,
@@ -202,7 +152,8 @@ const CATALOGS: CatalogDefinition[] = [
     key: "usuarios",
     label: "Usuarios",
     description:
-      "Usuarios autorizados para utilizar SalesIA Enterprise.",
+      "Personas autorizadas para utilizar SalesIA.",
+    group: "Acceso",
     icon: UserRoundCog,
     roles: ADMIN_ONLY,
     component: UsersMaintenance,
@@ -211,7 +162,8 @@ const CATALOGS: CatalogDefinition[] = [
     key: "roles",
     label: "Roles",
     description:
-      "Roles disponibles y niveles de acceso al sistema.",
+      "Perfiles y niveles de acceso.",
+    group: "Acceso",
     icon: ShieldCheck,
     roles: ADMIN_ONLY,
     component: RolesMaintenance,
@@ -219,49 +171,34 @@ const CATALOGS: CatalogDefinition[] = [
 ];
 
 
-function statusStats<T extends {
-  status: string;
-}>(
-  items: T[],
-): CatalogStats {
-  const active =
-    items.filter(
-      (item) =>
-        item.status
-          .toLowerCase()
-          .trim() === "active",
-    ).length;
-
-  return {
-    total: items.length,
-    active,
-    inactive:
-      items.length - active,
-  };
-}
+const GROUP_ORDER: CatalogGroup[] = [
+  "Comercial",
+  "Organización",
+  "Acceso",
+];
 
 
-function formatTime(
-  value: Date | null,
-) {
-  if (!value) {
-    return "Pendiente";
-  }
-
-  return value.toLocaleTimeString(
-    "es-PE",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-  );
-}
-
-
-function MantenimientoPage() {
+export default function MantenimientoPage() {
   const {
     user,
   } = useAuth();
+
+
+  const [
+    selectedCatalog,
+    setSelectedCatalog,
+  ] =
+    useState<CatalogKey>(
+      "clientes",
+    );
+
+
+  const [
+    search,
+    setSearch,
+  ] =
+    useState("");
+
 
   const visibleCatalogs =
     useMemo(
@@ -279,75 +216,43 @@ function MantenimientoPage() {
       ],
     );
 
-  const [
-    selectedCatalog,
-    setSelectedCatalog,
-  ] =
-    useState<CatalogKey>(
-      "clientes",
-    );
-
-  const [
-    catalogSearch,
-    setCatalogSearch,
-  ] =
-    useState("");
-
-  const [
-    summary,
-    setSummary,
-  ] =
-    useState<SummaryState>(
-      INITIAL_SUMMARY,
-    );
-
-  const [
-    summaryLoading,
-    setSummaryLoading,
-  ] =
-    useState(true);
-
-  const [
-    summaryError,
-    setSummaryError,
-  ] =
-    useState<string | null>(
-      null,
-    );
-
-  const [
-    lastUpdated,
-    setLastUpdated,
-  ] =
-    useState<Date | null>(
-      null,
-    );
-
 
   const filteredCatalogs =
     useMemo(
       () => {
-        const term =
-          catalogSearch
+        const query =
+          search
+            .normalize("NFD")
+            .replace(
+              /[\u0300-\u036f]/g,
+              "",
+            )
             .trim()
             .toLowerCase();
 
-        if (!term) {
+        if (!query) {
           return visibleCatalogs;
         }
 
         return visibleCatalogs.filter(
-          (catalog) =>
-            catalog.label
-              .toLowerCase()
-              .includes(term) ||
-            catalog.description
-              .toLowerCase()
-              .includes(term),
+          (catalog) => {
+            const text =
+              `${catalog.label} ${catalog.description} ${catalog.group}`
+                .normalize("NFD")
+                .replace(
+                  /[\u0300-\u036f]/g,
+                  "",
+                )
+                .toLowerCase();
+
+            return text.includes(
+              query,
+            );
+          },
         );
       },
       [
-        catalogSearch,
+        search,
         visibleCatalogs,
       ],
     );
@@ -360,8 +265,8 @@ function MantenimientoPage() {
           (catalog) =>
             catalog.key ===
             selectedCatalog,
-        ) ??
-        visibleCatalogs[0],
+        )
+        ?? visibleCatalogs[0],
       [
         selectedCatalog,
         visibleCatalogs,
@@ -372,8 +277,8 @@ function MantenimientoPage() {
   useEffect(
     () => {
       if (
-        visibleCatalogs.length > 0 &&
-        !visibleCatalogs.some(
+        visibleCatalogs.length > 0
+        && !visibleCatalogs.some(
           (catalog) =>
             catalog.key ===
             selectedCatalog,
@@ -391,157 +296,9 @@ function MantenimientoPage() {
   );
 
 
-  async function loadSummary() {
-    if (!user) {
-      return;
-    }
-
-    setSummaryLoading(true);
-    setSummaryError(null);
-
-    try {
-      const [
-        customers,
-        products,
-        categories,
-        company,
-        branches,
-      ] =
-        await Promise.all([
-          getCustomers(),
-          getProducts(),
-          getCategories(),
-          getCompany(),
-          getBranches(),
-        ]);
-
-      let usersStats =
-        INITIAL_SUMMARY.usuarios;
-
-      let rolesStats =
-        INITIAL_SUMMARY.roles;
-
-      if (
-        user.role ===
-        "Administrador"
-      ) {
-        const [
-          users,
-          roles,
-        ] =
-          await Promise.all([
-            getUsers(),
-            getRoles(),
-          ]);
-
-        usersStats =
-          statusStats(users);
-
-        rolesStats = {
-          total: roles.length,
-          active: roles.length,
-          inactive: 0,
-        };
-      }
-
-      setSummary({
-        clientes:
-          statusStats(
-            customers,
-          ),
-
-        productos:
-          statusStats(
-            products,
-          ),
-
-        categorias:
-          statusStats(
-            categories,
-          ),
-
-        empresa:
-          statusStats([
-            company,
-          ]),
-
-        sucursales:
-          statusStats(
-            branches,
-          ),
-
-        usuarios:
-          usersStats,
-
-        roles:
-          rolesStats,
-      });
-
-      setLastUpdated(
-        new Date(),
-      );
-    } catch (error) {
-      setSummaryError(
-        error instanceof Error
-          ? error.message
-          : "No se pudo actualizar el resumen de mantenimiento.",
-      );
-    } finally {
-      setSummaryLoading(false);
-    }
-  }
-
-
-  useEffect(
-    () => {
-      void loadSummary();
-    },
-    [
-      user?.id,
-    ],
-  );
-
-
-  const overallStats =
-    useMemo(
-      () =>
-        visibleCatalogs.reduce(
-          (
-            accumulator,
-            catalog,
-          ) => {
-            const stats =
-              summary[
-                catalog.key
-              ];
-
-            accumulator.total +=
-              stats.total;
-
-            accumulator.active +=
-              stats.active;
-
-            accumulator.inactive +=
-              stats.inactive;
-
-            return accumulator;
-          },
-          {
-            total: 0,
-            active: 0,
-            inactive: 0,
-          },
-        ),
-      [
-        summary,
-        visibleCatalogs,
-      ],
-    );
-
-
   if (
-    !user ||
-    !currentCatalog
+    !user
+    || !currentCatalog
   ) {
     return null;
   }
@@ -550,13 +307,9 @@ function MantenimientoPage() {
   const CurrentComponent =
     currentCatalog.component;
 
+
   const CurrentIcon =
     currentCatalog.icon;
-
-  const currentStats =
-    summary[
-      currentCatalog.key
-    ];
 
 
   return (
@@ -572,300 +325,170 @@ function MantenimientoPage() {
           </h1>
 
           <p>
-            Administra desde un solo lugar
-            los datos maestros utilizados
-            por SalesIA Enterprise.
+            Gestiona los datos maestros,
+            la organización y los accesos
+            de SalesIA Enterprise.
           </p>
         </div>
-
-        <button
-          type="button"
-          className="maintenance-refresh"
-          onClick={() =>
-            void loadSummary()
-          }
-          disabled={summaryLoading}
-        >
-          <RefreshCw
-            size={17}
-            className={
-              summaryLoading
-                ? "is-spinning"
-                : ""
-            }
-          />
-
-          {summaryLoading
-            ? "Actualizando..."
-            : "Actualizar datos"}
-        </button>
       </header>
 
 
-      <div className="maintenance-stats">
-        <article className="maintenance-stat-card">
-          <div className="maintenance-stat-icon">
-            <Database size={20} />
-          </div>
-
-          <div>
-            <span>
-              Catálogos disponibles
-            </span>
-
-            <strong>
-              {visibleCatalogs.length}
-            </strong>
-
-            <small>
-              según tu nivel de acceso
-            </small>
-          </div>
-        </article>
-
-
-        <article className="maintenance-stat-card">
-          <div className="maintenance-stat-icon">
-            <Settings2 size={20} />
-          </div>
-
-          <div>
-            <span>
-              Registros
-            </span>
-
-            <strong>
-              {overallStats.total}
-            </strong>
-
-            <small>
-              datos maestros registrados
-            </small>
-          </div>
-        </article>
-
-
-        <article className="maintenance-stat-card">
-          <div className="maintenance-stat-icon maintenance-stat-icon-success">
-            <CircleCheckBig
-              size={20}
-            />
-          </div>
-
-          <div>
-            <span>
-              Activos
-            </span>
-
-            <strong>
-              {overallStats.active}
-            </strong>
-
-            <small>
-              registros disponibles
-            </small>
-          </div>
-        </article>
-
-
-        <article className="maintenance-stat-card">
-          <div className="maintenance-stat-icon maintenance-stat-icon-muted">
-            <CircleOff size={20} />
-          </div>
-
-          <div>
-            <span>
-              Inactivos
-            </span>
-
-            <strong>
-              {overallStats.inactive}
-            </strong>
-
-            <small>
-              registros deshabilitados
-            </small>
-          </div>
-        </article>
-      </div>
-
-
-      {summaryError && (
-        <div className="maintenance-warning">
-          <strong>
-            El resumen no pudo actualizarse.
-          </strong>
-
-          <span>
-            {summaryError}
-          </span>
-        </div>
-      )}
-
-
       <div className="maintenance-workspace">
-        <aside className="maintenance-catalog-panel">
-          <div className="maintenance-catalog-heading">
-            <div>
-              <span>
-                Catálogos
-              </span>
+        <aside className="maintenance-navigation">
+          <div className="maintenance-navigation-header">
+            <strong>
+              Módulos
+            </strong>
 
-              <small>
-                Datos maestros
-              </small>
-            </div>
-
-            <span className="maintenance-update-time">
-              {formatTime(
-                lastUpdated,
-              )}
+            <span>
+              Selecciona qué deseas administrar
             </span>
           </div>
 
 
           <label className="maintenance-search">
-            <Search size={17} />
+            <Search
+              size={15}
+            />
 
             <input
               type="search"
-              value={catalogSearch}
-              onChange={(event) =>
-                setCatalogSearch(
-                  event.target.value,
+              value={
+                search
+              }
+              onChange={(
+                event,
+              ) =>
+                setSearch(
+                  event
+                    .target
+                    .value,
                 )
               }
-              placeholder="Buscar catálogo"
+              placeholder="Buscar módulo..."
             />
           </label>
 
 
-          <div className="maintenance-catalog-list">
-            {filteredCatalogs.map(
-              (catalog) => {
-                const Icon =
-                  catalog.icon;
+          <nav className="maintenance-groups">
+            {GROUP_ORDER.map(
+              (group) => {
+                const items =
+                  filteredCatalogs.filter(
+                    (catalog) =>
+                      catalog.group ===
+                      group,
+                  );
 
-                const stats =
-                  summary[
-                    catalog.key
-                  ];
-
-                const selected =
-                  catalog.key ===
-                  currentCatalog.key;
+                if (
+                  items.length === 0
+                ) {
+                  return null;
+                }
 
                 return (
-                  <button
+                  <div
                     key={
-                      catalog.key
+                      group
                     }
-                    type="button"
-                    className={`maintenance-catalog-item ${
-                      selected
-                        ? "is-selected"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      setSelectedCatalog(
-                        catalog.key,
-                      )
-                    }
+                    className="maintenance-group"
                   >
-                    <span className="maintenance-catalog-item-main">
-                      <span className="maintenance-catalog-item-icon">
-                        <Icon
-                          size={18}
-                        />
-                      </span>
-
-                      <span>
-                        <strong>
-                          {
-                            catalog.label
-                          }
-                        </strong>
-
-                        <small>
-                          {
-                            catalog.description
-                          }
-                        </small>
-                      </span>
+                    <span className="maintenance-group-title">
+                      {group}
                     </span>
 
-                    <span className="maintenance-catalog-count">
-                      {
-                        stats.total
-                      }
-                    </span>
-                  </button>
+
+                    <div className="maintenance-group-items">
+                      {items.map(
+                        (
+                          catalog,
+                        ) => {
+                          const Icon =
+                            catalog.icon;
+
+                          const selected =
+                            catalog.key ===
+                            currentCatalog.key;
+
+                          return (
+                            <button
+                              key={
+                                catalog.key
+                              }
+                              type="button"
+                              className={`maintenance-nav-item ${
+                                selected
+                                  ? "is-selected"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                setSelectedCatalog(
+                                  catalog.key,
+                                )
+                              }
+                            >
+                              <span className="maintenance-nav-icon">
+                                <Icon
+                                  size={17}
+                                />
+                              </span>
+
+                              <span className="maintenance-nav-text">
+                                <strong>
+                                  {catalog.label}
+                                </strong>
+
+                                <small>
+                                  {
+                                    catalog
+                                      .description
+                                  }
+                                </small>
+                              </span>
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
                 );
               },
             )}
-          </div>
+
+
+            {filteredCatalogs.length ===
+              0 && (
+              <div className="maintenance-no-results">
+                No se encontraron módulos.
+              </div>
+            )}
+          </nav>
         </aside>
 
 
-        <div className="maintenance-content">
+        <main className="maintenance-content">
           <div className="maintenance-current-header">
-            <div className="maintenance-current-title">
-              <span className="maintenance-current-icon">
-                <CurrentIcon
-                  size={22}
-                />
-              </span>
-
-              <div>
-                <span className="maintenance-current-eyebrow">
-                  Ficha de mantenimiento
-                </span>
-
-                <h2>
-                  {
-                    currentCatalog.label
-                  }
-                </h2>
-
-                <p>
-                  {
-                    currentCatalog.description
-                  }
-                </p>
-              </div>
+            <div className="maintenance-current-icon">
+              <CurrentIcon
+                size={21}
+              />
             </div>
 
+            <div>
+              <span>
+                {currentCatalog.group}
+              </span>
 
-            <div className="maintenance-current-stats">
-              <div>
-                <span>
-                  Total
-                </span>
+              <h2>
+                {currentCatalog.label}
+              </h2>
 
-                <strong>
-                  {currentStats.total}
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Activos
-                </span>
-
-                <strong>
-                  {currentStats.active}
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Inactivos
-                </span>
-
-                <strong>
-                  {currentStats.inactive}
-                </strong>
-              </div>
+              <p>
+                {
+                  currentCatalog
+                    .description
+                }
+              </p>
             </div>
           </div>
 
@@ -873,11 +496,8 @@ function MantenimientoPage() {
           <div className="maintenance-module-host">
             <CurrentComponent />
           </div>
-        </div>
+        </main>
       </div>
     </section>
   );
 }
-
-
-export default MantenimientoPage;

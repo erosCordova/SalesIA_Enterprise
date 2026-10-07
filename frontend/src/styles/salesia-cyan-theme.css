@@ -1,0 +1,2874 @@
+/* =========================================================
+   SALESIA ENTERPRISE
+   IDENTIDAD VISUAL CORPORATIVA
+   Azul + Cyan + Blanco + Gris
+   ========================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* -------------------------------------------------------
+     IDENTIDAD SALESIA
+     ------------------------------------------------------- */
+
+  --salesia-blue: #2563eb;
+  --salesia-blue-dark: #1d4ed8;
+
+  --salesia-cyan: #0ea5b7;
+  --salesia-cyan-hover: #0891b2;
+  --salesia-cyan-soft: #e8f8fb;
+
+  --salesia-sidebar: #0d2735;
+  --salesia-sidebar-2: #102f3e;
+
+  --salesia-white: #ffffff;
+  --salesia-canvas: #f7f9fb;
+  --salesia-surface: #ffffff;
+  --salesia-surface-soft: #f8fafc;
+
+  --salesia-text: #172033;
+  --salesia-text-soft: #475569;
+  --salesia-muted: #64748b;
+  --salesia-muted-light: #94a3b8;
+
+  --salesia-border: #e2e8f0;
+  --salesia-border-cyan: rgba(14, 165, 183, 0.23);
+
+  --salesia-success: #16a34a;
+  --salesia-warning: #d97706;
+  --salesia-danger: #dc2626;
+
+
+  /* -------------------------------------------------------
+     VARIABLES ORIGINALES DEL SISTEMA
+     ------------------------------------------------------- */
+
+  --navy-950: #0d2735;
+  --navy-900: #102f3e;
+  --navy-800: #164457;
+
+  --blue-700: #1d4ed8;
+  --blue-600: #2563eb;
+  --blue-500: #3b82f6;
+  --blue-100: #dbeafe;
+  --blue-50: #eff6ff;
+
+  --cyan-600: #0ea5b7;
+  --cyan-500: #22b8c7;
+  --cyan-100: #cceff3;
+  --cyan-50: #e8f8fb;
+
+  --white: #ffffff;
+
+  --canvas: #f7f9fb;
+  --surface-soft: #f8fafc;
+
+  --slate-950: #0f172a;
+  --slate-900: #1e293b;
+  --slate-800: #334155;
+  --slate-700: #475569;
+  --slate-600: #526170;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+  --slate-50: #f8fafc;
+
+  --success: #16a34a;
+  --success-soft: #f0fdf4;
+
+  --warning: #d97706;
+  --warning-soft: #fff7ed;
+
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+
+
+  /* -------------------------------------------------------
+     ENTERPRISE V2
+     ------------------------------------------------------- */
+
+  --v2-canvas: #f7f9fb;
+  --v2-surface: #ffffff;
+  --v2-surface-soft: #f8fafc;
+
+  --v2-text: #172033;
+  --v2-text-soft: #64748b;
+  --v2-text-muted: #94a3b8;
+
+  --v2-border: #e2e8f0;
+  --v2-border-strong: #d5dee8;
+
+  --v2-primary: #0ea5b7;
+  --v2-primary-hover: #0891b2;
+  --v2-primary-soft: #e8f8fb;
+
+  --v2-cyan: #0ea5b7;
+  --v2-cyan-soft: #e8f8fb;
+
+  --v2-success: #16a34a;
+  --v2-success-soft: #f0fdf4;
+
+  --v2-warning: #d97706;
+  --v2-warning-soft: #fff7ed;
+
+  --v2-danger: #dc2626;
+  --v2-danger-soft: #fef2f2;
+
+  --v2-sidebar: #0d2735;
+  --v2-sidebar-soft: #102f3e;
+
+  --v2-shadow:
+    0 6px 22px rgba(15, 23, 42, 0.045);
+
+  --v2-shadow-lg:
+    0 16px 40px rgba(15, 23, 42, 0.075);
+}
+
+
+/* =========================================================
+   BASE GENERAL
+   ========================================================= */
+
+html,
+body,
+#root {
+  color: var(--salesia-text);
+  background: var(--salesia-canvas);
+}
+
+
+body {
+  background: var(--salesia-canvas);
+}
+
+
+::selection {
+  color: #ffffff;
+  background: var(--salesia-cyan);
+}
+
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--salesia-cyan);
+}
+
+
+/* =========================================================
+   ESTRUCTURA
+   ========================================================= */
+
+.app-shell {
+  background: var(--salesia-canvas) !important;
+}
+
+
+.app-content {
+  min-height: 100vh;
+  background: var(--salesia-canvas) !important;
+}
+
+
+.main-content {
+  color: var(--salesia-text);
+  background: var(--salesia-canvas) !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ÚNICA ZONA OSCURA PRINCIPAL
+   ========================================================= */
+
+.sidebar,
+.sidebar.salesia-sidebar {
+  color: #ffffff;
+
+  border-right:
+    1px solid rgba(14, 165, 183, 0.16) !important;
+
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(14, 165, 183, 0.17),
+      transparent 31%
+    ),
+    linear-gradient(
+      180deg,
+      #0d2735 0%,
+      #102f3e 54%,
+      #0b2330 100%
+    ) !important;
+
+  box-shadow:
+    8px 0 28px rgba(15, 23, 42, 0.08) !important;
+}
+
+
+.sidebar-header {
+  border-bottom-color:
+    rgba(255, 255, 255, 0.07) !important;
+}
+
+
+.brand-icon {
+  color: #ffffff !important;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.12) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--salesia-blue),
+      var(--salesia-cyan)
+    ) !important;
+
+  box-shadow:
+    0 8px 20px
+    rgba(14, 165, 183, 0.18) !important;
+}
+
+
+.brand-text strong {
+  color: #ffffff !important;
+}
+
+
+.brand-text span {
+  color: #88a7b5 !important;
+}
+
+
+.sidebar-section-title {
+  color: #668896 !important;
+}
+
+
+.sidebar-item {
+  color: #9bb0ba !important;
+}
+
+
+.sidebar-item svg {
+  color: #829da9 !important;
+}
+
+
+.sidebar-item:hover {
+  color: #ffffff !important;
+
+  background:
+    rgba(255, 255, 255, 0.05) !important;
+}
+
+
+.sidebar-item:hover svg {
+  color: #42bdca !important;
+}
+
+
+.sidebar-item.active {
+  color: #ffffff !important;
+
+  border-color:
+    rgba(14, 165, 183, 0.28) !important;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(14, 165, 183, 0.27),
+      rgba(37, 99, 235, 0.09)
+    ) !important;
+
+  box-shadow:
+    inset 3px 0 0
+    var(--salesia-cyan) !important;
+}
+
+
+.sidebar-item.active svg {
+  color: #4fc5d0 !important;
+}
+
+
+.sidebar-live-badge {
+  color: #55c7d1 !important;
+
+  border-color:
+    rgba(14, 165, 183, 0.28) !important;
+
+  background:
+    rgba(14, 165, 183, 0.12) !important;
+}
+
+
+.sidebar-profile {
+  border-top-color:
+    rgba(255, 255, 255, 0.07) !important;
+}
+
+
+.profile-avatar {
+  color: #ffffff !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--salesia-blue),
+      var(--salesia-cyan)
+    ) !important;
+}
+
+
+.profile-data strong {
+  color: #f8fafc !important;
+}
+
+
+.profile-data span {
+  color: #819ba8 !important;
+}
+
+
+/* =========================================================
+   TOPBAR
+   ========================================================= */
+
+.topbar {
+  border-bottom:
+    1px solid var(--salesia-border) !important;
+
+  background:
+    rgba(255, 255, 255, 0.97) !important;
+
+  box-shadow:
+    0 3px 16px
+    rgba(15, 23, 42, 0.035) !important;
+
+  backdrop-filter: blur(12px);
+}
+
+
+.topbar strong {
+  color: var(--salesia-text);
+}
+
+
+.topbar-search,
+.search-box {
+  color: var(--salesia-muted);
+
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #f8fafc !important;
+}
+
+
+.topbar-search:focus-within,
+.search-box:focus-within {
+  border-color:
+    var(--salesia-cyan) !important;
+
+  background:
+    #ffffff !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(14, 165, 183, 0.08) !important;
+}
+
+
+.icon-button {
+  color: var(--salesia-muted) !important;
+
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #ffffff !important;
+}
+
+
+.icon-button:hover {
+  color: var(--salesia-cyan) !important;
+
+  border-color:
+    #b9e5e9 !important;
+
+  background:
+    var(--salesia-cyan-soft) !important;
+}
+
+
+/* =========================================================
+   ENCABEZADOS
+   ========================================================= */
+
+.page-heading h1,
+.page-header h1,
+.statistics-heading h1 {
+  color: var(--salesia-text) !important;
+}
+
+
+.page-heading p,
+.page-header p,
+.statistics-heading p {
+  color: var(--salesia-muted) !important;
+}
+
+
+.page-eyebrow,
+.panel-label,
+.statistics-eyebrow,
+.statistics-panel-label {
+  color: var(--salesia-cyan) !important;
+}
+
+
+/* =========================================================
+   PANELES Y TARJETAS
+   ========================================================= */
+
+.panel,
+.stat-card,
+.kpi-card,
+.module-feature-card,
+.module-state,
+.enterprise-data-panel,
+.alert-card,
+.customer-card,
+.insight-card,
+.stat-info-card,
+.statistics-panel,
+.statistics-kpi,
+.statistics-empty,
+.statistics-loading,
+.modal-card {
+  color: var(--salesia-text);
+
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #ffffff !important;
+
+  box-shadow:
+    0 6px 22px
+    rgba(15, 23, 42, 0.045) !important;
+}
+
+
+/* Azul y cyan conviven en los detalles */
+
+.stat-card:nth-child(odd)::before,
+.statistics-kpi-primary::before {
+  background:
+    linear-gradient(
+      90deg,
+      var(--salesia-blue),
+      #3b82f6
+    ) !important;
+}
+
+
+.stat-card:nth-child(even)::before,
+.statistics-kpi-cyan::before {
+  background:
+    linear-gradient(
+      90deg,
+      var(--salesia-cyan-hover),
+      var(--salesia-cyan)
+    ) !important;
+}
+
+
+.stat-icon,
+.kpi-icon,
+.module-main-icon,
+.module-feature-icon,
+.statistics-heading-icon {
+  color:
+    var(--salesia-cyan) !important;
+
+  border-color:
+    #cceff3 !important;
+
+  background:
+    var(--salesia-cyan-soft) !important;
+}
+
+
+.stat-card:nth-child(odd) .stat-icon,
+.kpi-card:nth-child(odd) .kpi-icon {
+  color:
+    var(--salesia-blue) !important;
+
+  background:
+    var(--blue-50) !important;
+}
+
+
+/* =========================================================
+   PANELES DE INFORMACIÓN
+   ========================================================= */
+
+.panel-header h2,
+.panel-header h3,
+.statistics-panel-header h2,
+.statistics-info-panel h2 {
+  color: var(--salesia-text) !important;
+}
+
+
+.panel-header p {
+  color: var(--salesia-muted) !important;
+}
+
+
+/* =========================================================
+   TABLAS
+   ========================================================= */
+
+.table-toolbar {
+  border-bottom:
+    1px solid var(--salesia-border) !important;
+
+  background:
+    #ffffff !important;
+}
+
+
+.table-search {
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #f8fafc !important;
+}
+
+
+.enterprise-table th,
+.sales-table th,
+table thead th {
+  color: #64748b !important;
+
+  border-bottom-color:
+    #e2e8f0 !important;
+
+  background:
+    #f8fafc !important;
+}
+
+
+.enterprise-table td,
+.sales-table td,
+table tbody td {
+  color: #475569 !important;
+
+  border-bottom-color:
+    #edf2f7 !important;
+
+  background:
+    #ffffff;
+}
+
+
+.enterprise-table td strong,
+.sales-table td strong,
+table tbody td strong {
+  color:
+    var(--salesia-text) !important;
+}
+
+
+.enterprise-table tbody tr:hover,
+.sales-table tbody tr:hover,
+table tbody tr:hover {
+  background:
+    #f1fbfc !important;
+}
+
+
+/* =========================================================
+   FORMULARIOS
+   ========================================================= */
+
+input,
+select,
+textarea,
+.enterprise-form input,
+.enterprise-form select,
+.enterprise-form textarea,
+.form-grid input,
+.form-grid select,
+.form-grid textarea,
+.statistics-form textarea {
+  color: #334155 !important;
+
+  border-color:
+    #d8e2e8 !important;
+
+  background:
+    #ffffff !important;
+}
+
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color:
+    var(--salesia-cyan) !important;
+
+  background:
+    #ffffff !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(14, 165, 183, 0.09) !important;
+}
+
+
+/* =========================================================
+   BOTONES
+   ========================================================= */
+
+.primary-button,
+.statistics-primary-button,
+.dashboard-retry-button {
+  color: #ffffff !important;
+
+  border-color:
+    var(--salesia-cyan) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0ea5b7,
+      #0891b2
+    ) !important;
+
+  box-shadow:
+    0 5px 15px
+    rgba(14, 165, 183, 0.18) !important;
+}
+
+
+.primary-button:hover,
+.statistics-primary-button:hover:not(:disabled),
+.dashboard-retry-button:hover {
+  background:
+    linear-gradient(
+      135deg,
+      #0891b2,
+      #0e7490
+    ) !important;
+}
+
+
+.secondary-button,
+.statistics-secondary-button,
+.date-filter-button {
+  color: #475569 !important;
+
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #ffffff !important;
+}
+
+
+.secondary-button:hover,
+.statistics-secondary-button:hover:not(:disabled),
+.date-filter-button:hover {
+  color:
+    var(--salesia-cyan-hover) !important;
+
+  border-color:
+    #b7e5e9 !important;
+
+  background:
+    var(--salesia-cyan-soft) !important;
+}
+
+
+/* =========================================================
+   ESTADOS
+   ========================================================= */
+
+.status-success,
+.status-badge.success {
+  color: #15803d !important;
+  background: #f0fdf4 !important;
+}
+
+
+.status-warning,
+.status-badge.pending {
+  color: #b45309 !important;
+  background: #fffbeb !important;
+}
+
+
+.status-danger {
+  color: #b91c1c !important;
+  background: #fef2f2 !important;
+}
+
+
+.status-neutral,
+.status-badge.inactive {
+  color: #64748b !important;
+  background: #f1f5f9 !important;
+}
+
+
+/* =========================================================
+   MODALES
+   ========================================================= */
+
+.modal-backdrop {
+  background:
+    rgba(15, 23, 42, 0.45) !important;
+}
+
+
+.modal-header {
+  border-bottom-color:
+    var(--salesia-border) !important;
+}
+
+
+.modal-header h2 {
+  color:
+    var(--salesia-text) !important;
+}
+
+
+.modal-header p {
+  color:
+    var(--salesia-muted) !important;
+}
+
+
+/* =========================================================
+   INVENTARIO
+   ========================================================= */
+
+.stock-item {
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #ffffff !important;
+}
+
+
+.stock-icon {
+  color:
+    var(--salesia-cyan) !important;
+
+  background:
+    var(--salesia-cyan-soft) !important;
+}
+
+
+.inventory-button {
+  color:
+    var(--salesia-cyan-hover) !important;
+
+  border-color:
+    #cceff3 !important;
+
+  background:
+    var(--salesia-cyan-soft) !important;
+}
+
+
+/* =========================================================
+   VARIANZA Y DESVIACIÓN
+   ========================================================= */
+
+.statistics-info-panel {
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #f4fbfc
+    ) !important;
+}
+
+
+.statistics-definition {
+  border-bottom-color:
+    #edf2f7 !important;
+}
+
+
+.statistics-definition strong {
+  color:
+    #334155 !important;
+}
+
+
+.statistics-definition p,
+.statistics-form small,
+.statistics-note {
+  color:
+    #64748b !important;
+}
+
+
+.statistics-formula,
+.statistics-interpretation {
+  border-color:
+    #cceff3 !important;
+
+  background:
+    #f1fbfc !important;
+}
+
+
+.statistics-formula strong {
+  color:
+    var(--salesia-cyan-hover) !important;
+}
+
+
+.statistics-summary-list > div {
+  border-bottom-color:
+    #edf2f7 !important;
+}
+
+
+.statistics-summary-list span {
+  color:
+    #64748b !important;
+}
+
+
+.statistics-summary-list strong {
+  color:
+    #334155 !important;
+}
+
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+.dashboard-error-state,
+.dashboard-empty-state {
+  color:
+    var(--salesia-text);
+
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #ffffff !important;
+}
+
+
+.dashboard-error-state h2,
+.dashboard-empty-state h2 {
+  color:
+    var(--salesia-text) !important;
+}
+
+
+.dashboard-error-state p,
+.dashboard-empty-state p {
+  color:
+    var(--salesia-muted) !important;
+}
+
+
+.dashboard-list-item {
+  border-bottom-color:
+    #edf2f7 !important;
+}
+
+
+.dashboard-list-item strong,
+.dashboard-list-value strong {
+  color:
+    #334155 !important;
+}
+
+
+.dashboard-list-item span,
+.dashboard-list-item small {
+  color:
+    #64748b !important;
+}
+
+
+/* =========================================================
+   GRÁFICOS
+   ========================================================= */
+
+.recharts-cartesian-grid line {
+  stroke:
+    #e7edf1;
+}
+
+
+.recharts-text {
+  fill:
+    #64748b;
+}
+
+
+.recharts-default-tooltip {
+  color:
+    var(--salesia-text) !important;
+
+  border:
+    1px solid
+    var(--salesia-border) !important;
+
+  border-radius:
+    9px !important;
+
+  background:
+    #ffffff !important;
+
+  box-shadow:
+    0 10px 28px
+    rgba(15, 23, 42, 0.1) !important;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.app-loading-screen {
+  background:
+    var(--salesia-canvas) !important;
+}
+
+
+.app-loading-card {
+  color:
+    var(--salesia-text) !important;
+
+  border-color:
+    var(--salesia-border) !important;
+
+  background:
+    #ffffff !important;
+}
+
+
+.app-loading-mark {
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--salesia-blue),
+      var(--salesia-cyan)
+    ) !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 880px) {
+  .sidebar-overlay {
+    background:
+      rgba(15, 23, 42, 0.46) !important;
+  }
+}
+
+
+/* =========================================================
+   AJUSTE FINAL SIDEBAR SALESIA
+   CYAN CORPORATIVO - NO NAVY / NO NEGRO
+   ========================================================= */
+
+.sidebar,
+.sidebar.salesia-sidebar {
+  border-right:
+    1px solid rgba(14, 165, 183, 0.28) !important;
+
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(103, 232, 249, 0.20),
+      transparent 32%
+    ),
+    linear-gradient(
+      180deg,
+      #0e8194 0%,
+      #0c7b8e 48%,
+      #0b7184 100%
+    ) !important;
+
+  box-shadow:
+    8px 0 26px
+    rgba(14, 116, 144, 0.13) !important;
+}
+
+
+/* Encabezado */
+
+.sidebar-header {
+  border-bottom:
+    1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+
+.brand-icon {
+  border:
+    1px solid rgba(255, 255, 255, 0.22) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #22b8c7
+    ) !important;
+
+  box-shadow:
+    0 7px 18px
+    rgba(8, 145, 178, 0.24) !important;
+}
+
+
+.brand-text strong {
+  color: #ffffff !important;
+}
+
+
+.brand-text span {
+  color: #b8e1e8 !important;
+}
+
+
+/* Secciones */
+
+.sidebar-section-title {
+  color: #b5dde4 !important;
+}
+
+
+/* Opciones */
+
+.sidebar-item {
+  color: #d2edf1 !important;
+}
+
+
+.sidebar-item svg {
+  color: #b7e2e7 !important;
+}
+
+
+.sidebar-item:hover {
+  color: #ffffff !important;
+
+  background:
+    rgba(255, 255, 255, 0.11) !important;
+}
+
+
+.sidebar-item:hover svg {
+  color: #ffffff !important;
+}
+
+
+/* Opción activa */
+
+.sidebar-item.active {
+  color: #ffffff !important;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.17) !important;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.20),
+      rgba(255, 255, 255, 0.09)
+    ) !important;
+
+  box-shadow:
+    inset 3px 0 0 #67e8f9,
+    0 5px 15px rgba(8, 90, 105, 0.11) !important;
+}
+
+
+.sidebar-item.active svg {
+  color: #ffffff !important;
+}
+
+
+/* LIVE */
+
+.sidebar-live-badge {
+  color: #e7fbfd !important;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.24) !important;
+
+  background:
+    rgba(255, 255, 255, 0.13) !important;
+}
+
+
+/* Perfil inferior */
+
+.sidebar-profile {
+  border-top:
+    1px solid rgba(255, 255, 255, 0.14) !important;
+
+  background:
+    rgba(5, 74, 87, 0.16) !important;
+}
+
+
+.profile-avatar {
+  color: #ffffff !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #22b8c7
+    ) !important;
+}
+
+
+.profile-data strong {
+  color: #ffffff !important;
+}
+
+
+.profile-data span {
+  color: #c5e5ea !important;
+}
+
+
+/* =========================================================
+   REFINAMIENTO VISUAL COMERCIAL SALESIA
+   SOLO ESTILO - SIN TOCAR LOGICA
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   SIDEBAR MÁS COMERCIAL Y MODERNO
+   --------------------------------------------------------- */
+
+.sidebar,
+.sidebar.salesia-sidebar {
+  position: relative;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 0% 0%,
+      rgba(255, 255, 255, 0.16),
+      transparent 20%
+    ),
+    radial-gradient(
+      circle at 100% 10%,
+      rgba(103, 232, 249, 0.20),
+      transparent 24%
+    ),
+    linear-gradient(
+      180deg,
+      #1493a5 0%,
+      #11889a 22%,
+      #0f7f91 45%,
+      #0d7889 68%,
+      #0b7184 100%
+    ) !important;
+
+  box-shadow:
+    10px 0 28px rgba(8, 145, 178, 0.14),
+    inset -1px 0 0 rgba(255, 255, 255, 0.09) !important;
+}
+
+
+.sidebar.salesia-sidebar::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.07),
+      transparent 16%,
+      transparent 82%,
+      rgba(0, 0, 0, 0.05)
+    );
+}
+
+
+.sidebar.salesia-sidebar::after {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.18),
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.14)
+    );
+}
+
+
+.sidebar-header {
+  position: relative;
+  z-index: 1;
+
+  padding-bottom: 18px !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05),
+      transparent
+    ) !important;
+}
+
+
+.brand-icon {
+  position: relative;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.26) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #4f8cff 0%,
+      #22c1d6 100%
+    ) !important;
+
+  box-shadow:
+    0 10px 24px rgba(10, 120, 140, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+}
+
+
+.brand-icon::after {
+  content: "";
+
+  position: absolute;
+  inset: 1px;
+
+  border-radius: inherit;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.24),
+      transparent 45%
+    );
+}
+
+
+.brand-text strong {
+  letter-spacing: 0.01em;
+}
+
+
+.brand-text span {
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase;
+}
+
+
+.sidebar-section {
+  position: relative;
+  z-index: 1;
+}
+
+
+.sidebar-section-title {
+  margin-bottom: 10px !important;
+
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+}
+
+
+.sidebar-item {
+  position: relative;
+
+  min-height: 46px;
+
+  padding:
+    0 14px !important;
+
+  border:
+    1px solid transparent !important;
+
+  border-radius: 14px !important;
+
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease !important;
+}
+
+
+.sidebar-item::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  border-radius: inherit;
+
+  opacity: 0;
+
+  transition: opacity 0.18s ease;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.03)
+    );
+}
+
+
+.sidebar-item:hover {
+  transform: translateX(3px);
+
+  border-color:
+    rgba(255, 255, 255, 0.10) !important;
+
+  box-shadow:
+    0 8px 18px rgba(7, 86, 99, 0.11) !important;
+}
+
+
+.sidebar-item:hover::before {
+  opacity: 1;
+}
+
+
+.sidebar-item.active {
+  transform: translateX(2px);
+
+  border:
+    1px solid rgba(255, 255, 255, 0.22) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.21),
+      rgba(255, 255, 255, 0.08)
+    ) !important;
+
+  box-shadow:
+    inset 3px 0 0 #9bf6ff,
+    0 10px 22px rgba(6, 83, 97, 0.16) !important;
+}
+
+
+.sidebar-item.active::before {
+  opacity: 1;
+}
+
+
+.sidebar-item-label {
+  font-weight: 600 !important;
+}
+
+
+.sidebar-live-badge {
+  border-radius: 999px !important;
+
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+
+.sidebar-profile {
+  position: relative;
+  z-index: 1;
+
+  margin: 14px 10px 10px !important;
+  padding: 14px !important;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.12) !important;
+
+  border-radius: 16px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.11),
+      rgba(255, 255, 255, 0.05)
+    ) !important;
+
+  box-shadow:
+    0 10px 24px rgba(5, 77, 90, 0.12) !important;
+}
+
+
+.profile-avatar {
+  box-shadow:
+    0 10px 20px rgba(37, 99, 235, 0.18) !important;
+}
+
+
+/* ---------------------------------------------------------
+   TOPBAR MÁS EJECUTIVO
+   --------------------------------------------------------- */
+
+.topbar {
+  border-bottom:
+    1px solid #e6edf2 !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.96)
+    ) !important;
+
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, 0.035) !important;
+}
+
+
+.topbar-search,
+.search-box {
+  border-radius: 14px !important;
+}
+
+
+.icon-button {
+  border-radius: 14px !important;
+}
+
+
+/* ---------------------------------------------------------
+   CONTENIDO GENERAL MÁS COMERCIAL
+   --------------------------------------------------------- */
+
+.app-content,
+.main-content {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(14, 165, 183, 0.04),
+      transparent 22%
+    ),
+    linear-gradient(
+      180deg,
+      #f8fbfd 0%,
+      #f5f8fb 100%
+    ) !important;
+}
+
+
+.page-heading h1,
+.page-header h1,
+.statistics-heading h1 {
+  letter-spacing: -0.04em !important;
+}
+
+
+.page-heading p,
+.page-header p,
+.statistics-heading p {
+  max-width: 900px;
+}
+
+
+/* ---------------------------------------------------------
+   TARJETAS Y PANELES MÁS INTERESANTES
+   --------------------------------------------------------- */
+
+.panel,
+.stat-card,
+.kpi-card,
+.module-feature-card,
+.module-state,
+.enterprise-data-panel,
+.alert-card,
+.customer-card,
+.insight-card,
+.stat-info-card,
+.statistics-panel,
+.statistics-kpi,
+.statistics-empty,
+.statistics-loading,
+.modal-card {
+  position: relative;
+  overflow: hidden;
+
+  border-radius: 18px !important;
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.05),
+    0 2px 8px rgba(15, 23, 42, 0.025) !important;
+}
+
+
+.panel::before,
+.stat-card::before,
+.kpi-card::before,
+.statistics-panel::before,
+.statistics-kpi::before {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+
+.panel:hover,
+.stat-card:hover,
+.kpi-card:hover,
+.module-feature-card:hover,
+.enterprise-data-panel:hover,
+.statistics-panel:hover,
+.statistics-kpi:hover {
+  transform: translateY(-2px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  box-shadow:
+    0 14px 34px rgba(15, 23, 42, 0.065),
+    0 3px 10px rgba(15, 23, 42, 0.03) !important;
+}
+
+
+.stat-icon,
+.kpi-icon,
+.module-main-icon,
+.module-feature-icon,
+.statistics-heading-icon {
+  border-radius: 16px !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 8px 16px rgba(14, 165, 183, 0.09) !important;
+}
+
+
+/* ---------------------------------------------------------
+   BOTONES MÁS COMERCIALES
+   --------------------------------------------------------- */
+
+.primary-button,
+.statistics-primary-button,
+.dashboard-retry-button {
+  border-radius: 14px !important;
+
+  box-shadow:
+    0 10px 22px rgba(14, 165, 183, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+
+.primary-button:hover,
+.statistics-primary-button:hover:not(:disabled),
+.dashboard-retry-button:hover {
+  transform: translateY(-1px);
+}
+
+
+.secondary-button,
+.statistics-secondary-button,
+.date-filter-button {
+  border-radius: 14px !important;
+}
+
+
+/* ---------------------------------------------------------
+   TABLAS MÁS LIMPIAS Y COMERCIALES
+   --------------------------------------------------------- */
+
+.table-toolbar {
+  border-bottom:
+    1px solid #ebf1f4 !important;
+}
+
+
+.enterprise-table,
+.sales-table,
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+
+.enterprise-table tbody tr,
+.sales-table tbody tr,
+table tbody tr {
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+
+.enterprise-table tbody tr:hover,
+.sales-table tbody tr:hover,
+table tbody tr:hover {
+  transform: scale(1.001);
+}
+
+
+/* ---------------------------------------------------------
+   RECHARTS / GRAFICOS
+   --------------------------------------------------------- */
+
+.recharts-default-tooltip {
+  border-radius: 14px !important;
+}
+
+
+/* ---------------------------------------------------------
+   DASHBOARD HERO MÁS PREMIUM
+   --------------------------------------------------------- */
+
+.dashboard-hero,
+.dashboard-summary-hero,
+.dashboard-banner,
+.dashboard-commercial-summary {
+  position: relative;
+  overflow: hidden;
+
+  border-radius: 22px !important;
+
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(103, 232, 249, 0.22),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      #0e8da0 0%,
+      #0d8092 44%,
+      #145acb 100%
+    ) !important;
+
+  box-shadow:
+    0 18px 36px rgba(14, 165, 183, 0.15) !important;
+}
+
+
+.dashboard-hero::after,
+.dashboard-summary-hero::after,
+.dashboard-banner::after,
+.dashboard-commercial-summary::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.10),
+      transparent 28%
+    );
+}
+
+
+/* =========================================================
+   SALESIA ENTERPRISE
+   RESPONSIVE GLOBAL
+   Desktop / Laptop / Tablet / Mobile
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   PROTECCIÓN GENERAL CONTRA DESBORDAMIENTOS
+   --------------------------------------------------------- */
+
+html,
+body,
+#root,
+.app-shell,
+.app-content,
+.main-content {
+  width: 100%;
+  max-width: 100%;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+.app-shell,
+.app-content,
+.main-content,
+.page,
+.panel,
+.dashboard-grid,
+.bottom-grid,
+.kpi-grid {
+  min-width: 0;
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
+}
+
+.main-content {
+  overflow-x: hidden;
+}
+
+
+/* ---------------------------------------------------------
+   CONTENIDO PRINCIPAL
+   --------------------------------------------------------- */
+
+.app-content {
+  width: calc(100% - 272px);
+  margin-left: 272px;
+}
+
+.main-content {
+  width: 100%;
+  padding:
+    clamp(18px, 2vw, 30px);
+}
+
+
+/* ---------------------------------------------------------
+   ELEMENTOS GRID: PROTECCIÓN
+   --------------------------------------------------------- */
+
+.kpi-grid,
+.dashboard-grid,
+.bottom-grid,
+.statistics-layout,
+.statistics-result-grid,
+.statistics-kpi-grid,
+.stat-card-grid,
+.insight-grid,
+.alert-grid,
+.customer-grid,
+.form-grid {
+  width: 100%;
+}
+
+.kpi-grid > *,
+.dashboard-grid > *,
+.bottom-grid > *,
+.statistics-layout > *,
+.statistics-result-grid > *,
+.statistics-kpi-grid > *,
+.stat-card-grid > *,
+.insight-grid > *,
+.alert-grid > *,
+.customer-grid > * {
+  min-width: 0;
+}
+
+
+/* ---------------------------------------------------------
+   TABLAS
+   --------------------------------------------------------- */
+
+.table-wrapper,
+.enterprise-table-wrapper,
+.sales-table-wrapper,
+.table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.enterprise-table,
+.sales-table,
+table {
+  width: 100%;
+}
+
+
+/* =========================================================
+   PANTALLAS GRANDES
+   1600px o menos
+   ========================================================= */
+
+@media (max-width: 1600px) {
+  .main-content {
+    padding:
+      26px;
+  }
+
+  .kpi-grid,
+  .statistics-kpi-grid {
+    gap: 14px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns:
+      minmax(0, 1.55fr)
+      minmax(280px, 0.75fr);
+  }
+
+  .bottom-grid {
+    grid-template-columns:
+      minmax(0, 1.35fr)
+      minmax(300px, 0.8fr);
+  }
+}
+
+
+/* =========================================================
+   LAPTOPS
+   1366px o menos
+   ========================================================= */
+
+@media (max-width: 1366px) {
+  .main-content {
+    padding:
+      22px;
+  }
+
+  .kpi-grid,
+  .statistics-kpi-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .dashboard-grid,
+  .bottom-grid,
+  .statistics-result-grid {
+    grid-template-columns:
+      minmax(0, 1.35fr)
+      minmax(280px, 0.8fr);
+  }
+
+  .panel,
+  .stat-card,
+  .kpi-card,
+  .statistics-panel,
+  .statistics-kpi {
+    padding:
+      18px !important;
+  }
+
+  .chart-container {
+    height:
+      285px;
+  }
+
+  .statistics-chart {
+    height:
+      290px;
+  }
+}
+
+
+/* =========================================================
+   TABLETS HORIZONTALES / LAPTOP PEQUEÑA
+   1100px o menos
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .dashboard-grid,
+  .bottom-grid,
+  .statistics-layout,
+  .statistics-result-grid,
+  .stat-analysis-layout {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+  .insight-grid,
+  .alert-grid,
+  .customer-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .page-header,
+  .statistics-heading {
+    align-items:
+      flex-start !important;
+
+    gap:
+      18px;
+
+    flex-wrap:
+      wrap;
+  }
+
+  .hero,
+  .dashboard-hero,
+  .dashboard-summary-hero {
+    flex-wrap:
+      wrap;
+  }
+
+  .chart-container,
+  .chart-container.medium {
+    height:
+      270px;
+  }
+}
+
+
+/* =========================================================
+   TABLET / NAVEGACIÓN MÓVIL
+   880px o menos
+   ========================================================= */
+
+@media (max-width: 880px) {
+  .app-content {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .sidebar,
+  .sidebar.salesia-sidebar {
+    width: 272px !important;
+
+    transform:
+      translateX(-105%);
+
+    transition:
+      transform 0.26s ease,
+      box-shadow 0.26s ease !important;
+
+    box-shadow:
+      14px 0 38px
+      rgba(15, 23, 42, 0.18) !important;
+  }
+
+  .sidebar.sidebar-open,
+  .salesia-sidebar.sidebar-open {
+    transform:
+      translateX(0);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+
+    z-index: 49;
+
+    inset: 0;
+
+    display: block;
+
+    border: 0;
+
+    background:
+      rgba(15, 23, 42, 0.42) !important;
+
+    backdrop-filter:
+      blur(2px);
+  }
+
+  .sidebar-close {
+    display:
+      grid !important;
+
+    place-items:
+      center;
+
+    width:
+      34px;
+
+    height:
+      34px;
+
+    margin-left:
+      auto;
+
+    border:
+      1px solid rgba(255,255,255,.15);
+
+    border-radius:
+      10px;
+
+    color:
+      white;
+
+    background:
+      rgba(255,255,255,.08);
+  }
+
+  .main-content {
+    padding:
+      20px;
+  }
+
+  .topbar {
+    min-width:
+      0;
+
+    padding-left:
+      18px !important;
+
+    padding-right:
+      18px !important;
+  }
+
+  .kpi-grid,
+  .statistics-kpi-grid,
+  .stat-card-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .insight-grid,
+  .alert-grid,
+  .customer-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .toolbar {
+    flex-wrap:
+      wrap;
+  }
+
+  .filter-bar {
+    flex-wrap:
+      wrap;
+  }
+
+  .page-header,
+  .statistics-heading {
+    flex-direction:
+      column;
+
+    align-items:
+      stretch !important;
+  }
+
+  .page-header > *,
+  .statistics-heading > * {
+    max-width:
+      100%;
+  }
+}
+
+
+/* =========================================================
+   TABLETS VERTICALES / CELULARES GRANDES
+   700px o menos
+   ========================================================= */
+
+@media (max-width: 700px) {
+  .main-content {
+    padding:
+      16px;
+  }
+
+  .kpi-grid,
+  .statistics-kpi-grid,
+  .stat-card-grid,
+  .insight-grid,
+  .alert-grid,
+  .customer-grid {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+  .panel,
+  .stat-card,
+  .kpi-card,
+  .statistics-panel,
+  .statistics-kpi,
+  .module-feature-card {
+    border-radius:
+      15px !important;
+  }
+
+  .statistics-heading-icon {
+    display:
+      none;
+  }
+
+  .chart-container,
+  .chart-container.medium,
+  .statistics-chart {
+    height:
+      245px;
+  }
+
+  .form-grid {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+  .form-grid label.full {
+    grid-column:
+      auto !important;
+  }
+
+  .toolbar {
+    align-items:
+      stretch;
+
+    flex-direction:
+      column;
+  }
+
+  .toolbar > *,
+  .search-box {
+    width:
+      100% !important;
+
+    max-width:
+      none !important;
+  }
+
+  .filter-bar {
+    align-items:
+      stretch;
+
+    flex-direction:
+      column;
+  }
+
+  .filter-bar select,
+  .filter-bar input,
+  .filter-bar button {
+    width:
+      100%;
+  }
+
+  .statistics-form-actions {
+    align-items:
+      stretch;
+
+    flex-direction:
+      column;
+  }
+
+  .statistics-form-actions button {
+    width:
+      100%;
+  }
+
+  .page-header h1,
+  .statistics-heading h1 {
+    font-size:
+      clamp(24px, 8vw, 30px) !important;
+  }
+}
+
+
+/* =========================================================
+   CELULARES
+   540px o menos
+   ========================================================= */
+
+@media (max-width: 540px) {
+  .main-content {
+    padding:
+      13px;
+  }
+
+  .topbar {
+    height:
+      62px !important;
+
+    padding:
+      0 12px !important;
+  }
+
+  .topbar-actions {
+    gap:
+      7px !important;
+  }
+
+  .environment {
+    display:
+      none !important;
+  }
+
+  .profile-info {
+    display:
+      none !important;
+  }
+
+  .icon-button {
+    width:
+      36px !important;
+
+    height:
+      36px !important;
+  }
+
+  .panel,
+  .stat-card,
+  .kpi-card,
+  .statistics-panel,
+  .statistics-kpi {
+    padding:
+      15px !important;
+  }
+
+  .page-heading h1,
+  .page-header h1,
+  .statistics-heading h1 {
+    font-size:
+      24px !important;
+
+    line-height:
+      1.15;
+  }
+
+  .page-heading p,
+  .page-header p,
+  .statistics-heading p {
+    font-size:
+      11px !important;
+  }
+
+  .kpi-value,
+  .statistics-kpi strong {
+    font-size:
+      21px !important;
+  }
+
+  .panel-header {
+    gap:
+      10px;
+
+    flex-wrap:
+      wrap;
+  }
+
+  .panel-header > * {
+    min-width:
+      0;
+  }
+
+  .chart-container,
+  .chart-container.medium,
+  .statistics-chart {
+    height:
+      220px;
+  }
+
+  .table-wrapper {
+    margin:
+      0 -4px;
+  }
+
+  table {
+    min-width:
+      600px;
+  }
+
+  .modal-card,
+  .modal-content {
+    width:
+      calc(100vw - 24px) !important;
+
+    max-width:
+      calc(100vw - 24px) !important;
+
+    max-height:
+      calc(100vh - 30px);
+
+    overflow-y:
+      auto;
+  }
+}
+
+
+/* =========================================================
+   CELULARES PEQUEÑOS
+   390px o menos
+   ========================================================= */
+
+@media (max-width: 390px) {
+  .main-content {
+    padding:
+      10px;
+  }
+
+  .sidebar,
+  .sidebar.salesia-sidebar {
+    width:
+      min(88vw, 290px) !important;
+  }
+
+  .brand-text strong {
+    font-size:
+      15px !important;
+  }
+
+  .brand-text span {
+    font-size:
+      7px !important;
+  }
+
+  .sidebar-item {
+    min-height:
+      43px;
+  }
+
+  .panel,
+  .stat-card,
+  .kpi-card,
+  .statistics-panel,
+  .statistics-kpi {
+    padding:
+      13px !important;
+
+    border-radius:
+      14px !important;
+  }
+
+  .page-heading h1,
+  .page-header h1,
+  .statistics-heading h1 {
+    font-size:
+      22px !important;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .statistics-primary-button,
+  .statistics-secondary-button {
+    width:
+      100%;
+  }
+
+  .chart-container,
+  .chart-container.medium,
+  .statistics-chart {
+    height:
+      205px;
+  }
+}
+
+
+/* =========================================================
+   SALESIA - NORMALIZACION FINAL DEL LAYOUT
+   Más compacto, comercial y responsive
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   ESTRUCTURA DESKTOP
+   --------------------------------------------------------- */
+
+.app-shell {
+  display: block !important;
+  width: 100%;
+  min-height: 100vh;
+}
+
+
+.sidebar,
+.sidebar.salesia-sidebar {
+  position: fixed !important;
+
+  top: 0;
+  left: 0;
+  bottom: 0;
+
+  width: 272px !important;
+  height: 100vh;
+
+  z-index: 50;
+}
+
+
+.app-content {
+  width: auto !important;
+  min-width: 0 !important;
+
+  margin-left: 272px !important;
+
+  background: #f7f9fb !important;
+}
+
+
+.topbar {
+  width: 100% !important;
+
+  margin: 0 !important;
+
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+
+.main-content {
+  width: 100% !important;
+  max-width: none !important;
+
+  margin: 0 !important;
+
+  padding:
+    22px
+    24px
+    30px !important;
+}
+
+
+/* ---------------------------------------------------------
+   LAS PAGINAS USAN TODO EL ANCHO DISPONIBLE
+   --------------------------------------------------------- */
+
+.dashboard-page,
+.module-page,
+.statistics-page,
+.maintenance-page,
+.analytics-page,
+.inventory-page,
+.sales-page {
+  width: 100% !important;
+  max-width: none !important;
+
+  margin: 0 !important;
+}
+
+
+/* ---------------------------------------------------------
+   CABECERA MÁS COMPACTA
+   --------------------------------------------------------- */
+
+.page-heading,
+.statistics-heading {
+  gap: 18px !important;
+
+  margin-bottom: 16px !important;
+}
+
+
+.page-heading h1,
+.statistics-heading h1 {
+  margin-top: 1px;
+}
+
+
+.page-heading p,
+.statistics-heading p {
+  margin-top: 5px !important;
+}
+
+
+/* ---------------------------------------------------------
+   RESUMEN DEL DASHBOARD
+   --------------------------------------------------------- */
+
+.dashboard-highlight {
+  gap: 20px !important;
+
+  margin-bottom: 14px !important;
+
+  padding:
+    20px
+    24px !important;
+
+  border-radius: 18px !important;
+}
+
+
+/* ---------------------------------------------------------
+   KPI MÁS JUNTOS
+   --------------------------------------------------------- */
+
+.stats-grid,
+.kpi-grid,
+.statistics-kpi-grid {
+  gap: 12px !important;
+
+  margin-bottom: 14px !important;
+}
+
+
+.stat-card,
+.kpi-card,
+.statistics-kpi {
+  padding: 16px !important;
+}
+
+
+/* ---------------------------------------------------------
+   PANELES DEL DASHBOARD
+   --------------------------------------------------------- */
+
+.dashboard-main-grid,
+.dashboard-secondary-grid {
+  width: 100%;
+
+  gap: 12px !important;
+}
+
+
+.dashboard-main-grid {
+  margin-bottom: 14px !important;
+}
+
+
+.panel {
+  padding: 18px !important;
+}
+
+
+.panel-header {
+  margin-bottom: 13px !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENOS ESPACIO VERTICAL ENTRE ELEMENTOS
+   --------------------------------------------------------- */
+
+.module-page,
+.dashboard-page,
+.statistics-page {
+  row-gap: 14px;
+}
+
+
+.table-panel,
+.enterprise-data-panel {
+  margin-bottom: 14px !important;
+}
+
+
+/* ---------------------------------------------------------
+   TARJETAS MÁS COMERCIALES
+   --------------------------------------------------------- */
+
+.stat-card,
+.panel,
+.kpi-card,
+.statistics-panel,
+.statistics-kpi,
+.enterprise-data-panel {
+  border-radius: 16px !important;
+
+  box-shadow:
+    0 5px 18px rgba(15, 23, 42, 0.045),
+    0 1px 4px rgba(15, 23, 42, 0.025) !important;
+}
+
+
+.stat-card:hover,
+.panel:hover,
+.kpi-card:hover,
+.statistics-panel:hover,
+.statistics-kpi:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 9px 22px rgba(15, 23, 42, 0.065) !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+
+/* Laptop */
+@media (max-width: 1280px) {
+
+  .main-content {
+    padding:
+      20px
+      20px
+      28px !important;
+  }
+
+  .stats-grid,
+  .kpi-grid,
+  .statistics-kpi-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .dashboard-main-grid,
+  .dashboard-secondary-grid {
+    grid-template-columns:
+      minmax(0, 1.4fr)
+      minmax(280px, 0.8fr) !important;
+  }
+}
+
+
+/* Tablet */
+@media (max-width: 1000px) {
+
+  .dashboard-main-grid,
+  .dashboard-secondary-grid,
+  .statistics-layout,
+  .statistics-result-grid {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+}
+
+
+/* Sidebar móvil */
+@media (max-width: 880px) {
+
+  .sidebar,
+  .sidebar.salesia-sidebar {
+    width: 272px !important;
+
+    transform:
+      translateX(-105%);
+  }
+
+  .sidebar.sidebar-open,
+  .salesia-sidebar.sidebar-open {
+    transform:
+      translateX(0);
+  }
+
+  .app-content {
+    width: 100% !important;
+
+    margin-left:
+      0 !important;
+  }
+
+  .main-content {
+    padding:
+      18px !important;
+  }
+
+  .topbar {
+    padding-left:
+      16px !important;
+
+    padding-right:
+      16px !important;
+  }
+}
+
+
+/* Celular */
+@media (max-width: 650px) {
+
+  .main-content {
+    padding:
+      13px !important;
+  }
+
+  .stats-grid,
+  .kpi-grid,
+  .statistics-kpi-grid {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+  .dashboard-highlight {
+    gap:
+      15px !important;
+
+    padding:
+      18px !important;
+
+    flex-direction:
+      column;
+
+    align-items:
+      stretch !important;
+  }
+
+  .highlight-metric {
+    width:
+      100% !important;
+
+    min-width:
+      0 !important;
+  }
+
+  .page-heading,
+  .statistics-heading {
+    margin-bottom:
+      13px !important;
+  }
+
+  .stat-card,
+  .panel,
+  .kpi-card,
+  .statistics-panel,
+  .statistics-kpi {
+    padding:
+      14px !important;
+  }
+}
+
+
+/* Móvil pequeño */
+@media (max-width: 390px) {
+
+  .sidebar,
+  .sidebar.salesia-sidebar {
+    width:
+      min(88vw, 280px) !important;
+  }
+
+  .main-content {
+    padding:
+      10px !important;
+  }
+}
+
+
+/* =========================================================
+   SALESIA - TIPOGRAFÍA SIDEBAR MÁS GRANDE
+   ========================================================= */
+
+.brand-text strong {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+}
+
+.brand-text span {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+}
+
+
+/* Títulos de grupos */
+
+.sidebar-section-title {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+
+  letter-spacing: 0.11em !important;
+
+  line-height: 1.3;
+}
+
+
+/* Opciones principales */
+
+.sidebar-item {
+  min-height: 48px !important;
+
+  font-size: 14px !important;
+  font-weight: 600 !important;
+
+  line-height: 1.25;
+}
+
+
+.sidebar-item-label {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+
+/* Iconos ligeramente más visibles */
+
+.sidebar-item svg {
+  width: 19px !important;
+  height: 19px !important;
+
+  flex-shrink: 0;
+}
+
+
+/* LIVE */
+
+.sidebar-live-badge {
+  padding: 4px 8px !important;
+
+  font-size: 9px !important;
+}
+
+
+/* Perfil inferior */
+
+.profile-data strong {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+
+.profile-data span {
+  font-size: 10px !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 880px) {
+
+  .sidebar-item,
+  .sidebar-item-label {
+    font-size: 14px !important;
+  }
+
+  .sidebar-section-title {
+    font-size: 10px !important;
+  }
+}
+
+
+@media (max-width: 390px) {
+
+  .brand-text strong {
+    font-size: 18px !important;
+  }
+
+  .sidebar-item,
+  .sidebar-item-label {
+    font-size: 13px !important;
+  }
+
+  .sidebar-item {
+    min-height: 46px !important;
+  }
+}

@@ -1,0 +1,216 @@
+.export-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+
+.export-menu-wrap {
+  position: relative;
+}
+
+
+.export-button,
+.share-button {
+  display: inline-flex !important;
+
+  height: 38px !important;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  padding:
+    0
+    12px !important;
+
+  border:
+    1px solid
+    #d9e3e8 !important;
+
+  border-radius:
+    8px !important;
+
+  color:
+    #475569 !important;
+
+  background:
+    #ffffff !important;
+
+  font-size:
+    9px !important;
+
+  font-weight:
+    700 !important;
+
+  white-space: nowrap;
+}
+
+
+.export-button:hover:not(:disabled),
+.share-button:hover:not(:disabled) {
+  border-color:
+    #a9dce3 !important;
+
+  color:
+    #0e8194 !important;
+
+  background:
+    #f5fcfd !important;
+}
+
+
+.share-button {
+  color:
+    #ffffff !important;
+
+  border-color:
+    #0d8fa2 !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #16a9ba,
+      #0e8194
+    ) !important;
+}
+
+
+.share-button:hover:not(:disabled) {
+  color:
+    #ffffff !important;
+
+  background:
+    #0b7184 !important;
+}
+
+
+.export-button:disabled,
+.share-button:disabled {
+  opacity: .55;
+
+  cursor: default;
+}
+
+
+.export-menu {
+  position: absolute;
+
+  top:
+    calc(
+      100% + 7px
+    );
+
+  right: 0;
+
+  z-index: 100;
+
+  width: 190px;
+
+  overflow: hidden;
+
+  padding: 5px;
+
+  border:
+    1px solid
+    #dfe7ec;
+
+  border-radius:
+    10px;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0
+    14px
+    35px
+    rgba(
+      15,
+      23,
+      42,
+      .13
+    );
+}
+
+
+.export-menu button {
+  display: flex !important;
+
+  width: 100% !important;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding:
+    9px
+    10px !important;
+
+  border:
+    0 !important;
+
+  border-radius:
+    7px !important;
+
+  color:
+    #475569 !important;
+
+  background:
+    transparent !important;
+
+  text-align:
+    left;
+}
+
+
+.export-menu button:hover {
+  background:
+    #f1fafb !important;
+
+  color:
+    #0e8194 !important;
+}
+
+
+.export-menu button > span {
+  min-width: 0;
+}
+
+
+.export-menu strong,
+.export-menu small {
+  display: block;
+}
+
+
+.export-menu strong {
+  font-size: 9px;
+}
+
+
+.export-menu small {
+  margin-top: 1px;
+
+  color:
+    #94a3b8;
+
+  font-size: 7px;
+}
+
+
+@media (max-width: 560px) {
+  .export-actions {
+    width: 100%;
+  }
+
+  .export-menu-wrap {
+    flex: 1;
+  }
+
+  .export-button,
+  .share-button {
+    width: 100% !important;
+  }
+}

@@ -31,6 +31,7 @@ import MantenimientoPage from "../../modules/mantenimiento/MantenimientoPage";
 import ProbabilidadPage from "../../modules/probabilidad/ProbabilidadPage";
 import ProductosPage from "../../modules/productos/ProductosPage";
 import ReportsPage from "../../modules/reports/ReportsPage";
+import StatisticsPage from "../../modules/statistics/StatisticsPage";
 import SucursalesPage from "../../modules/sucursales/SucursalesPage";
 import NuevaVentaPage from "../../modules/ventas/NuevaVentaPage";
 import VentasPage from "../../modules/ventas/VentasPage";
@@ -239,7 +240,6 @@ export default function AppRouter() {
               path="/kardex"
               element={<KardexPage />}
             />
-
           </Route>
 
           <Route
@@ -287,6 +287,11 @@ export default function AppRouter() {
             <Route
               path="/probability"
               element={<ProbabilidadPage />}
+            />
+
+            <Route
+              path="/statistics"
+              element={<StatisticsPage />}
             />
 
             <Route

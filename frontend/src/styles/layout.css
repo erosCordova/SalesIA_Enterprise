@@ -2124,3 +2124,60 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   DASHBOARD EXPORT
+   ========================================================= */
+
+.dashboard-heading-actions {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  flex-shrink: 0;
+}
+
+
+.dashboard-export-error {
+  margin-bottom: 12px;
+
+  padding:
+    10px
+    12px;
+
+  border:
+    1px solid #fecaca;
+
+  border-radius:
+    9px;
+
+  color:
+    #b91c1c;
+
+  background:
+    #fef2f2;
+
+  font-size:
+    9px;
+}
+
+
+@media (max-width: 700px) {
+  .dashboard-heading-actions {
+    width: 100%;
+
+    flex-wrap: wrap;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .dashboard-heading-actions {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+}

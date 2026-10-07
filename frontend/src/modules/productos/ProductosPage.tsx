@@ -1,5 +1,6 @@
 import {
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -7,21 +8,21 @@ import {
 import {
   AlertTriangle,
   Boxes,
-  CheckCircle2,
-  CircleDollarSign,
-  PackageSearch,
+  Pencil,
+  Plus,
+  Search,
   Tags,
+  Trash2,
 } from "lucide-react";
 
 import DataTable, {
   type DataTableColumn,
 } from "../../components/ui/DataTable";
 
+import ExportActions from "../../components/ui/ExportActions";
 import Modal from "../../components/ui/Modal";
 import ModuleState from "../../components/ui/ModuleState";
 import Pagination from "../../components/ui/Pagination";
-import StatCard from "../../components/ui/StatCard";
-import TableToolbar from "../../components/ui/TableToolbar";
 
 import {
   createProduct,
@@ -39,10 +40,23 @@ import {
   useAuth,
 } from "../../services/auth.context";
 
+import {
+  createVisualPdfFile,
+  downloadVisualPdf,
+  exportDateStamp,
+  exportRowsToCsv,
+  exportRowsToExcel,
+  shareFile,
+  type ExportRow,
+} from "../../utils/exporting";
+
 import type {
   Product,
   ProductCreate,
+  ProductUpdate,
 } from "../../types/commercial";
+
+import "./productos-commercial.css";
 
 
 const PAGE_SIZE = 8;
@@ -50,38 +64,63 @@ const PAGE_SIZE = 8;
 
 const initialForm: ProductCreate = {
   category_id: null,
-
   sku: "",
   name: "",
   description: "",
-
   unit: "unidad",
-
   sale_price: 0,
   cost_price: 0,
-
   initial_stock: 0,
   minimum_stock: 0,
   maximum_stock: null,
-
   status: "active",
 };
 
 
+function normalize(
+  value:
+    | string
+    | null
+    | undefined,
+) {
+  return (
+    value
+      ?.normalize("NFD")
+      .replace(
+        /[\u0300-\u036f]/g,
+        "",
+      )
+      .trim()
+      .toLowerCase()
+    ?? ""
+  );
+}
+
+
 function toNumber(
-  value: number | string,
+  value:
+    | number
+    | string
+    | null
+    | undefined,
 ) {
   const parsed =
     Number(value);
 
-  return Number.isFinite(parsed)
+  return Number.isFinite(
+    parsed,
+  )
     ? parsed
     : 0;
 }
 
 
 function formatMoney(
-  value: number | string,
+  value:
+    | number
+    | string
+    | null
+    | undefined,
 ) {
   return new Intl.NumberFormat(
     "es-PE",
@@ -89,6 +128,7 @@ function formatMoney(
       style: "currency",
       currency: "PEN",
       minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     },
   ).format(
     toNumber(value),
@@ -96,10 +136,87 @@ function formatMoney(
 }
 
 
-function ProductosPage() {
+function statusLabel(
+  status: string,
+) {
+  return status === "active"
+    ? "Activo"
+    : "Inactivo";
+}
+
+
+function exportRows(
+  products: Product[],
+): ExportRow[] {
+  return products.map(
+    (product) => ({
+      SKU:
+        product.sku,
+
+      Producto:
+        product.name,
+
+      Descripción:
+        product.description
+        ?? "",
+
+      Categoría:
+        product.category_name
+        ?? "Sin categoría",
+
+      Unidad:
+        product.unit,
+
+      "Precio de venta":
+        toNumber(
+          product.sale_price,
+        ),
+
+      "Precio de costo":
+        toNumber(
+          product.cost_price,
+        ),
+
+      Stock:
+        toNumber(
+          product.stock_quantity,
+        ),
+
+      "Stock mínimo":
+        toNumber(
+          product.minimum_stock,
+        ),
+
+      "Stock máximo":
+        product.maximum_stock ===
+          null
+        || product.maximum_stock ===
+          undefined
+          ? ""
+          : toNumber(
+              product.maximum_stock,
+            ),
+
+      Estado:
+        statusLabel(
+          product.status,
+        ),
+    }),
+  );
+}
+
+
+export default function ProductosPage() {
+  const exportRef =
+    useRef<HTMLElement>(
+      null,
+    );
+
+
   const {
     user,
-  } = useAuth();
+  } =
+    useAuth();
 
 
   const productsResource =
@@ -117,130 +234,147 @@ function ProductosPage() {
   const [
     search,
     setSearch,
-  ] = useState("");
+  ] =
+    useState("");
 
 
   const [
     categoryFilter,
     setCategoryFilter,
-  ] = useState("");
+  ] =
+    useState("");
 
 
   const [
     statusFilter,
     setStatusFilter,
-  ] = useState("");
+  ] =
+    useState("");
 
 
   const [
     page,
     setPage,
-  ] = useState(1);
+  ] =
+    useState(1);
 
 
   const [
     modalOpen,
     setModalOpen,
-  ] = useState(false);
-
-
-  const [
-    form,
-    setForm,
-  ] = useState<ProductCreate>(
-    initialForm,
-  );
-
-
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
-
-
-  const [
-    formError,
-    setFormError,
-  ] = useState("");
-
-
-  const [
-    successMessage,
-    setSuccessMessage,
-  ] = useState("");
+  ] =
+    useState(false);
 
 
   const [
     editingProduct,
     setEditingProduct,
-  ] = useState<Product | null>(null);
+  ] =
+    useState<Product | null>(
+      null,
+    );
 
 
   const [
-    editModalOpen,
-    setEditModalOpen,
-  ] = useState(false);
+    form,
+    setForm,
+  ] =
+    useState<ProductCreate>(
+      initialForm,
+    );
+
+
+  const [
+    saving,
+    setSaving,
+  ] =
+    useState(false);
+
+
+  const [
+    formError,
+    setFormError,
+  ] =
+    useState("");
+
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] =
+    useState("");
+
+
+  const [
+    operationError,
+    setOperationError,
+  ] =
+    useState("");
 
 
   const products =
-    productsResource.data ??
-    [];
+    productsResource.data
+    ?? [];
 
 
   const categories =
-    categoriesResource.data ??
-    [];
+    categoriesResource.data
+    ?? [];
 
 
-  const canCreateProduct =
-    user?.role ===
-      "Administrador" ||
-    user?.role ===
-      "Gerente" ||
-    user?.role ===
-      "Almacén";
+  const canManageProduct =
+    user?.role === "Administrador"
+    || user?.role === "Gerente"
+    || user?.role === "Almacén";
 
 
   const filteredProducts =
     useMemo(
       () => {
         const query =
-          search
-            .toLowerCase()
-            .trim();
+          normalize(
+            search,
+          );
 
         return products.filter(
           (product) => {
             const matchesSearch =
-              !query ||
-              [
+              !query
+              || [
                 product.sku,
                 product.name,
                 product.description,
                 product.category_name,
                 product.unit,
-                product.status,
               ].some(
                 (value) =>
-                  String(value ?? "")
-                    .toLowerCase()
-                    .includes(query),
+                  normalize(
+                    String(
+                      value
+                      ?? "",
+                    ),
+                  ).includes(
+                    query,
+                  ),
               );
 
+
             const matchesCategory =
-              !categoryFilter ||
-              product.category_id ===
+              !categoryFilter
+              || product.category_id ===
                 categoryFilter;
 
+
             const matchesStatus =
-              !statusFilter ||
-              product.status ===
+              !statusFilter
+              || product.status ===
                 statusFilter;
 
+
             return (
-              matchesSearch &&
-              matchesCategory &&
-              matchesStatus
+              matchesSearch
+              && matchesCategory
+              && matchesStatus
             );
           },
         );
@@ -258,8 +392,8 @@ function ProductosPage() {
     Math.max(
       1,
       Math.ceil(
-        filteredProducts.length /
-          PAGE_SIZE,
+        filteredProducts.length
+        / PAGE_SIZE,
       ),
     );
 
@@ -275,8 +409,10 @@ function ProductosPage() {
     useMemo(
       () => {
         const start =
-          (safePage - 1) *
-          PAGE_SIZE;
+          (
+            safePage - 1
+          )
+          * PAGE_SIZE;
 
         return filteredProducts.slice(
           start,
@@ -290,76 +426,30 @@ function ProductosPage() {
     );
 
 
-  const activeProducts =
-    products.filter(
-      (product) =>
-        product.status === "active",
-    ).length;
-
-
-  const lowStockProducts =
-    products.filter(
-      (product) =>
-        toNumber(
-          product.stock_quantity,
-        ) <=
-        toNumber(
-          product.minimum_stock,
-        ),
-    ).length;
-
-
-  const productsWithCategory =
-    products.filter(
-      (product) =>
-        Boolean(
-          product.category_id,
-        ),
-    ).length;
-
-
-  const activePercentage =
-    products.length > 0
-      ? Math.round(
-          (
-            activeProducts /
-            products.length
-          ) * 100,
-        )
-      : 0;
-
-
-  const categoryPercentage =
-    products.length > 0
-      ? Math.round(
-          (
-            productsWithCategory /
-            products.length
-          ) * 100,
-        )
-      : 0;
-
-
   const columns:
     DataTableColumn<Product>[] = [
       {
         key: "sku",
+
         label: "SKU",
+
         render: (product) => (
-          <span className="table-detail">
+          <strong className="product-sku">
             {product.sku}
-          </span>
+          </strong>
         ),
       },
 
       {
         key: "product",
+
         label: "Producto",
+
         render: (product) => (
-          <div className="customer-cell">
-            <div className="customer-avatar">
-              <PackageSearch
-                size={17}
+          <div className="product-cell">
+            <div className="product-avatar">
+              <Boxes
+                size={16}
               />
             </div>
 
@@ -369,8 +459,8 @@ function ProductosPage() {
               </strong>
 
               <span>
-                {product.description ||
-                  "Sin descripción"}
+                {product.description
+                  || "Sin descripción"}
               </span>
             </div>
           </div>
@@ -379,22 +469,28 @@ function ProductosPage() {
 
       {
         key: "category",
-        label: "Categoría",
-        render: (product) => (
-          <span className="table-detail">
-            <Tags size={13} />
 
-            {product.category_name ||
-              "Sin categoría"}
+        label: "Categoría",
+
+        render: (product) => (
+          <span className="product-detail">
+            <Tags
+              size={13}
+            />
+
+            {product.category_name
+              || "Sin categoría"}
           </span>
         ),
       },
 
       {
         key: "unit",
+
         label: "Unidad",
+
         render: (product) => (
-          <span className="table-detail">
+          <span>
             {product.unit}
           </span>
         ),
@@ -402,25 +498,25 @@ function ProductosPage() {
 
       {
         key: "sale_price",
-        label: "Precio venta",
-        render: (product) => (
-          <span className="table-detail">
-            <CircleDollarSign
-              size={13}
-            />
 
+        label: "Precio venta",
+
+        render: (product) => (
+          <strong className="product-price">
             {formatMoney(
               product.sale_price,
             )}
-          </span>
+          </strong>
         ),
       },
 
       {
         key: "cost_price",
+
         label: "Costo",
+
         render: (product) => (
-          <span className="table-detail">
+          <span>
             {formatMoney(
               product.cost_price,
             )}
@@ -430,7 +526,9 @@ function ProductosPage() {
 
       {
         key: "stock",
+
         label: "Stock",
+
         render: (product) => {
           const stock =
             toNumber(
@@ -447,18 +545,24 @@ function ProductosPage() {
 
           return (
             <span
-              className="table-detail"
+              className={`product-stock ${
+                lowStock
+                  ? "is-low"
+                  : ""
+              }`}
               title={`Stock mínimo: ${minimum}`}
             >
-              {lowStock ? (
-                <AlertTriangle
-                  size={13}
-                />
-              ) : (
-                <Boxes
-                  size={13}
-                />
-              )}
+              {lowStock
+                ? (
+                  <AlertTriangle
+                    size={13}
+                  />
+                )
+                : (
+                  <Boxes
+                    size={13}
+                  />
+                )}
 
               {stock}
             </span>
@@ -468,9 +572,11 @@ function ProductosPage() {
 
       {
         key: "minimum_stock",
-        label: "Stock mínimo",
+
+        label: "Mínimo",
+
         render: (product) => (
-          <span className="table-detail">
+          <span>
             {toNumber(
               product.minimum_stock,
             )}
@@ -480,183 +586,70 @@ function ProductosPage() {
 
       {
         key: "status",
+
         label: "Estado",
+
         render: (product) => (
           <span
             className={`status-badge ${
               product.status ===
-              "active"
+                "active"
                 ? "success"
                 : "inactive"
             }`}
           >
-            {product.status ===
-            "active"
-              ? "Activo"
-              : "Inactivo"}
+            {statusLabel(
+              product.status,
+            )}
           </span>
-        ),
-      },
-
-      {
-        key: "actions",
-        label: "Acciones",
-        render: (product) => (
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              flexWrap: "wrap",
-            }}
-          >
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() =>
-                handleEditProduct(
-                  product,
-                )
-              }
-              disabled={saving}
-            >
-              Editar
-            </button>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                void handleDeactivateProduct(
-                  product,
-                );
-              }}
-              disabled={
-                saving ||
-                product.status ===
-                  "inactive"
-              }
-            >
-              Desactivar
-            </button>
-          </div>
         ),
       },
     ];
 
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
+  function resetForm() {
+    setForm(
+      initialForm,
+    );
 
-    setFormError("");
-    setSuccessMessage("");
+    setEditingProduct(
+      null,
+    );
 
-
-    if (
-      form.maximum_stock !==
-        null &&
-      form.maximum_stock !==
-        undefined &&
-      form.maximum_stock <
-        form.minimum_stock
-    ) {
-      setFormError(
-        "El stock máximo no puede ser menor al stock mínimo.",
-      );
-
-      return;
-    }
-
-
-    setSaving(true);
-
-    try {
-      await createProduct({
-        ...form,
-
-        category_id:
-          form.category_id ||
-          null,
-
-        sku:
-          form.sku.trim(),
-
-        name:
-          form.name.trim(),
-
-        description:
-          form.description?.trim() ||
-          null,
-
-        unit:
-          form.unit.trim(),
-
-        sale_price:
-          Number(
-            form.sale_price,
-          ),
-
-        cost_price:
-          Number(
-            form.cost_price,
-          ),
-
-        initial_stock:
-          Number(
-            form.initial_stock,
-          ),
-
-        minimum_stock:
-          Number(
-            form.minimum_stock,
-          ),
-
-        maximum_stock:
-          form.maximum_stock ===
-            null ||
-          form.maximum_stock ===
-            undefined
-            ? null
-            : Number(
-                form.maximum_stock,
-              ),
-
-        status:
-          form.status ??
-          "active",
-      });
-
-      setForm(initialForm);
-      setModalOpen(false);
-      setPage(1);
-
-      await productsResource.reload();
-
-      setSuccessMessage(
-        "Producto registrado correctamente.",
-      );
-    } catch (err) {
-      setFormError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo registrar el producto.",
-      );
-    } finally {
-      setSaving(false);
-    }
+    setFormError(
+      "",
+    );
   }
 
 
-  const handleEditProduct = (
+  function openCreate() {
+    resetForm();
+
+    setSuccessMessage(
+      "",
+    );
+
+    setOperationError(
+      "",
+    );
+
+    setModalOpen(
+      true,
+    );
+  }
+
+
+  function openEdit(
     product: Product,
-  ) => {
-    setEditingProduct(product);
+  ) {
+    setEditingProduct(
+      product,
+    );
 
     setForm({
       category_id:
-        product.category_id ??
-        null,
+        product.category_id
+        ?? null,
 
       sku:
         product.sku,
@@ -665,88 +658,134 @@ function ProductosPage() {
         product.name,
 
       description:
-        product.description ??
-        "",
+        product.description
+        ?? "",
 
       unit:
         product.unit,
 
       sale_price:
-        Number(
+        toNumber(
           product.sale_price,
         ),
 
       cost_price:
-        Number(
+        toNumber(
           product.cost_price,
         ),
 
       initial_stock:
-        Number(
+        toNumber(
           product.stock_quantity,
         ),
 
       minimum_stock:
-        Number(
+        toNumber(
           product.minimum_stock,
         ),
 
       maximum_stock:
         product.maximum_stock ===
-          null ||
-        product.maximum_stock ===
+          null
+        || product.maximum_stock ===
           undefined
           ? null
-          : Number(
+          : toNumber(
               product.maximum_stock,
             ),
 
       status:
-        product.status as
-          | "active"
-          | "inactive",
+        product.status ===
+          "active"
+          ? "active"
+          : "inactive",
     });
 
-    setFormError("");
-    setEditModalOpen(true);
-  };
+    setFormError(
+      "",
+    );
+
+    setSuccessMessage(
+      "",
+    );
+
+    setOperationError(
+      "",
+    );
+
+    setModalOpen(
+      true,
+    );
+  }
 
 
-  const handleUpdateProduct =
-    async (
-      event: FormEvent,
-    ) => {
-      event.preventDefault();
+  function validateForm() {
+    const maximumStock =
+      form.maximum_stock;
 
-      if (!editingProduct) {
-        return;
-      }
 
+    if (
+      maximumStock !== null
+      && maximumStock !== undefined
+      && toNumber(
+        maximumStock,
+      ) <
+        toNumber(
+          form.minimum_stock,
+        )
+    ) {
+      setFormError(
+        "El stock máximo no puede ser menor al stock mínimo.",
+      );
+
+      return false;
+    }
+
+
+    return true;
+  }
+
+
+  async function handleSubmit(
+    event:
+      FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setFormError(
+      "",
+    );
+
+    setSuccessMessage(
+      "",
+    );
+
+    setOperationError(
+      "",
+    );
+
+
+    if (
+      !validateForm()
+    ) {
+      return;
+    }
+
+
+    setSaving(
+      true,
+    );
+
+
+    try {
       if (
-        form.maximum_stock !==
-          null &&
-        form.maximum_stock !==
-          undefined &&
-        form.maximum_stock <
-          form.minimum_stock
+        editingProduct
       ) {
-        setFormError(
-          "El stock máximo no puede ser menor al stock mínimo.",
-        );
-
-        return;
-      }
-
-      try {
-        setSaving(true);
-        setFormError("");
-
-        await updateProduct(
-          editingProduct.id,
-          {
+        const payload:
+          ProductUpdate = {
             category_id:
-              form.category_id ||
-              null,
+              form.category_id
+              || null,
 
             sku:
               form.sku.trim(),
@@ -755,8 +794,9 @@ function ProductosPage() {
               form.name.trim(),
 
             description:
-              form.description?.trim() ||
-              null,
+              form.description
+                ?.trim()
+              || null,
 
             unit:
               form.unit.trim(),
@@ -778,8 +818,8 @@ function ProductosPage() {
 
             maximum_stock:
               form.maximum_stock ===
-                null ||
-              form.maximum_stock ===
+                null
+              || form.maximum_stock ===
                 undefined
                 ? null
                 : Number(
@@ -787,95 +827,333 @@ function ProductosPage() {
                   ),
 
             status:
-              form.status ??
-              "active",
-          },
+              form.status
+              ?? "active",
+          };
+
+
+        await updateProduct(
+          editingProduct.id,
+          payload,
         );
 
-        setEditModalOpen(false);
-        setEditingProduct(null);
-        setForm(initialForm);
-
-        await productsResource.reload();
 
         setSuccessMessage(
           "Producto actualizado correctamente.",
         );
-      } catch (error) {
-        setFormError(
-          error instanceof Error
-            ? error.message
-            : "No se pudo actualizar el producto.",
-        );
-      } finally {
-        setSaving(false);
-      }
-    };
+      } else {
+        await createProduct({
+          ...form,
 
+          category_id:
+            form.category_id
+            || null,
 
-  const handleDeactivateProduct =
-    async (
-      product: Product,
-    ) => {
-      try {
-        setSaving(true);
-        setFormError("");
+          sku:
+            form.sku.trim(),
 
-        await deleteProduct(
-          product.id,
-        );
+          name:
+            form.name.trim(),
 
-        await productsResource.reload();
+          description:
+            form.description
+              ?.trim()
+            || null,
+
+          unit:
+            form.unit.trim(),
+
+          sale_price:
+            Number(
+              form.sale_price,
+            ),
+
+          cost_price:
+            Number(
+              form.cost_price,
+            ),
+
+          initial_stock:
+            Number(
+              form.initial_stock,
+            ),
+
+          minimum_stock:
+            Number(
+              form.minimum_stock,
+            ),
+
+          maximum_stock:
+            form.maximum_stock ===
+              null
+            || form.maximum_stock ===
+              undefined
+              ? null
+              : Number(
+                  form.maximum_stock,
+                ),
+
+          status:
+            form.status
+            ?? "active",
+        });
+
 
         setSuccessMessage(
-          "Producto desactivado correctamente.",
+          "Producto registrado correctamente.",
         );
-      } catch (error) {
-        setFormError(
-          error instanceof Error
-            ? error.message
-            : "No se pudo desactivar el producto.",
-        );
-      } finally {
-        setSaving(false);
       }
-    };
+
+
+      setModalOpen(
+        false,
+      );
+
+      resetForm();
+
+      setPage(
+        1,
+      );
+
+      await productsResource.reload();
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : editingProduct
+            ? "No se pudo actualizar el producto."
+            : "No se pudo registrar el producto.",
+      );
+    } finally {
+      setSaving(
+        false,
+      );
+    }
+  }
+
+
+  async function handleDeactivate(
+    product: Product,
+  ) {
+    if (
+      product.status !==
+      "active"
+    ) {
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+        `¿Deseas desactivar el producto "${product.name}"?`,
+      );
+
+
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+
+
+    setSaving(
+      true,
+    );
+
+    setSuccessMessage(
+      "",
+    );
+
+    setOperationError(
+      "",
+    );
+
+
+    try {
+      await deleteProduct(
+        product.id,
+      );
+
+      await productsResource.reload();
+
+      setSuccessMessage(
+        "Producto desactivado correctamente.",
+      );
+    } catch (error) {
+      setOperationError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo desactivar el producto.",
+      );
+    } finally {
+      setSaving(
+        false,
+      );
+    }
+  }
+
+
+  function exportFilename() {
+    return `productos-${exportDateStamp()}`;
+  }
+
+
+  async function handlePdf() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+
+    setOperationError(
+      "",
+    );
+
+
+    try {
+      await downloadVisualPdf(
+        exportRef.current,
+        exportFilename(),
+      );
+    } catch (error) {
+      setOperationError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo generar el PDF.",
+      );
+    }
+  }
+
+
+  function handleCsv() {
+    setOperationError(
+      "",
+    );
+
+
+    try {
+      exportRowsToCsv(
+        exportFilename(),
+        exportRows(
+          filteredProducts,
+        ),
+      );
+    } catch (error) {
+      setOperationError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo generar el CSV.",
+      );
+    }
+  }
+
+
+  async function handleExcel() {
+    setOperationError(
+      "",
+    );
+
+
+    try {
+      await exportRowsToExcel(
+        exportFilename(),
+        "Productos",
+        exportRows(
+          filteredProducts,
+        ),
+      );
+    } catch (error) {
+      setOperationError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo generar el archivo Excel.",
+      );
+    }
+  }
+
+
+  async function handleShare() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+
+    setOperationError(
+      "",
+    );
+
+
+    try {
+      const file =
+        await createVisualPdfFile(
+          exportRef.current,
+          exportFilename(),
+        );
+
+
+      const result =
+        await shareFile(
+          file,
+          "Productos - SalesIA Enterprise",
+          "Catálogo de productos de SalesIA Enterprise.",
+        );
+
+
+      if (
+        result ===
+        "downloaded"
+      ) {
+        setSuccessMessage(
+          "El navegador no permite compartir el archivo directamente. El PDF fue descargado para que puedas enviarlo manualmente.",
+        );
+      }
+    } catch (error) {
+      setOperationError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo compartir el archivo.",
+      );
+    }
+  }
 
 
   const loading =
-    productsResource.loading ||
-    categoriesResource.loading;
+    productsResource.loading
+    || categoriesResource.loading;
 
 
   const loadError =
-    productsResource.error ||
-    categoriesResource.error;
+    productsResource.error
+    || categoriesResource.error;
 
 
   return (
-    <section className="module-page">
-      <div className="page-heading">
+    <section
+      ref={exportRef}
+      className="products-page"
+    >
+      <div className="products-title">
         <div>
-          <span className="page-eyebrow">
-            CATÁLOGO COMERCIAL
+          <span>
+            Catálogo comercial
           </span>
 
-          <h1>
+          <h2>
             Productos
-          </h1>
+          </h2>
 
           <p>
-            Administra el catálogo real
-            de productos, precios,
-            categorías y niveles de
-            stock de SalesIA Enterprise.
+            {filteredProducts.length}{" "}
+            {filteredProducts.length ===
+              1
+              ? "producto"
+              : "productos"}
+            {" "}
+            en la vista actual
           </p>
-        </div>
-
-        <div className="module-main-icon">
-          <PackageSearch
-            size={27}
-          />
         </div>
       </div>
 
@@ -891,96 +1169,62 @@ function ProductosPage() {
       )}
 
 
-      <div className="stats-grid">
-        <StatCard
-          title="Productos registrados"
-          value={String(
-            products.length,
-          )}
-          change="100%"
-          caption="catálogo actual"
-          icon={PackageSearch}
-        />
-
-        <StatCard
-          title="Productos activos"
-          value={String(
-            activeProducts,
-          )}
-          change={`${activePercentage}%`}
-          caption="disponibles"
-          icon={CheckCircle2}
-        />
-
-        <StatCard
-          title="Stock bajo"
-          value={String(
-            lowStockProducts,
-          )}
-          change={
-            products.length > 0
-              ? `${Math.round(
-                  (
-                    lowStockProducts /
-                    products.length
-                  ) * 100,
-                )}%`
-              : "0%"
+      {operationError && (
+        <ModuleState
+          type="error"
+          title="No se pudo completar la operación"
+          description={
+            operationError
           }
-          positive={
-            lowStockProducts === 0
-          }
-          caption="en mínimo o menos"
-          icon={AlertTriangle}
         />
-
-        <StatCard
-          title="Con categoría"
-          value={String(
-            productsWithCategory,
-          )}
-          change={`${categoryPercentage}%`}
-          caption="productos clasificados"
-          icon={Tags}
-        />
-      </div>
+      )}
 
 
-      <article className="panel enterprise-data-panel">
-        <TableToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          createLabel="Nuevo producto"
-          canCreate={
-            canCreateProduct
-          }
-          onCreate={() => {
-            setForm(initialForm);
-            setEditingProduct(null);
-            setFormError("");
-            setModalOpen(true);
-          }}
-        />
+      <div
+        className="products-toolbar"
+        data-export-hide="true"
+      >
+        <div className="products-filters">
+          <label className="products-search">
+            <Search
+              size={15}
+            />
+
+            <input
+              type="search"
+              value={
+                search
+              }
+              onChange={(
+                event,
+              ) => {
+                setSearch(
+                  event.target.value,
+                );
+
+                setPage(
+                  1,
+                );
+              }}
+              placeholder="Buscar producto..."
+            />
+          </label>
 
 
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            padding: "0 20px 20px",
-            flexWrap: "wrap",
-          }}
-        >
           <select
-            value={categoryFilter}
-            onChange={(event) => {
+            value={
+              categoryFilter
+            }
+            onChange={(
+              event,
+            ) => {
               setCategoryFilter(
                 event.target.value,
               );
-              setPage(1);
+
+              setPage(
+                1,
+              );
             }}
           >
             <option value="">
@@ -990,8 +1234,12 @@ function ProductosPage() {
             {categories.map(
               (category) => (
                 <option
-                  key={category.id}
-                  value={category.id}
+                  key={
+                    category.id
+                  }
+                  value={
+                    category.id
+                  }
                 >
                   {category.name}
                 </option>
@@ -999,13 +1247,21 @@ function ProductosPage() {
             )}
           </select>
 
+
           <select
-            value={statusFilter}
-            onChange={(event) => {
+            value={
+              statusFilter
+            }
+            onChange={(
+              event,
+            ) => {
               setStatusFilter(
                 event.target.value,
               );
-              setPage(1);
+
+              setPage(
+                1,
+              );
             }}
           >
             <option value="">
@@ -1013,21 +1269,63 @@ function ProductosPage() {
             </option>
 
             <option value="active">
-              Activo
+              Activos
             </option>
 
             <option value="inactive">
-              Inactivo
+              Inactivos
             </option>
           </select>
         </div>
 
 
+        <div className="products-toolbar-actions">
+          <ExportActions
+            disabled={
+              loading
+              || filteredProducts.length ===
+                0
+            }
+            onPdf={
+              handlePdf
+            }
+            onCsv={
+              handleCsv
+            }
+            onExcel={
+              handleExcel
+            }
+            onShare={
+              handleShare
+            }
+          />
+
+
+          {canManageProduct && (
+            <button
+              type="button"
+              className="primary-button products-new-button"
+              onClick={
+                openCreate
+              }
+            >
+              <Plus
+                size={15}
+              />
+
+              Nuevo producto
+            </button>
+          )}
+        </div>
+      </div>
+
+
+      <article className="products-table-panel">
         {loading ? (
           <ModuleState
             type="loading"
             title="Cargando productos"
-            description="Consultando productos y categorías registrados en PostgreSQL."
+            description="Consultando productos y categorías."
           />
         ) : loadError ? (
           <div>
@@ -1040,11 +1338,8 @@ function ProductosPage() {
             />
 
             <div
-              className="modal-actions"
-              style={{
-                padding:
-                  "0 20px 20px",
-              }}
+              className="products-retry"
+              data-export-hide="true"
             >
               <button
                 type="button"
@@ -1065,36 +1360,89 @@ function ProductosPage() {
           <ModuleState
             type="empty"
             title={
-              search ||
-              categoryFilter ||
-              statusFilter
+              search
+              || categoryFilter
+              || statusFilter
                 ? "No encontramos productos"
                 : "Todavía no hay productos"
             }
             description={
-              search ||
-              categoryFilter ||
-              statusFilter
-                ? "Prueba con otros filtros."
-                : canCreateProduct
-                  ? "Registra el primer producto desde el botón Nuevo producto."
-                  : "Todavía no existen productos registrados."
+              search
+              || categoryFilter
+              || statusFilter
+                ? "No existen productos que coincidan con los filtros."
+                : "No existen productos registrados."
             }
           />
         ) : (
           <>
             <DataTable
-              columns={columns}
+              columns={
+                columns
+              }
               data={
                 paginatedProducts
               }
               getRowKey={(
                 product,
-              ) => product.id}
+              ) =>
+                product.id
+              }
+              actions={
+                canManageProduct
+                  ? (
+                    product,
+                  ) => (
+                    <div className="table-actions">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        title="Editar producto"
+                        disabled={
+                          saving
+                        }
+                        onClick={() =>
+                          openEdit(
+                            product,
+                          )
+                        }
+                      >
+                        <Pencil
+                          size={15}
+                        />
+                      </button>
+
+
+                      <button
+                        type="button"
+                        className="icon-button"
+                        title="Desactivar producto"
+                        disabled={
+                          saving
+                          || product.status !==
+                            "active"
+                        }
+                        onClick={() =>
+                          void handleDeactivate(
+                            product,
+                          )
+                        }
+                      >
+                        <Trash2
+                          size={15}
+                        />
+                      </button>
+                    </div>
+                  )
+                  : undefined
+              }
             />
 
+
             <Pagination
-              page={safePage}
+              page={
+                safePage
+              }
               totalPages={
                 totalPages
               }
@@ -1108,14 +1456,28 @@ function ProductosPage() {
 
 
       <Modal
-        open={modalOpen}
-        title="Registrar nuevo producto"
-        description="El producto y su inventario inicial serán registrados mediante la API."
+        open={
+          modalOpen
+        }
+        title={
+          editingProduct
+            ? "Editar producto"
+            : "Registrar producto"
+        }
+        description={
+          editingProduct
+            ? "Actualiza los datos comerciales del producto."
+            : "Registra un nuevo producto y su inventario inicial."
+        }
         onClose={() => {
-          if (!saving) {
-            setModalOpen(false);
-            setFormError("");
-            setForm(initialForm);
+          if (
+            !saving
+          ) {
+            setModalOpen(
+              false,
+            );
+
+            resetForm();
           }
         }}
       >
@@ -1128,7 +1490,11 @@ function ProductosPage() {
           {formError && (
             <ModuleState
               type="error"
-              title="No se pudo registrar"
+              title={
+                editingProduct
+                  ? "No se pudo actualizar"
+                  : "No se pudo registrar"
+              }
               description={
                 formError
               }
@@ -1155,8 +1521,7 @@ function ProductosPage() {
                   setForm({
                     ...form,
                     sku:
-                      event.target
-                        .value,
+                      event.target.value,
                   })
                 }
                 placeholder="Ej. PROD-001"
@@ -1172,8 +1537,8 @@ function ProductosPage() {
 
               <select
                 value={
-                  form.category_id ??
-                  ""
+                  form.category_id
+                  ?? ""
                 }
                 onChange={(
                   event,
@@ -1181,9 +1546,8 @@ function ProductosPage() {
                   setForm({
                     ...form,
                     category_id:
-                      event.target
-                        .value ||
-                      null,
+                      event.target.value
+                      || null,
                   })
                 }
               >
@@ -1195,7 +1559,9 @@ function ProductosPage() {
                   .filter(
                     (category) =>
                       category.status ===
-                      "active",
+                        "active"
+                      || category.id ===
+                        form.category_id,
                   )
                   .map(
                     (category) => (
@@ -1233,8 +1599,7 @@ function ProductosPage() {
                   setForm({
                     ...form,
                     name:
-                      event.target
-                        .value,
+                      event.target.value,
                   })
                 }
                 placeholder="Ej. Laptop empresarial"
@@ -1251,8 +1616,8 @@ function ProductosPage() {
               <textarea
                 maxLength={1000}
                 value={
-                  form.description ??
-                  ""
+                  form.description
+                  ?? ""
                 }
                 onChange={(
                   event,
@@ -1260,8 +1625,7 @@ function ProductosPage() {
                   setForm({
                     ...form,
                     description:
-                      event.target
-                        .value,
+                      event.target.value,
                   })
                 }
                 placeholder="Descripción comercial del producto"
@@ -1287,8 +1651,7 @@ function ProductosPage() {
                   setForm({
                     ...form,
                     unit:
-                      event.target
-                        .value,
+                      event.target.value,
                   })
                 }
                 placeholder="unidad"
@@ -1304,8 +1667,8 @@ function ProductosPage() {
 
               <select
                 value={
-                  form.status ??
-                  "active"
+                  form.status
+                  ?? "active"
                 }
                 onChange={(
                   event,
@@ -1313,10 +1676,10 @@ function ProductosPage() {
                   setForm({
                     ...form,
                     status:
-                      event.target
-                        .value as
-                        | "active"
-                        | "inactive",
+                      event.target.value ===
+                        "active"
+                        ? "active"
+                        : "inactive",
                   })
                 }
               >
@@ -1350,8 +1713,7 @@ function ProductosPage() {
                     ...form,
                     sale_price:
                       Number(
-                        event.target
-                          .value,
+                        event.target.value,
                       ),
                   })
                 }
@@ -1379,8 +1741,7 @@ function ProductosPage() {
                     ...form,
                     cost_price:
                       Number(
-                        event.target
-                          .value,
+                        event.target.value,
                       ),
                   })
                 }
@@ -1389,33 +1750,34 @@ function ProductosPage() {
             </label>
 
 
-            <label>
-              <span>
-                Stock inicial
-              </span>
+            {!editingProduct && (
+              <label>
+                <span>
+                  Stock inicial
+                </span>
 
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={
-                  form.initial_stock
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    initial_stock:
-                      Number(
-                        event.target
-                          .value,
-                      ),
-                  })
-                }
-                required
-              />
-            </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={
+                    form.initial_stock
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setForm({
+                      ...form,
+                      initial_stock:
+                        Number(
+                          event.target.value,
+                        ),
+                    })
+                  }
+                  required
+                />
+              </label>
+            )}
 
 
             <label>
@@ -1437,8 +1799,7 @@ function ProductosPage() {
                     ...form,
                     minimum_stock:
                       Number(
-                        event.target
-                          .value,
+                        event.target.value,
                       ),
                   })
                 }
@@ -1447,7 +1808,7 @@ function ProductosPage() {
             </label>
 
 
-            <label className="form-full">
+            <label>
               <span>
                 Stock máximo
               </span>
@@ -1457,8 +1818,8 @@ function ProductosPage() {
                 min="0"
                 step="0.01"
                 value={
-                  form.maximum_stock ??
-                  ""
+                  form.maximum_stock
+                  ?? ""
                 }
                 onChange={(
                   event,
@@ -1466,14 +1827,11 @@ function ProductosPage() {
                   setForm({
                     ...form,
                     maximum_stock:
-                      event.target
-                        .value ===
-                      ""
+                      event.target.value ===
+                        ""
                         ? null
                         : Number(
-                            event
-                              .target
-                              .value,
+                            event.target.value,
                           ),
                   })
                 }
@@ -1487,404 +1845,33 @@ function ProductosPage() {
             <button
               type="button"
               className="secondary-button"
-              disabled={saving}
+              disabled={
+                saving
+              }
               onClick={() => {
                 setModalOpen(
                   false,
                 );
-                setFormError("");
-                setForm(initialForm);
+
+                resetForm();
               }}
             >
               Cancelar
             </button>
 
+
             <button
               type="submit"
               className="primary-button"
-              disabled={saving}
-            >
-              {saving
-                ? "Guardando..."
-                : "Guardar producto"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-
-      <Modal
-        open={editModalOpen}
-        title="Editar producto"
-        description="Actualiza los datos comerciales del producto."
-        onClose={() => {
-          if (!saving) {
-            setEditModalOpen(false);
-            setEditingProduct(null);
-            setFormError("");
-            setForm(initialForm);
-          }
-        }}
-      >
-        <form
-          className="enterprise-form"
-          onSubmit={
-            handleUpdateProduct
-          }
-        >
-          {formError && (
-            <ModuleState
-              type="error"
-              title="No se pudo actualizar"
-              description={
-                formError
+              disabled={
+                saving
               }
-            />
-          )}
-
-
-          <div className="form-grid">
-            <label>
-              <span>
-                SKU
-              </span>
-
-              <input
-                type="text"
-                minLength={2}
-                maxLength={100}
-                value={
-                  form.sku
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    sku:
-                      event.target
-                        .value,
-                  })
-                }
-                required
-              />
-            </label>
-
-
-            <label>
-              <span>
-                Categoría
-              </span>
-
-              <select
-                value={
-                  form.category_id ??
-                  ""
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    category_id:
-                      event.target
-                        .value ||
-                      null,
-                  })
-                }
-              >
-                <option value="">
-                  Sin categoría
-                </option>
-
-            {categories
-  .filter(
-    (category) =>
-      category.status ===
-        "active" ||
-      category.id ===
-        form.category_id,
-  )
-  .map(
-    (category) => (
-      <option
-        key={
-          category.id
-        }
-        value={
-          category.id
-        }
-      >
-        {category.name}
-      </option>
-    ),
-  )}
-              </select>
-            </label>
-
-
-            <label className="form-full">
-              <span>
-                Nombre del producto
-              </span>
-
-              <input
-                type="text"
-                minLength={2}
-                maxLength={200}
-                value={
-                  form.name
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    name:
-                      event.target
-                        .value,
-                  })
-                }
-                required
-              />
-            </label>
-
-
-            <label className="form-full">
-              <span>
-                Descripción
-              </span>
-
-              <textarea
-                maxLength={1000}
-                value={
-                  form.description ??
-                  ""
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    description:
-                      event.target
-                        .value,
-                  })
-                }
-              />
-            </label>
-
-
-            <label>
-              <span>
-                Unidad
-              </span>
-
-              <input
-                type="text"
-                minLength={1}
-                maxLength={50}
-                value={
-                  form.unit
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    unit:
-                      event.target
-                        .value,
-                  })
-                }
-                required
-              />
-            </label>
-
-
-            <label>
-              <span>
-                Estado
-              </span>
-
-              <select
-                value={
-                  form.status ??
-                  "active"
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    status:
-                      event.target
-                        .value as
-                        | "active"
-                        | "inactive",
-                  })
-                }
-              >
-                <option value="active">
-                  Activo
-                </option>
-
-                <option value="inactive">
-                  Inactivo
-                </option>
-              </select>
-            </label>
-
-
-            <label>
-              <span>
-                Precio de venta
-              </span>
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={
-                  form.sale_price
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    sale_price:
-                      Number(
-                        event.target
-                          .value,
-                      ),
-                  })
-                }
-                required
-              />
-            </label>
-
-
-            <label>
-              <span>
-                Precio de costo
-              </span>
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={
-                  form.cost_price
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    cost_price:
-                      Number(
-                        event.target
-                          .value,
-                      ),
-                  })
-                }
-                required
-              />
-            </label>
-
-
-            <label>
-              <span>
-                Stock mínimo
-              </span>
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={
-                  form.minimum_stock
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    minimum_stock:
-                      Number(
-                        event.target
-                          .value,
-                      ),
-                  })
-                }
-                required
-              />
-            </label>
-
-
-            <label>
-              <span>
-                Stock máximo
-              </span>
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={
-                  form.maximum_stock ??
-                  ""
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setForm({
-                    ...form,
-                    maximum_stock:
-                      event.target
-                        .value ===
-                      ""
-                        ? null
-                        : Number(
-                            event
-                              .target
-                              .value,
-                          ),
-                  })
-                }
-              />
-            </label>
-          </div>
-
-
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={saving}
-              onClick={() => {
-                setEditModalOpen(
-                  false,
-                );
-                setEditingProduct(
-                  null,
-                );
-                setFormError("");
-                setForm(initialForm);
-              }}
-            >
-              Cancelar
-            </button>
-
-            <button
-              type="submit"
-              className="primary-button"
-              disabled={saving}
             >
               {saving
                 ? "Guardando..."
-                : "Guardar cambios"}
+                : editingProduct
+                  ? "Actualizar producto"
+                  : "Guardar producto"}
             </button>
           </div>
         </form>
@@ -1892,6 +1879,3 @@ function ProductosPage() {
     </section>
   );
 }
-
-
-export default ProductosPage;

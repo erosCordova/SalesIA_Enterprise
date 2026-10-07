@@ -3,11 +3,17 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+
 interface PaginationProps {
   page: number;
+
   totalPages: number;
-  onPageChange: (page: number) => void;
+
+  onPageChange:
+    (page: number) =>
+      void;
 }
+
 
 function Pagination({
   page,
@@ -17,26 +23,50 @@ function Pagination({
   return (
     <div className="pagination">
       <span>
-        Página {page} de {totalPages}
+        Página {page} de{" "}
+        {totalPages}
       </span>
 
-      <div className="pagination-actions">
+      <div
+        className="pagination-actions"
+        data-export-hide="true"
+      >
         <button
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
+          type="button"
+          disabled={
+            page <= 1
+          }
+          onClick={() =>
+            onPageChange(
+              page - 1,
+            )
+          }
         >
-          <ChevronLeft size={17} />
+          <ChevronLeft
+            size={17}
+          />
         </button>
 
         <button
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
+          type="button"
+          disabled={
+            page >=
+            totalPages
+          }
+          onClick={() =>
+            onPageChange(
+              page + 1,
+            )
+          }
         >
-          <ChevronRight size={17} />
+          <ChevronRight
+            size={17}
+          />
         </button>
       </div>
     </div>
   );
 }
+
 
 export default Pagination;

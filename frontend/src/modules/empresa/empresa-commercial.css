@@ -1,0 +1,421 @@
+.company-page {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+
+  --company-cyan: #0e8194;
+  --company-cyan-bright: #0ea5b7;
+  --company-cyan-soft: #eaf9fb;
+
+  --company-text: #172033;
+  --company-muted: #64748b;
+  --company-soft: #94a3b8;
+  --company-border: #dfe7ec;
+}
+
+
+/* HEADING */
+
+.company-heading {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+}
+
+
+.company-title > span {
+  display: block;
+
+  color:
+    var(--company-cyan-bright);
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: .09em;
+
+  text-transform: uppercase;
+}
+
+
+.company-title h2 {
+  margin:
+    2px
+    0
+    0;
+
+  color:
+    var(--company-text);
+
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 800;
+
+  letter-spacing: -.025em;
+}
+
+
+.company-title p {
+  margin:
+    4px
+    0
+    0;
+
+  color:
+    var(--company-muted);
+
+  font-size: 8px;
+}
+
+
+.company-edit-button {
+  display: inline-flex !important;
+
+  height: 38px !important;
+
+  align-items: center;
+
+  gap: 6px;
+
+  padding:
+    0
+    13px !important;
+
+  white-space: nowrap;
+
+  font-size:
+    9px !important;
+}
+
+
+/* PROFILE */
+
+.company-profile {
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--company-border);
+
+  border-radius: 12px;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0
+    4px
+    15px
+    rgba(
+      15,
+      23,
+      42,
+      .035
+    );
+}
+
+
+.company-profile-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding:
+    16px
+    18px;
+
+  border-bottom:
+    1px solid
+    #e8edf1;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f8fcfd,
+      #ffffff
+    );
+}
+
+
+.company-logo {
+  display: grid;
+
+  width: 46px;
+  height: 46px;
+
+  place-items: center;
+
+  flex-shrink: 0;
+
+  border-radius: 11px;
+
+  color:
+    var(--company-cyan);
+
+  background:
+    var(--company-cyan-soft);
+}
+
+
+.company-identity {
+  min-width: 0;
+
+  flex: 1;
+}
+
+
+.company-identity > span {
+  display: block;
+
+  color:
+    #94a3b8;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: .07em;
+
+  text-transform: uppercase;
+}
+
+
+.company-identity h3 {
+  margin:
+    2px
+    0
+    0;
+
+  overflow: hidden;
+
+  color:
+    #263548;
+
+  font-size: 15px;
+  font-weight: 800;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.company-identity p {
+  margin:
+    3px
+    0
+    0;
+
+  overflow: hidden;
+
+  color:
+    #64748b;
+
+  font-size: 8px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+/* SECTION */
+
+.company-section {
+  padding:
+    16px
+    18px;
+
+  border-bottom:
+    1px solid
+    #edf1f4;
+}
+
+
+.company-section:last-child {
+  border-bottom: 0;
+}
+
+
+.company-section-title {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 8px;
+
+  margin-bottom:
+    13px;
+}
+
+
+.company-section-title svg {
+  margin-top: 1px;
+
+  color:
+    var(--company-cyan);
+}
+
+
+.company-section-title strong,
+.company-section-title span {
+  display: block;
+}
+
+
+.company-section-title strong {
+  color:
+    #334155;
+
+  font-size: 9px;
+}
+
+
+.company-section-title span {
+  margin-top: 2px;
+
+  color:
+    #94a3b8;
+
+  font-size: 7px;
+}
+
+
+.company-data-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    9px
+    18px;
+}
+
+
+.company-data-item {
+  min-width: 0;
+
+  padding:
+    9px
+    10px;
+
+  border:
+    1px solid
+    #edf1f4;
+
+  border-radius: 8px;
+
+  background:
+    #fafcfd;
+}
+
+
+.company-data-item span,
+.company-data-item strong {
+  display: block;
+}
+
+
+.company-data-item span {
+  color:
+    #94a3b8;
+
+  font-size: 7px;
+}
+
+
+.company-data-item strong {
+  margin-top:
+    3px;
+
+  overflow-wrap:
+    anywhere;
+
+  color:
+    #435268;
+
+  font-size: 9px;
+
+  font-weight: 700;
+}
+
+
+.company-data-wide {
+  grid-column:
+    1 / -1;
+}
+
+
+/* RETRY */
+
+.company-retry {
+  display: flex;
+
+  justify-content: center;
+}
+
+
+.company-retry button {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 6px;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 700px) {
+  .company-heading {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+
+  .company-edit-button {
+    width: 100% !important;
+
+    justify-content: center;
+  }
+
+
+  .company-data-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .company-data-wide {
+    grid-column:
+      auto;
+  }
+}
+
+
+@media (max-width: 500px) {
+  .company-profile-header {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+
+  .company-profile-header
+  .status-badge {
+    margin-left: 58px;
+  }
+}

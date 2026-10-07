@@ -1,75 +1,40 @@
 import {
+  useRef,
   useState,
+  type FormEvent,
 } from "react";
 
 import {
+  ArrowRight,
   BrainCircuit,
   Calculator,
   CheckCircle2,
-  Database,
+  Info,
   Percent,
-  Sigma,
+  RotateCcw,
 } from "lucide-react";
 
+import ExportActions from "../../components/ui/ExportActions";
+
 import {
-  analyzeRandomVariable,
   calculateBayes,
 } from "../../services/analytics.service";
 
+import {
+  createVisualPdfFile,
+  downloadVisualPdf,
+  exportDateStamp,
+  exportRowsToCsv,
+  exportRowsToExcel,
+  shareFile,
+  type ExportRow,
+} from "../../utils/exporting";
+
 import type {
   BayesResponse,
-  RandomVariableResponse,
 } from "../../types/analytics";
 
-import "../analytics/analytics.css";
-
-
-function parseList(
-  raw: string,
-) {
-  const parts =
-    raw
-      .split(/[\s,;]+/)
-      .map(
-        (value) =>
-          value.trim(),
-      )
-      .filter(Boolean);
-
-  if (parts.length === 0) {
-    throw new Error(
-      "Ingresa al menos un valor.",
-    );
-  }
-
-  const values =
-    parts.map(Number);
-
-  if (
-    values.some(
-      (value) =>
-        !Number.isFinite(value),
-    )
-  ) {
-    throw new Error(
-      "Todos los valores deben ser numéricos.",
-    );
-  }
-
-  return values;
-}
-
-
-function formatNumber(
-  value: number,
-) {
-  return new Intl.NumberFormat(
-    "es-PE",
-    {
-      maximumFractionDigits: 6,
-    },
-  ).format(value);
-}
+import "./probabilidad-commercial.css";
 
 
 function formatPercent(
@@ -79,344 +44,489 @@ function formatPercent(
     "es-PE",
     {
       style: "percent",
+      minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     },
   ).format(value);
 }
 
 
-function ProbabilidadPage() {
+function parsePercent(
+  raw: string,
+  label: string,
+  allowZero = true,
+) {
+  const value =
+    raw
+      .trim()
+      .replace(
+        ",",
+        ".",
+      );
+
+  if (!value) {
+    throw new Error(
+      `Ingresa ${label}.`,
+    );
+  }
+
+  const parsed =
+    Number(value);
+
+  if (
+    !Number.isFinite(parsed)
+    || parsed < 0
+    || parsed > 100
+    || (
+      !allowZero
+      && parsed === 0
+    )
+  ) {
+    throw new Error(
+      allowZero
+        ? `${label} debe estar entre 0% y 100%.`
+        : `${label} debe ser mayor que 0% y como máximo 100%.`,
+    );
+  }
+
+  return parsed / 100;
+}
+
+
+export default function ProbabilidadPage() {
+  const exportRef =
+    useRef<HTMLElement>(
+      null,
+    );
+
+
+  const [
+    exportError,
+    setExportError,
+  ] =
+    useState("");
+
+
   const [
     eventA,
     setEventA,
-  ] = useState(
-    "Cliente realiza una compra",
-  );
+  ] =
+    useState("");
 
   const [
     eventB,
     setEventB,
-  ] = useState(
-    "Cliente recibió una promoción",
-  );
+  ] =
+    useState("");
 
   const [
     probabilityA,
     setProbabilityA,
-  ] = useState(0.4);
+  ] =
+    useState("");
 
   const [
     probabilityBGivenA,
     setProbabilityBGivenA,
-  ] = useState(0.7);
+  ] =
+    useState("");
 
   const [
     probabilityB,
     setProbabilityB,
-  ] = useState(0.5);
-
-  const [
-    bayesResult,
-    setBayesResult,
   ] =
-    useState<BayesResponse | null>(
-      null,
-    );
+    useState("");
 
   const [
-    bayesLoading,
-    setBayesLoading,
-  ] = useState(false);
-
-  const [
-    bayesError,
-    setBayesError,
-  ] = useState("");
-
-
-  const [
-    variableName,
-    setVariableName,
-  ] = useState(
-    "Cantidad de productos por compra",
-  );
-
-  const [
-    valuesText,
-    setValuesText,
-  ] = useState(
-    "1, 2, 3, 4",
-  );
-
-  const [
-    probabilitiesText,
-    setProbabilitiesText,
-  ] = useState(
-    "0.15, 0.35, 0.30, 0.20",
-  );
-
-  const [
-    variableResult,
-    setVariableResult,
+    result,
+    setResult,
   ] =
-    useState<RandomVariableResponse | null>(
-      null,
-    );
+    useState<
+      BayesResponse | null
+    >(null);
 
   const [
-    variableLoading,
-    setVariableLoading,
-  ] = useState(false);
+    loading,
+    setLoading,
+  ] =
+    useState(false);
 
   const [
-    variableError,
-    setVariableError,
-  ] = useState("");
+    error,
+    setError,
+  ] =
+    useState("");
 
 
-  async function runBayes() {
-    setBayesError("");
-    setBayesResult(null);
+  async function handleSubmit(
+    event: FormEvent,
+  ) {
+    event.preventDefault();
 
+    setError("");
+    setExportError("");
+    setResult(null);
+
+    const cleanEventA =
+      eventA.trim();
+
+    const cleanEventB =
+      eventB.trim();
 
     if (
-      !eventA.trim() ||
-      !eventB.trim()
+      !cleanEventA
+      || !cleanEventB
     ) {
-      setBayesError(
-        "Los eventos A y B son obligatorios.",
+      setError(
+        "Define el evento A y la evidencia B.",
       );
 
       return;
     }
 
+    let parsedA: number;
+    let parsedBGivenA: number;
+    let parsedB: number;
 
-    if (
-      probabilityA < 0 ||
-      probabilityA > 1 ||
-      probabilityBGivenA < 0 ||
-      probabilityBGivenA > 1 ||
-      probabilityB <= 0 ||
-      probabilityB > 1
+    try {
+      parsedA =
+        parsePercent(
+          probabilityA,
+          "P(A)",
+        );
+
+      parsedBGivenA =
+        parsePercent(
+          probabilityBGivenA,
+          "P(B|A)",
+        );
+
+      parsedB =
+        parsePercent(
+          probabilityB,
+          "P(B)",
+          false,
+        );
+    } catch (
+      validationError
     ) {
-      setBayesError(
-        "Las probabilidades deben estar entre 0 y 1, y P(B) debe ser mayor que 0.",
+      setError(
+        validationError
+          instanceof Error
+          ? validationError.message
+          : "Las probabilidades ingresadas no son válidas.",
       );
 
       return;
     }
 
-
-    setBayesLoading(true);
-
+    setLoading(true);
 
     try {
       const response =
         await calculateBayes({
           event_a:
-            eventA.trim(),
+            cleanEventA,
 
           event_b:
-            eventB.trim(),
+            cleanEventB,
 
           probability_a:
-            probabilityA,
+            parsedA,
 
           probability_b_given_a:
-            probabilityBGivenA,
+            parsedBGivenA,
 
           probability_b:
-            probabilityB,
+            parsedB,
         });
 
-
-      setBayesResult(
+      setResult(
         response,
       );
-    } catch (err) {
-      setBayesError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo calcular el Teorema de Bayes.",
+    } catch (
+      requestError
+    ) {
+      setError(
+        requestError
+          instanceof Error
+          ? requestError.message
+          : "No se pudo ejecutar el cálculo de Bayes.",
       );
     } finally {
-      setBayesLoading(false);
+      setLoading(false);
     }
   }
 
 
-  async function runVariableAnalysis() {
-    setVariableError("");
-    setVariableResult(null);
+  function exportRows(): ExportRow[] {
+    if (!result) {
+      return [];
+    }
 
 
+    return [
+      {
+        "Evento A":
+          result.event_a,
+
+        "Evidencia B":
+          result.event_b,
+
+        "P(A) %":
+          result.probability_a
+          * 100,
+
+        "P(B|A) %":
+          result.probability_b_given_a
+          * 100,
+
+        "P(B) %":
+          result.probability_b
+          * 100,
+
+        "P(A|B) %":
+          result.posterior_probability
+          * 100,
+
+        Interpretación:
+          result.interpretation,
+      },
+    ];
+  }
+
+
+  function exportFilename() {
+    return `probabilidad-${exportDateStamp()}`;
+  }
+
+
+  async function handlePdf() {
     if (
-      !variableName.trim()
+      !exportRef.current
+      || !result
     ) {
-      setVariableError(
-        "El nombre de la variable es obligatorio.",
-      );
-
       return;
     }
 
 
-    let values: number[];
-    let probabilities: number[];
+    setExportError("");
 
 
     try {
-      values =
-        parseList(
-          valuesText,
-        );
-
-      probabilities =
-        parseList(
-          probabilitiesText,
-        );
-    } catch (err) {
-      setVariableError(
-        err instanceof Error
-          ? err.message
-          : "La distribución ingresada no es válida.",
+      await downloadVisualPdf(
+        exportRef.current,
+        exportFilename(),
       );
-
-      return;
-    }
-
-
-    if (
-      values.length !==
-      probabilities.length
+    } catch (
+      currentError
     ) {
-      setVariableError(
-        "Debe existir una probabilidad para cada valor de la variable.",
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el PDF.",
       );
-
-      return;
-    }
-
-
-    if (
-      probabilities.some(
-        (probability) =>
-          probability < 0 ||
-          probability > 1,
-      )
-    ) {
-      setVariableError(
-        "Todas las probabilidades deben estar entre 0 y 1.",
-      );
-
-      return;
-    }
-
-
-    const probabilityTotal =
-      probabilities.reduce(
-        (total, value) =>
-          total + value,
-        0,
-      );
-
-
-    if (
-      Math.abs(
-        probabilityTotal - 1,
-      ) > 0.000001
-    ) {
-      setVariableError(
-        `La suma de probabilidades debe ser 1. Actualmente es ${formatNumber(
-          probabilityTotal,
-        )}.`,
-      );
-
-      return;
-    }
-
-
-    setVariableLoading(true);
-
-
-    try {
-      const response =
-        await analyzeRandomVariable({
-          name:
-            variableName.trim(),
-
-          values,
-
-          probabilities,
-        });
-
-
-      setVariableResult(
-        response,
-      );
-    } catch (err) {
-      setVariableError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo analizar la variable aleatoria.",
-      );
-    } finally {
-      setVariableLoading(false);
     }
   }
+
+
+  function handleCsv() {
+    if (!result) {
+      return;
+    }
+
+
+    setExportError("");
+
+
+    try {
+      exportRowsToCsv(
+        exportFilename(),
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el CSV.",
+      );
+    }
+  }
+
+
+  async function handleExcel() {
+    if (!result) {
+      return;
+    }
+
+
+    setExportError("");
+
+
+    try {
+      await exportRowsToExcel(
+        exportFilename(),
+        "Probabilidad",
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo generar el archivo Excel.",
+      );
+    }
+  }
+
+
+  async function handleShare() {
+    if (
+      !exportRef.current
+      || !result
+    ) {
+      return;
+    }
+
+
+    setExportError("");
+
+
+    try {
+      const file =
+        await createVisualPdfFile(
+          exportRef.current,
+          exportFilename(),
+        );
+
+
+      await shareFile(
+        file,
+        "Probabilidad - SalesIA Enterprise",
+        `Resultado probabilístico: ${result.event_a}.`,
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo compartir el resultado.",
+      );
+    }
+  }
+
+
+  function reset() {
+    setEventA("");
+    setEventB("");
+    setProbabilityA("");
+    setProbabilityBGivenA("");
+    setProbabilityB("");
+    setResult(null);
+    setError("");
+    setExportError("");
+  }
+
+
+  const posteriorPercent =
+    result
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            result
+              .posterior_probability
+              * 100,
+          ),
+        )
+      : 0;
 
 
   return (
-    <section className="module-page">
-      <div className="page-heading">
+    <section className="probability-page">
+      <header className="probability-header">
         <div>
-          <span className="page-eyebrow">
-            ANÁLISIS ESTADÍSTICO
-          </span>
+          <div className="probability-eyebrow">
+            <BrainCircuit
+              size={14}
+            />
+
+            Análisis probabilístico
+          </div>
 
           <h1>
             Probabilidad
           </h1>
 
           <p>
-            Ejecuta cálculos reales del
-            Teorema de Bayes y analiza
-            distribuciones de variables
-            aleatorias mediante el
-            backend de SalesIA Enterprise.
+            Evalúa escenarios mediante
+            el Teorema de Bayes y obtén
+            una probabilidad posterior.
           </p>
         </div>
 
-        <div className="module-main-icon">
-          <Percent
-            size={27}
-          />
-        </div>
-      </div>
-
-
-      <div className="analytics-workspace">
-        <article className="panel analytics-form-panel">
-          <div className="analytics-section-title">
-            <BrainCircuit
-              size={20}
+        {result && (
+          <div
+            className="probability-header-actions"
+            data-export-hide="true"
+          >
+            <ExportActions
+              disabled={loading}
+              onPdf={handlePdf}
+              onCsv={handleCsv}
+              onExcel={handleExcel}
+              onShare={handleShare}
             />
+          </div>
+        )}
+      </header>
 
+
+      {exportError && (
+        <div
+          className="probability-export-error"
+          data-export-hide="true"
+        >
+          {exportError}
+        </div>
+      )}
+
+
+      <div className="probability-workspace">
+        <form
+          className="probability-form-panel"
+          onSubmit={
+            handleSubmit
+          }
+        >
+          <header className="probability-panel-heading">
             <div>
+              <span>
+                ESCENARIO
+              </span>
+
               <h2>
-                Teorema de Bayes
+                Datos del análisis
               </h2>
 
               <p>
-                Calcula P(A|B) a partir
-                de P(A), P(B|A) y P(B).
+                Define los eventos y sus
+                probabilidades conocidas.
               </p>
             </div>
-          </div>
+
+            <BrainCircuit
+              size={19}
+            />
+          </header>
 
 
-          <div className="analytics-form-grid">
-            <label className="analytics-field">
+          <div className="probability-events">
+            <label className="probability-field">
               <span>
                 Evento A
               </span>
@@ -429,17 +539,31 @@ function ProbabilidadPage() {
                   event,
                 ) =>
                   setEventA(
-                    event.target
+                    event
+                      .target
                       .value,
                   )
                 }
+                placeholder="Ej. Cliente realiza una compra"
               />
+
+              <small>
+                Evento cuya probabilidad
+                deseas estimar.
+              </small>
             </label>
 
 
-            <label className="analytics-field">
+            <div className="probability-event-arrow">
+              <ArrowRight
+                size={18}
+              />
+            </div>
+
+
+            <label className="probability-field">
               <span>
-                Evento B
+                Evidencia B
               </span>
 
               <input
@@ -450,530 +574,392 @@ function ProbabilidadPage() {
                   event,
                 ) =>
                   setEventB(
-                    event.target
+                    event
+                      .target
                       .value,
                   )
                 }
+                placeholder="Ej. Cliente recibió una promoción"
               />
+
+              <small>
+                Evidencia que ya conocemos.
+              </small>
             </label>
           </div>
 
 
-          <div
-            className="analytics-probability-grid"
-            style={{
-              marginTop: 14,
-            }}
-          >
-            <label className="analytics-field">
-              <span>
-                P(A)
-              </span>
+          <div className="probability-divider" />
 
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={
-                  probabilityA
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setProbabilityA(
-                    Number(
-                      event.target
+
+          <div className="probability-input-grid">
+            <label className="probability-number-field">
+              <div>
+                <span>
+                  P(A)
+                </span>
+
+                <small>
+                  Probabilidad inicial
+                </small>
+              </div>
+
+              <div className="probability-percent-input">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={
+                    probabilityA
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setProbabilityA(
+                      event
+                        .target
                         .value,
-                    ),
-                  )
-                }
-              />
+                    )
+                  }
+                  placeholder="0"
+                />
+
+                <span>
+                  %
+                </span>
+              </div>
             </label>
 
 
-            <label className="analytics-field">
-              <span>
-                P(B|A)
-              </span>
+            <label className="probability-number-field featured">
+              <div>
+                <span>
+                  P(B|A)
+                </span>
 
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={
-                  probabilityBGivenA
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setProbabilityBGivenA(
-                    Number(
-                      event.target
+                <small>
+                  Evidencia dado A
+                </small>
+              </div>
+
+              <div className="probability-percent-input">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={
+                    probabilityBGivenA
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setProbabilityBGivenA(
+                      event
+                        .target
                         .value,
-                    ),
-                  )
-                }
-              />
+                    )
+                  }
+                  placeholder="0"
+                />
+
+                <span>
+                  %
+                </span>
+              </div>
             </label>
 
 
-            <label className="analytics-field">
-              <span>
-                P(B)
-              </span>
+            <label className="probability-number-field">
+              <div>
+                <span>
+                  P(B)
+                </span>
 
-              <input
-                type="number"
-                min="0.000001"
-                max="1"
-                step="0.01"
-                value={
-                  probabilityB
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setProbabilityB(
-                    Number(
-                      event.target
+                <small>
+                  Probabilidad de evidencia
+                </small>
+              </div>
+
+              <div className="probability-percent-input">
+                <input
+                  type="number"
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  value={
+                    probabilityB
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setProbabilityB(
+                      event
+                        .target
                         .value,
-                    ),
-                  )
-                }
-              />
+                    )
+                  }
+                  placeholder="0"
+                />
+
+                <span>
+                  %
+                </span>
+              </div>
             </label>
           </div>
 
 
-          <div className="analytics-formula">
-            P(A|B) = P(B|A) × P(A) / P(B)
+          <div className="probability-tip">
+            <Info
+              size={15}
+            />
+
+            <span>
+              Ingresa las probabilidades
+              como porcentajes entre
+              0 y 100.
+            </span>
           </div>
 
 
-          {bayesError && (
-            <div className="analytics-error">
+          {error && (
+            <div
+              className="probability-error"
+              role="alert"
+            >
               <Percent
                 size={15}
               />
 
               <span>
-                {bayesError}
+                {error}
               </span>
             </div>
           )}
 
 
-          <div className="analytics-actions">
+          <div className="probability-actions">
             <button
               type="button"
-              className="primary-button"
-              disabled={
-                bayesLoading
-              }
-              onClick={() => {
-                void runBayes();
-              }}
+              className="probability-secondary-button"
+              disabled={loading}
+              onClick={reset}
             >
-              <Calculator
-                size={16}
+              <RotateCcw
+                size={15}
               />
 
-              {bayesLoading
+              Limpiar
+            </button>
+
+            <button
+              type="submit"
+              className="probability-primary-button"
+              disabled={loading}
+            >
+              <Calculator
+                size={15}
+              />
+
+              {loading
                 ? "Calculando..."
-                : "Calcular Bayes"}
+                : "Calcular probabilidad"}
             </button>
           </div>
-        </article>
+        </form>
 
 
-        <article className="panel analytics-result-panel">
-          <div className="analytics-section-title">
-            <Percent
-              size={20}
-            />
-
+        <section
+          ref={exportRef}
+          className="probability-result-panel"
+        >
+          <header className="probability-panel-heading">
             <div>
+              <span>
+                RESULTADO
+              </span>
+
               <h2>
-                Resultado de Bayes
+                Probabilidad posterior
               </h2>
 
               <p>
-                Probabilidad posterior
-                calculada por el backend.
+                Resultado del análisis
+                bayesiano.
               </p>
             </div>
-          </div>
+
+            <Percent
+              size={19}
+            />
+          </header>
 
 
-          {!bayesResult ? (
-            <div className="analytics-result-empty">
-              <div>
-                <BrainCircuit
-                  size={28}
+          {!result ? (
+            <div className="probability-empty">
+              <div className="probability-empty-icon">
+                <Percent
+                  size={27}
                 />
-
-                <strong>
-                  Sin cálculo ejecutado
-                </strong>
-
-                <p>
-                  Define los eventos y
-                  probabilidades para
-                  obtener P(A|B).
-                </p>
               </div>
+
+              <strong>
+                Esperando análisis
+              </strong>
+
+              <p>
+                Completa los datos del
+                escenario para obtener
+                P(A|B).
+              </p>
             </div>
           ) : (
-            <>
-              <div className="analytics-success">
+            <div className="probability-result-content">
+              <div className="probability-result-success">
                 <CheckCircle2
                   size={15}
                 />
 
-                Cálculo completado.
+                Cálculo completado
               </div>
 
 
-              <div className="analytics-result-grid">
-                <div className="analytics-metric">
+              <div className="probability-posterior">
+                <span>
+                  P(A|B)
+                </span>
+
+                <strong>
+                  {formatPercent(
+                    result
+                      .posterior_probability,
+                  )}
+                </strong>
+
+                <small>
+                  Probabilidad posterior
+                </small>
+              </div>
+
+
+              <div className="probability-gauge">
+                <div className="probability-gauge-track">
+                  <div
+                    className="probability-gauge-value"
+                    style={{
+                      width:
+                        `${posteriorPercent}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="probability-gauge-scale">
+                  <span>
+                    0%
+                  </span>
+
+                  <span>
+                    50%
+                  </span>
+
+                  <span>
+                    100%
+                  </span>
+                </div>
+              </div>
+
+
+              <div className="probability-result-metrics">
+                <div>
                   <span>
                     P(A)
                   </span>
 
                   <strong>
                     {formatPercent(
-                      bayesResult
+                      result
                         .probability_a,
                     )}
                   </strong>
                 </div>
 
-
-                <div className="analytics-metric">
+                <div>
                   <span>
                     P(B|A)
                   </span>
 
                   <strong>
                     {formatPercent(
-                      bayesResult
+                      result
                         .probability_b_given_a,
                     )}
                   </strong>
                 </div>
 
-
-                <div className="analytics-metric">
+                <div>
                   <span>
                     P(B)
                   </span>
 
                   <strong>
                     {formatPercent(
-                      bayesResult
+                      result
                         .probability_b,
                     )}
                   </strong>
                 </div>
+              </div>
 
 
-                <div className="analytics-metric">
+              <div className="probability-result-scenario">
+                <div>
                   <span>
-                    P(A|B)
+                    Evento A
                   </span>
 
                   <strong>
-                    {formatPercent(
-                      bayesResult
-                        .posterior_probability,
-                    )}
+                    {
+                      result.event_a
+                    }
+                  </strong>
+                </div>
+
+                <ArrowRight
+                  size={15}
+                />
+
+                <div>
+                  <span>
+                    Evidencia B
+                  </span>
+
+                  <strong>
+                    {
+                      result.event_b
+                    }
                   </strong>
                 </div>
               </div>
 
 
-              <div className="analytics-formula">
-                {bayesResult.formula}
-              </div>
-
-
-              <div className="analytics-interpretation">
+              <div className="probability-interpretation">
                 <span>
                   Interpretación
                 </span>
 
                 <p>
-                  {bayesResult.interpretation}
-                </p>
-              </div>
-            </>
-          )}
-        </article>
-      </div>
-
-
-      <div
-        className="analytics-workspace analytics-block-gap"
-      >
-        <article className="panel analytics-form-panel">
-          <div className="analytics-section-title">
-            <Sigma
-              size={20}
-            />
-
-            <div>
-              <h2>
-                Variable aleatoria
-              </h2>
-
-              <p>
-                Define una distribución
-                discreta para calcular
-                esperanza, varianza y
-                desviación estándar.
-              </p>
-            </div>
-          </div>
-
-
-          <div className="analytics-form-grid">
-            <label className="analytics-field full">
-              <span>
-                Nombre de la variable
-              </span>
-
-              <input
-                type="text"
-                maxLength={200}
-                value={
-                  variableName
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setVariableName(
-                    event.target
-                      .value,
-                  )
-                }
-              />
-            </label>
-
-
-            <label className="analytics-field">
-              <span>
-                Valores
-              </span>
-
-              <textarea
-                value={
-                  valuesText
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setValuesText(
-                    event.target
-                      .value,
-                  )
-                }
-                placeholder="1, 2, 3, 4"
-              />
-
-              <div className="analytics-help">
-                Un valor por cada
-                resultado posible.
-              </div>
-            </label>
-
-
-            <label className="analytics-field">
-              <span>
-                Probabilidades
-              </span>
-
-              <textarea
-                value={
-                  probabilitiesText
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setProbabilitiesText(
-                    event.target
-                      .value,
-                  )
-                }
-                placeholder="0.15, 0.35, 0.30, 0.20"
-              />
-
-              <div className="analytics-help">
-                Deben tener la misma
-                cantidad de elementos y
-                sumar exactamente 1.
-              </div>
-            </label>
-          </div>
-
-
-          {variableError && (
-            <div className="analytics-error">
-              <Sigma
-                size={15}
-              />
-
-              <span>
-                {variableError}
-              </span>
-            </div>
-          )}
-
-
-          <div className="analytics-actions">
-            <button
-              type="button"
-              className="primary-button"
-              disabled={
-                variableLoading
-              }
-              onClick={() => {
-                void runVariableAnalysis();
-              }}
-            >
-              <Sigma
-                size={16}
-              />
-
-              {variableLoading
-                ? "Analizando..."
-                : "Analizar variable"}
-            </button>
-          </div>
-        </article>
-
-
-        <article className="panel analytics-result-panel">
-          <div className="analytics-section-title">
-            <Database
-              size={20}
-            />
-
-            <div>
-              <h2>
-                Distribución
-              </h2>
-
-              <p>
-                Medidas obtenidas desde
-                el análisis probabilístico.
-              </p>
-            </div>
-          </div>
-
-
-          {!variableResult ? (
-            <div className="analytics-result-empty">
-              <div>
-                <Sigma
-                  size={28}
-                />
-
-                <strong>
-                  Sin distribución analizada
-                </strong>
-
-                <p>
-                  Introduce valores y
-                  probabilidades para
-                  ejecutar el análisis.
+                  {
+                    result
+                      .interpretation
+                  }
                 </p>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="analytics-success">
-                <CheckCircle2
-                  size={15}
-                />
-
-                Distribución analizada.
-              </div>
-
-
-              <div className="analytics-result-grid">
-                <div className="analytics-metric">
-                  <span>
-                    Observaciones
-                  </span>
-
-                  <strong>
-                    {variableResult
-                      .observations}
-                  </strong>
-                </div>
-
-
-                <div className="analytics-metric">
-                  <span>
-                    Valor esperado
-                  </span>
-
-                  <strong>
-                    {formatNumber(
-                      variableResult
-                        .expected_value,
-                    )}
-                  </strong>
-                </div>
-
-
-                <div className="analytics-metric">
-                  <span>
-                    Varianza
-                  </span>
-
-                  <strong>
-                    {formatNumber(
-                      variableResult
-                        .variance,
-                    )}
-                  </strong>
-                </div>
-
-
-                <div className="analytics-metric">
-                  <span>
-                    Desviación estándar
-                  </span>
-
-                  <strong>
-                    {formatNumber(
-                      variableResult
-                        .standard_deviation,
-                    )}
-                  </strong>
-                </div>
-              </div>
-
-
-              <div className="analytics-interpretation">
-                <span>
-                  Variable
-                </span>
-
-                <p>
-                  {variableResult.name}
-                </p>
-              </div>
-            </>
           )}
-        </article>
+        </section>
       </div>
     </section>
   );
 }
-
-
-export default ProbabilidadPage;

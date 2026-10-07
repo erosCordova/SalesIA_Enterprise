@@ -1,0 +1,969 @@
+/* =========================================================
+   SALESIA ENTERPRISE
+   KARDEX - INTERFAZ COMERCIAL
+   ========================================================= */
+
+.kardex-page {
+  width: 100%;
+  min-width: 0;
+}
+
+
+/* =========================================================
+   CABECERA
+   ========================================================= */
+
+.kardex-page .kardex-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  margin-bottom: 18px;
+}
+
+
+.kardex-page .kardex-header h1 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 34px;
+  font-weight: 800;
+
+  line-height: 1.08;
+
+  letter-spacing: -0.045em;
+}
+
+
+.kardex-page .kardex-header p {
+  margin: 7px 0 0;
+
+  color: #64748b;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+.kardex-page .kardex-header-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+/* =========================================================
+   BOTONES
+   ========================================================= */
+
+.kardex-page .kardex-button-primary,
+.kardex-page .kardex-button-secondary,
+.kardex-page .kardex-clear-button {
+  appearance: none;
+
+  display: inline-flex !important;
+
+  height: 40px !important;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 0 15px !important;
+
+  border-radius: 10px !important;
+
+  font-size: 10px !important;
+  font-weight: 700 !important;
+
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+
+.kardex-page .kardex-button-primary {
+  border: 1px solid #0b92a6 !important;
+
+  color: #ffffff !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #18b1c2,
+      #0792a6
+    ) !important;
+
+  box-shadow:
+    0 6px 16px
+    rgba(14, 165, 183, 0.18) !important;
+}
+
+
+.kardex-page
+.kardex-button-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  background:
+    linear-gradient(
+      135deg,
+      #13aabd,
+      #087f92
+    ) !important;
+}
+
+
+.kardex-page .kardex-button-secondary {
+  border: 1px solid #d8e2e8 !important;
+
+  color: #475569 !important;
+
+  background: #ffffff !important;
+}
+
+
+.kardex-page
+.kardex-button-secondary:hover:not(:disabled) {
+  color: #078ca0 !important;
+
+  border-color: #a8dfe6 !important;
+
+  background: #f3fbfc !important;
+}
+
+
+.kardex-page .kardex-clear-button {
+  border: 1px solid #d8e2e8 !important;
+
+  color: #64748b !important;
+
+  background: #f8fafc !important;
+}
+
+
+.kardex-page .kardex-clear-button:hover {
+  color: #078ca0 !important;
+
+  border-color: #a8dfe6 !important;
+
+  background: #ffffff !important;
+}
+
+
+.kardex-page button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FORMULARIO DE MOVIMIENTO
+   ========================================================= */
+
+.kardex-page .kardex-form {
+  margin-bottom: 16px;
+
+  padding: 17px;
+
+  border: 1px solid #dce6eb;
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 5px 18px
+    rgba(15, 23, 42, 0.045);
+}
+
+
+.kardex-page .kardex-form-title {
+  margin-bottom: 14px;
+
+  color: #172033;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+
+.kardex-page .kardex-form-grid {
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(220px, 1.5fr)
+    minmax(130px, 0.7fr)
+    minmax(120px, 0.6fr)
+    minmax(220px, 1.4fr);
+
+  gap: 12px;
+}
+
+
+.kardex-page .kardex-form-grid label {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction: column;
+
+  gap: 6px;
+}
+
+
+.kardex-page .kardex-form-grid label > span {
+  color: #475569;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.kardex-page .kardex-form-grid input,
+.kardex-page .kardex-form-grid select {
+  appearance: auto;
+
+  width: 100%;
+
+  height: 40px !important;
+
+  padding: 0 11px !important;
+
+  border: 1px solid #d8e2e8 !important;
+  border-radius: 9px !important;
+
+  outline: none;
+
+  color: #334155 !important;
+
+  background: #ffffff !important;
+
+  font-size: 10px !important;
+}
+
+
+.kardex-page .kardex-form-grid input:focus,
+.kardex-page .kardex-form-grid select:focus {
+  border-color: #0ea5b7 !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(14, 165, 183, 0.08);
+}
+
+
+.kardex-page .kardex-form-grid small {
+  color: #94a3b8;
+
+  font-size: 8px;
+}
+
+
+.kardex-page .kardex-form-message {
+  margin-top: 12px;
+
+  padding: 9px 11px;
+
+  border-radius: 8px;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.kardex-page .kardex-form-message.success {
+  border: 1px solid #bbf7d0;
+
+  color: #15803d;
+
+  background: #f0fdf4;
+}
+
+
+.kardex-page .kardex-form-message.error {
+  border: 1px solid #fecaca;
+
+  color: #b91c1c;
+
+  background: #fef2f2;
+}
+
+
+.kardex-page .kardex-form-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  margin-top: 14px;
+}
+
+
+/* =========================================================
+   PANEL PRINCIPAL
+   ========================================================= */
+
+.kardex-page .kardex-panel {
+  width: 100%;
+
+  overflow: hidden;
+
+  border: 1px solid #dce6eb !important;
+  border-radius: 14px !important;
+
+  background: #ffffff !important;
+
+  box-shadow:
+    0 5px 18px
+    rgba(15, 23, 42, 0.045) !important;
+}
+
+
+/* =========================================================
+   BARRA DE FILTROS
+   ========================================================= */
+
+.kardex-page .kardex-toolbar {
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(280px, 1fr)
+    175px
+    185px
+    185px
+    auto !important;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 13px 14px !important;
+
+  border-bottom:
+    1px solid #e7edf1;
+
+  background: #ffffff;
+}
+
+
+.kardex-page .kardex-search {
+  display: flex !important;
+
+  width: 100%;
+
+  height: 40px !important;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 11px !important;
+
+  border: 1px solid #d8e2e8 !important;
+  border-radius: 10px !important;
+
+  color: #94a3b8;
+
+  background: #f8fafc !important;
+}
+
+
+.kardex-page .kardex-search:focus-within {
+  border-color: #0ea5b7 !important;
+
+  background: #ffffff !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(14, 165, 183, 0.08);
+}
+
+
+.kardex-page .kardex-search input {
+  width: 100%;
+
+  height: auto;
+
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  outline: none;
+
+  color: #334155 !important;
+
+  background: transparent !important;
+
+  font-size: 10px !important;
+}
+
+
+.kardex-page .kardex-search input::placeholder {
+  color: #94a3b8;
+}
+
+
+/* =========================================================
+   SELECT DE TIPO
+   ========================================================= */
+
+.kardex-page .kardex-type-filter {
+  appearance: auto;
+
+  width: 100%;
+
+  height: 40px !important;
+
+  padding: 0 10px !important;
+
+  border: 1px solid #d8e2e8 !important;
+  border-radius: 10px !important;
+
+  outline: none;
+
+  color: #334155 !important;
+
+  background: #ffffff !important;
+
+  font-size: 9px !important;
+  font-weight: 600;
+}
+
+
+.kardex-page .kardex-type-filter:focus {
+  border-color: #0ea5b7 !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(14, 165, 183, 0.08);
+}
+
+
+/* =========================================================
+   FECHAS
+   ========================================================= */
+
+.kardex-page .kardex-date-filter {
+  display: flex !important;
+
+  width: 100%;
+
+  height: 40px !important;
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 0 9px !important;
+
+  border: 1px solid #d8e2e8 !important;
+  border-radius: 10px !important;
+
+  background: #ffffff !important;
+}
+
+
+.kardex-page .kardex-date-filter span {
+  flex-shrink: 0;
+
+  color: #64748b;
+
+  font-size: 8px !important;
+  font-weight: 700;
+}
+
+
+.kardex-page .kardex-date-filter input {
+  min-width: 0;
+  width: 100%;
+
+  height: auto !important;
+
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  outline: 0;
+
+  color: #334155 !important;
+
+  background: transparent !important;
+
+  font-size: 9px !important;
+}
+
+
+/* =========================================================
+   TABLA
+   ========================================================= */
+
+.kardex-page .kardex-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+}
+
+
+.kardex-page .kardex-table {
+  width: 100%;
+
+  border-collapse: collapse !important;
+
+  background: #ffffff;
+}
+
+
+.kardex-page .kardex-table thead {
+  background: #f7f9fb;
+}
+
+
+.kardex-page .kardex-table th {
+  padding: 11px 14px !important;
+
+  border-bottom:
+    1px solid #e5ebef !important;
+
+  color: #64748b !important;
+
+  background: #f7f9fb !important;
+
+  font-size: 8px !important;
+  font-weight: 800 !important;
+
+  letter-spacing: 0.07em;
+
+  text-align: left !important;
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+
+.kardex-page .kardex-table td {
+  padding: 11px 14px !important;
+
+  border-bottom:
+    1px solid #edf2f5 !important;
+
+  color: #526170 !important;
+
+  background: #ffffff !important;
+
+  font-size: 9px !important;
+
+  vertical-align: middle;
+}
+
+
+.kardex-page
+.kardex-table tbody tr:hover td {
+  background: #f5fbfc !important;
+}
+
+
+.kardex-page
+.kardex-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+
+/* =========================================================
+   PRODUCTO
+   ========================================================= */
+
+.kardex-page .kardex-product {
+  display: flex;
+
+  min-width: 170px;
+
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+.kardex-page .kardex-product-icon {
+  display: grid;
+
+  width: 32px;
+  height: 32px;
+
+  place-items: center;
+
+  flex-shrink: 0;
+
+  border-radius: 8px;
+
+  color: #0e91a4 !important;
+
+  background: #e7f8fa !important;
+}
+
+
+.kardex-page .kardex-product strong {
+  display: block;
+
+  color: #263449;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+.kardex-page .kardex-product small {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #94a3b8;
+
+  font-size: 8px;
+}
+
+
+/* =========================================================
+   TIPO DE MOVIMIENTO
+   ========================================================= */
+
+.kardex-page .kardex-type {
+  display: inline-flex !important;
+
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 5px 8px !important;
+
+  border-radius: 999px !important;
+
+  font-size: 8px !important;
+  font-weight: 800 !important;
+
+  white-space: nowrap;
+}
+
+
+.kardex-page .kardex-type-entry {
+  color: #15803d !important;
+
+  background: #f0fdf4 !important;
+}
+
+
+.kardex-page .kardex-type-exit {
+  color: #c2410c !important;
+
+  background: #fff7ed !important;
+}
+
+
+.kardex-page .kardex-type-other {
+  color: #475569 !important;
+
+  background: #f1f5f9 !important;
+}
+
+
+.kardex-page .kardex-quantity {
+  color: #172033;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+
+.kardex-page .kardex-date {
+  white-space: nowrap;
+
+  color: #526170;
+
+  font-size: 9px;
+}
+
+
+.kardex-page .kardex-muted {
+  color: #64748b;
+
+  font-size: 9px;
+}
+
+
+.kardex-page .kardex-reason {
+  display: block;
+
+  max-width: 240px;
+
+  overflow: hidden;
+
+  color: #526170;
+
+  font-size: 9px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.kardex-page .kardex-footer {
+  display: flex;
+
+  min-height: 52px;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding: 10px 14px;
+
+  border-top:
+    1px solid #e7edf1;
+
+  color: #94a3b8;
+
+  background: #ffffff;
+
+  font-size: 8px;
+}
+
+
+.kardex-page .kardex-footer strong {
+  color: #475569;
+}
+
+
+.kardex-page .kardex-pagination {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.kardex-page .kardex-pagination button {
+  appearance: none;
+
+  display: grid !important;
+
+  width: 31px !important;
+  height: 31px !important;
+
+  place-items: center;
+
+  padding: 0 !important;
+
+  border:
+    1px solid #d8e2e8 !important;
+
+  border-radius: 8px !important;
+
+  color: #526170 !important;
+
+  background: #ffffff !important;
+}
+
+
+.kardex-page
+.kardex-pagination button:hover:not(:disabled) {
+  color: #0e91a4 !important;
+
+  border-color: #b9e5e9 !important;
+
+  background: #f1fbfc !important;
+}
+
+
+.kardex-page
+.kardex-pagination button:disabled {
+  opacity: 0.35;
+}
+
+
+/* =========================================================
+   CARGA / ERROR
+   ========================================================= */
+
+.kardex-page .kardex-state {
+  padding: 18px;
+}
+
+
+.kardex-page
+.kardex-state
+.kardex-button-secondary {
+  margin-top: 10px;
+}
+
+
+.kardex-page .is-spinning {
+  animation:
+    kardex-commercial-spin
+    0.8s
+    linear
+    infinite;
+}
+
+
+@keyframes kardex-commercial-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1250px) {
+
+  .kardex-page .kardex-toolbar {
+    grid-template-columns:
+      minmax(240px, 1fr)
+      170px
+      170px !important;
+  }
+
+
+  .kardex-page .kardex-search {
+    grid-column: span 2;
+  }
+
+
+  .kardex-page .kardex-form-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      ) !important;
+  }
+}
+
+
+@media (max-width: 800px) {
+
+  .kardex-page .kardex-header {
+    flex-direction: column;
+  }
+
+
+  .kardex-page .kardex-header-actions {
+    width: 100%;
+  }
+
+
+  .kardex-page
+  .kardex-header-actions button {
+    flex: 1;
+  }
+
+
+  .kardex-page .kardex-toolbar {
+    grid-template-columns:
+      1fr !important;
+  }
+
+
+  .kardex-page .kardex-search {
+    grid-column: auto;
+  }
+
+
+  .kardex-page .kardex-form-grid {
+    grid-template-columns:
+      1fr !important;
+  }
+
+
+  .kardex-page .kardex-footer {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+
+  .kardex-page .kardex-pagination {
+    width: 100%;
+
+    justify-content: space-between;
+  }
+}
+
+
+@media (max-width: 500px) {
+
+  .kardex-page .kardex-header-actions {
+    flex-direction: column;
+  }
+
+
+  .kardex-page
+  .kardex-header-actions button {
+    width: 100%;
+  }
+
+
+  .kardex-page .kardex-form-actions {
+    flex-direction: column-reverse;
+  }
+
+
+  .kardex-page
+  .kardex-form-actions button {
+    width: 100%;
+  }
+
+
+  .kardex-page .kardex-toolbar {
+    padding: 10px !important;
+  }
+}
+
+
+/* =========================================================
+   EXPORTACION - KARDEX
+   ========================================================= */
+
+.kardex-export-error {
+  padding: 10px 12px;
+
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  color: #b91c1c;
+  background: #fef2f2;
+
+  font-size: 9px;
+}
+
+
+/* =========================================================
+   EXPORTACION - KARDEX
+   ========================================================= */
+
+.kardex-export-error {
+  padding: 10px 12px;
+
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  color: #b91c1c;
+  background: #fef2f2;
+
+  font-size: 9px;
+}

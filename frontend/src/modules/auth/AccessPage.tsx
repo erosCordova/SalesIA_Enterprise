@@ -6,17 +6,21 @@ import {
 } from "react";
 
 import {
-  CheckCircle2,
   Pencil,
   Plus,
-  RefreshCw,
   Search,
   ShieldCheck,
   UserRoundCheck,
   UserRoundX,
-  UsersRound,
-  X,
 } from "lucide-react";
+
+import DataTable, {
+  type DataTableColumn,
+} from "../../components/ui/DataTable";
+
+import Modal from "../../components/ui/Modal";
+import ModuleState from "../../components/ui/ModuleState";
+import Pagination from "../../components/ui/Pagination";
 
 import {
   createUser,
@@ -24,6 +28,10 @@ import {
   getUsers,
   updateUser,
 } from "../../services/users.service";
+
+import {
+  useAuth,
+} from "../../services/auth.context";
 
 import type {
   UserRole,
@@ -60,42 +68,86 @@ interface UserForm {
 }
 
 
-const initialForm: UserForm = {
-  dni: "",
-  first_name: "",
-  last_name: "",
-  phone: "",
-  password: "",
-  role: "Vendedor",
-  status: "active",
-};
+const PAGE_SIZE = 8;
+
+
+const initialForm:
+  UserForm = {
+    dni: "",
+    first_name: "",
+    last_name: "",
+    phone: "",
+    password: "",
+    role: "Vendedor",
+    status: "active",
+  };
 
 
 const ROLE_SCOPE:
-  Record<
-    UserRole,
-    string
-  > = {
-  Administrador:
-    "Control total del sistema, mantenimiento, usuarios y auditoría.",
+  Record<UserRole, string> = {
+    Administrador:
+      "Administración general, mantenimiento, usuarios y auditoría.",
 
-  Gerente:
-    "Supervisión comercial, inventario, inteligencia y mantenimiento empresarial.",
+    Gerente:
+      "Supervisión comercial, inventario, análisis y mantenimiento empresarial.",
 
-  Vendedor:
-    "Registro y consulta de ventas.",
+    Vendedor:
+      "Gestión y consulta de operaciones de venta.",
 
-  Analista:
-    "Analytics, probabilidad, insights y reportes.",
+    Analista:
+      "Análisis, probabilidad, insights y reportes.",
 
-  Almacén:
-    "Inventario, existencias y Kardex.",
-};
+    Almacén:
+      "Control de inventario, existencias y Kardex.",
+  };
+
+
+function normalize(
+  value:
+    | string
+    | null
+    | undefined,
+) {
+  return (
+    value
+      ?.normalize("NFD")
+      .replace(
+        /[\u0300-\u036f]/g,
+        "",
+      )
+      .trim()
+      .toLowerCase()
+    ?? ""
+  );
+}
+
+
+function statusLabel(
+  status: string,
+) {
+  return status === "active"
+    ? "Activo"
+    : "Inactivo";
+}
 
 
 export default function AccessPage({
   mode = "all",
 }: AccessPageProps) {
+  const {
+    user: currentUser,
+  } =
+    useAuth();
+const showUsers =
+    mode === "all"
+    || mode === "users";
+
+
+  const showRoles =
+    mode === "all"
+    || mode === "roles";
+
+
   const [
     users,
     setUsers,
@@ -103,6 +155,7 @@ export default function AccessPage({
     useState<UserListItem[]>(
       [],
     );
+
 
   const [
     roles,
@@ -112,11 +165,34 @@ export default function AccessPage({
       [],
     );
 
+
   const [
     search,
     setSearch,
   ] =
     useState("");
+
+
+  const [
+    roleFilter,
+    setRoleFilter,
+  ] =
+    useState("");
+
+
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] =
+    useState("");
+
+
+  const [
+    page,
+    setPage,
+  ] =
+    useState(1);
+
 
   const [
     loading,
@@ -124,11 +200,13 @@ export default function AccessPage({
   ] =
     useState(true);
 
+
   const [
     saving,
     setSaving,
   ] =
     useState(false);
+
 
   const [
     error,
@@ -136,17 +214,20 @@ export default function AccessPage({
   ] =
     useState("");
 
+
   const [
     success,
     setSuccess,
   ] =
     useState("");
 
+
   const [
     modalOpen,
     setModalOpen,
   ] =
     useState(false);
+
 
   const [
     editingUser,
@@ -155,6 +236,7 @@ export default function AccessPage({
     useState<UserListItem | null>(
       null,
     );
+
 
   const [
     form,
@@ -166,26 +248,38 @@ export default function AccessPage({
 
 
   async function loadData() {
-    setLoading(true);
-    setError("");
+    setLoading(
+      true,
+    );
+
+    setError(
+      "",
+    );
+
 
     try {
-      const [
-        usersResponse,
-        rolesResponse,
-      ] =
-        await Promise.all([
-          getUsers(),
-          getRoles(),
-        ]);
-
-      setUsers(
-        usersResponse,
-      );
+      const rolesResponse =
+        await getRoles();
 
       setRoles(
         rolesResponse,
       );
+
+
+      if (
+        showUsers
+      ) {
+        const usersResponse =
+          await getUsers();
+
+        setUsers(
+          usersResponse,
+        );
+      } else {
+        setUsers(
+          [],
+        );
+      }
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -193,7 +287,9 @@ export default function AccessPage({
           : "No se pudieron cargar los datos de acceso.",
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false,
+      );
     }
   }
 
@@ -202,42 +298,64 @@ export default function AccessPage({
     () => {
       void loadData();
     },
-    [],
+    [
+      mode,
+    ],
   );
 
 
   const filteredUsers =
     useMemo(
       () => {
-        const value =
-          search
-            .trim()
-            .toLowerCase();
+        const query =
+          normalize(
+            search,
+          );
 
-        if (!value) {
-          return users;
-        }
 
         return users.filter(
-          (user) => {
+          (item) => {
             const fullName =
-              `${user.first_name} ${user.last_name}`
-                .toLowerCase();
+              `${item.first_name} ${item.last_name}`;
+
+
+            const matchesSearch =
+              !query
+              || [
+                item.dni,
+                fullName,
+                item.phone,
+                item.role,
+                item.company,
+              ].some(
+                (value) =>
+                  normalize(
+                    String(
+                      value
+                      ?? "",
+                    ),
+                  ).includes(
+                    query,
+                  ),
+              );
+
+
+            const matchesRole =
+              !roleFilter
+              || item.role ===
+                roleFilter;
+
+
+            const matchesStatus =
+              !statusFilter
+              || item.status ===
+                statusFilter;
+
 
             return (
-              user.dni
-                .includes(value)
-              ||
-              fullName
-                .includes(value)
-              ||
-              user.role
-                .toLowerCase()
-                .includes(value)
-              ||
-              user.status
-                .toLowerCase()
-                .includes(value)
+              matchesSearch
+              && matchesRole
+              && matchesStatus
             );
           },
         );
@@ -245,80 +363,257 @@ export default function AccessPage({
       [
         users,
         search,
+        roleFilter,
+        statusFilter,
       ],
     );
 
 
-  const activeUsers =
-    users.filter(
-      (user) =>
-        user.status ===
-        "active",
-    ).length;
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filteredUsers.length
+        / PAGE_SIZE,
+      ),
+    );
 
 
-  const inactiveUsers =
-    users.length -
-    activeUsers;
+  const safePage =
+    Math.min(
+      page,
+      totalPages,
+    );
 
 
-  function openCreate() {
-    setEditingUser(null);
+  const paginatedUsers =
+    useMemo(
+      () => {
+        const start =
+          (
+            safePage - 1
+          )
+          * PAGE_SIZE;
+
+
+        return filteredUsers.slice(
+          start,
+          start + PAGE_SIZE,
+        );
+      },
+      [
+        filteredUsers,
+        safePage,
+      ],
+    );
+
+
+  function isCurrentUser(
+    item: UserListItem,
+  ) {
+    return (
+      currentUser?.id ===
+      item.id
+    );
+  }
+
+
+  const columns:
+    DataTableColumn<UserListItem>[] = [
+      {
+        key:
+          "dni",
+
+        label:
+          "DNI",
+
+        render:
+          (item) => (
+            <strong className="access-dni">
+              {item.dni}
+            </strong>
+          ),
+      },
+
+      {
+        key:
+          "user",
+
+        label:
+          "Usuario",
+
+        render:
+          (item) => (
+            <div className="access-user-cell">
+              <div className="access-avatar">
+                {item.first_name
+                  .charAt(0)
+                  .toUpperCase()}
+
+                {item.last_name
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+
+              <div>
+                <strong>
+                  {item.first_name}{" "}
+                  {item.last_name}
+                </strong>
+
+                <span>
+                  {item.company}
+                </span>
+              </div>
+            </div>
+          ),
+      },
+
+      {
+        key:
+          "role",
+
+        label:
+          "Rol",
+
+        render:
+          (item) => (
+            <span className="access-role">
+              {item.role}
+            </span>
+          ),
+      },
+
+      {
+        key:
+          "phone",
+
+        label:
+          "Teléfono",
+
+        render:
+          (item) => (
+            <span>
+              {item.phone
+                || "No registrado"}
+            </span>
+          ),
+      },
+
+      {
+        key:
+          "status",
+
+        label:
+          "Estado",
+
+        render:
+          (item) => (
+            <span
+              className={`status-badge ${
+                item.status ===
+                  "active"
+                  ? "success"
+                  : "inactive"
+              }`}
+            >
+              {statusLabel(
+                item.status,
+              )}
+            </span>
+          ),
+      },
+    ];
+
+
+  function resetForm() {
+    setEditingUser(
+      null,
+    );
 
     setForm(
       initialForm,
     );
 
-    setError("");
-    setSuccess("");
-    setModalOpen(true);
+    setError(
+      "",
+    );
+  }
+
+
+  function openCreate() {
+    resetForm();
+
+    setSuccess(
+      "",
+    );
+
+    setModalOpen(
+      true,
+    );
   }
 
 
   function openEdit(
-    user: UserListItem,
+    item: UserListItem,
   ) {
-    setEditingUser(user);
+    setEditingUser(
+      item,
+    );
 
     setForm({
       dni:
-        user.dni,
+        item.dni,
 
       first_name:
-        user.first_name,
+        item.first_name,
 
       last_name:
-        user.last_name,
+        item.last_name,
 
       phone:
-        user.phone ?? "",
+        item.phone
+        ?? "",
 
       password:
         "",
 
       role:
-        user.role,
+        item.role,
 
       status:
-        user.status ===
-        "inactive"
+        item.status ===
+          "inactive"
           ? "inactive"
           : "active",
     });
 
-    setError("");
-    setSuccess("");
-    setModalOpen(true);
+    setError(
+      "",
+    );
+
+    setSuccess(
+      "",
+    );
+
+    setModalOpen(
+      true,
+    );
   }
 
 
   function closeModal() {
-    if (saving) {
+    if (
+      saving
+    ) {
       return;
     }
 
-    setModalOpen(false);
-    setEditingUser(null);
+    setModalOpen(
+      false,
+    );
+
+    resetForm();
   }
 
 
@@ -328,15 +623,20 @@ export default function AccessPage({
   ) {
     event.preventDefault();
 
-    setError("");
-    setSuccess("");
+    setError(
+      "",
+    );
+
+    setSuccess(
+      "",
+    );
+
 
     if (
       form.first_name
         .trim()
         .length < 2
-      ||
-      form.last_name
+      || form.last_name
         .trim()
         .length < 2
     ) {
@@ -347,68 +647,51 @@ export default function AccessPage({
       return;
     }
 
-    if (!editingUser) {
-      if (
-        !/^\d{8}$/
-          .test(form.dni)
-      ) {
-        setError(
-          "El DNI debe contener exactamente 8 números.",
-        );
 
-        return;
-      }
+    if (
+      !editingUser
+      && !/^\d{8}$/.test(
+        form.dni,
+      )
+    ) {
+      setError(
+        "El DNI debe contener exactamente 8 números.",
+      );
 
-      if (
-        form.password
-          .length < 8
-      ) {
-        setError(
-          "La contraseña debe tener al menos 8 caracteres.",
-        );
-
-        return;
-      }
+      return;
     }
 
-    setSaving(true);
+
+    if (
+      !editingUser
+      && form.password.length < 8
+    ) {
+      setError(
+        "La contraseña debe tener al menos 8 caracteres.",
+      );
+
+      return;
+    }
+
+
+    setSaving(
+      true,
+    );
+
 
     try {
-      if (editingUser) {
-        const updated =
-          await updateUser(
-            editingUser.id,
-            {
-              first_name:
-                form.first_name
-                  .trim(),
-
-              last_name:
-                form.last_name
-                  .trim(),
-
-              phone:
-                form.phone
-                  .trim()
-                || null,
-
-              role:
-                form.role,
-
-              status:
-                form.status,
-            },
+      if (
+        editingUser
+      ) {
+        const self =
+          isCurrentUser(
+            editingUser,
           );
 
-        setSuccess(
-          `Usuario ${updated.first_name} ${updated.last_name} actualizado correctamente.`,
-        );
-      } else {
-        const created =
-          await createUser({
-            dni:
-              form.dni,
 
+        await updateUser(
+          editingUser.id,
+          {
             first_name:
               form.first_name
                 .trim(),
@@ -417,32 +700,73 @@ export default function AccessPage({
               form.last_name
                 .trim(),
 
-            password:
-              form.password,
-
-            role:
-              form.role,
-
             phone:
               form.phone
                 .trim()
               || null,
 
+            role:
+              self
+                ? "Administrador"
+                : form.role,
+
             status:
-              form.status,
-          });
+              self
+                ? "active"
+                : form.status,
+          },
+        );
+
 
         setSuccess(
-          `Usuario ${created.first_name} ${created.last_name} creado correctamente.`,
+          "Usuario actualizado correctamente.",
+        );
+      } else {
+        await createUser({
+          dni:
+            form.dni,
+
+          first_name:
+            form.first_name
+              .trim(),
+
+          last_name:
+            form.last_name
+              .trim(),
+
+          password:
+            form.password,
+
+          role:
+            form.role,
+
+          phone:
+            form.phone
+              .trim()
+            || null,
+
+          status:
+            form.status,
+        });
+
+
+        setSuccess(
+          "Usuario creado correctamente.",
         );
       }
 
-      setModalOpen(false);
-      setEditingUser(null);
-      setForm(initialForm);
+
+      setModalOpen(
+        false,
+      );
+
+      resetForm();
+
+      setPage(
+        1,
+      );
 
       await loadData();
-
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -450,54 +774,77 @@ export default function AccessPage({
           : "No se pudo guardar el usuario.",
       );
     } finally {
-      setSaving(false);
+      setSaving(
+        false,
+      );
     }
   }
 
 
   async function toggleStatus(
-    user: UserListItem,
+    item: UserListItem,
   ) {
-    setError("");
-    setSuccess("");
+    if (
+      isCurrentUser(
+        item,
+      )
+    ) {
+      setError(
+        "No puedes desactivar tu propia cuenta.",
+      );
+
+      return;
+    }
+
+
+    setError(
+      "",
+    );
+
+    setSuccess(
+      "",
+    );
+
 
     const nextStatus:
       UserStatus =
-      user.status ===
-      "active"
+      item.status ===
+        "active"
         ? "inactive"
         : "active";
 
+
     try {
       await updateUser(
-        user.id,
+        item.id,
         {
           first_name:
-            user.first_name,
+            item.first_name,
 
           last_name:
-            user.last_name,
+            item.last_name,
 
           phone:
-            user.phone,
+            item.phone,
 
           role:
-            user.role,
+            item.role,
 
           status:
             nextStatus,
         },
       );
 
+
       setSuccess(
         nextStatus ===
-        "active"
+          "active"
           ? "Usuario reactivado correctamente."
           : "Usuario desactivado correctamente.",
       );
 
-      await loadData();
 
+      await loadData();
     } catch (statusError) {
       setError(
         statusError instanceof Error
@@ -508,606 +855,689 @@ export default function AccessPage({
   }
 
 
-  const showUsers =
-    mode === "all"
-    || mode === "users";
-
-  const showRoles =
-    mode === "all"
-    || mode === "roles";
 
 
   return (
     <div className="access-page">
       {mode === "all" && (
-        <div className="access-header">
-          <div>
-            <div className="access-eyebrow">
-              <ShieldCheck size={16} />
+        <div className="access-main-title">
+          <span>
+            Acceso y seguridad
+          </span>
 
-              ACCESO Y SEGURIDAD
-            </div>
+          <h2>
+            Usuarios y roles
+          </h2>
 
-            <h1>
-              Usuarios y roles
-            </h1>
-
-            <p>
-              Gestiona las cuentas autorizadas
-              y consulta los niveles de acceso
-              definidos en SalesIA Enterprise.
-            </p>
-          </div>
+          <p>
+            Administración de cuentas y niveles de acceso.
+          </p>
         </div>
       )}
 
 
+      {error && !modalOpen && (
+        <ModuleState
+          type="error"
+          title="No se pudo completar la operación"
+          description={
+            error
+          }
+        />
+      )}
+
+
+      {success && (
+        <ModuleState
+          type="success"
+          title="Operación completada"
+          description={
+            success
+          }
+        />
+      )}
+
+
       {showUsers && (
-        <>
-          <div className="access-summary access-summary-v2">
-            <div className="access-summary-card">
-              <UsersRound size={22} />
+        <section className="access-users-section">
+          <div className="access-section-title">
+            <div>
+              <span>
+                Administración de acceso
+              </span>
 
-              <div>
-                <span>
-                  Usuarios
-                </span>
+              <h2>
+                Usuarios
+              </h2>
 
-                <strong>
-                  {users.length}
-                </strong>
-              </div>
-            </div>
-
-            <div className="access-summary-card">
-              <CheckCircle2 size={22} />
-
-              <div>
-                <span>
-                  Activos
-                </span>
-
-                <strong>
-                  {activeUsers}
-                </strong>
-              </div>
-            </div>
-
-            <div className="access-summary-card">
-              <UserRoundX size={22} />
-
-              <div>
-                <span>
-                  Inactivos
-                </span>
-
-                <strong>
-                  {inactiveUsers}
-                </strong>
-              </div>
+              <p>
+                {filteredUsers.length}{" "}
+                {filteredUsers.length ===
+                  1
+                  ? "usuario"
+                  : "usuarios"}
+                {" "}
+                en la vista actual
+              </p>
             </div>
           </div>
 
 
-          {error && !modalOpen && (
-            <div className="access-message error">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="access-message success">
-              {success}
-            </div>
-          )}
-
-
-          <section className="access-panel">
-            <div className="access-toolbar">
-              <div className="access-search">
-                <Search size={18} />
+          <div
+            className="access-toolbar"
+          >
+            <div className="access-filters">
+              <label className="access-search">
+                <Search
+                  size={15}
+                />
 
                 <input
                   type="search"
-                  placeholder="Buscar por DNI, nombre, rol o estado..."
-                  value={search}
-                  onChange={(event) =>
+                  value={
+                    search
+                  }
+                  onChange={(
+                    event,
+                  ) => {
                     setSearch(
                       event.target.value,
-                    )
-                  }
+                    );
+
+                    setPage(
+                      1,
+                    );
+                  }}
+                  placeholder="Buscar usuario..."
                 />
-              </div>
+              </label>
 
-              <div className="access-toolbar-buttons">
-                <button
-                  type="button"
-                  className="access-secondary-button"
-                  onClick={() =>
-                    void loadData()
-                  }
-                  disabled={loading}
-                >
-                  <RefreshCw
-                    size={17}
-                    className={
-                      loading
-                        ? "access-spin"
-                        : ""
-                    }
-                  />
 
-                  Actualizar
-                </button>
+              <select
+                value={
+                  roleFilter
+                }
+                onChange={(
+                  event,
+                ) => {
+                  setRoleFilter(
+                    event.target.value,
+                  );
 
-                <button
-                  type="button"
-                  className="access-primary-button"
-                  onClick={openCreate}
-                >
-                  <Plus size={18} />
+                  setPage(
+                    1,
+                  );
+                }}
+              >
+                <option value="">
+                  Todos los roles
+                </option>
 
-                  Nuevo usuario
-                </button>
-              </div>
+                {roles.map(
+                  (role) => (
+                    <option
+                      key={
+                        role.id
+                      }
+                      value={
+                        role.name
+                      }
+                    >
+                      {role.name}
+                    </option>
+                  ),
+                )}
+              </select>
+
+
+              <select
+                value={
+                  statusFilter
+                }
+                onChange={(
+                  event,
+                ) => {
+                  setStatusFilter(
+                    event.target.value,
+                  );
+
+                  setPage(
+                    1,
+                  );
+                }}
+              >
+                <option value="">
+                  Todos los estados
+                </option>
+
+                <option value="active">
+                  Activos
+                </option>
+
+                <option value="inactive">
+                  Inactivos
+                </option>
+              </select>
             </div>
 
 
+            <div className="access-toolbar-actions">
+
+
+              <button
+                type="button"
+                className="primary-button access-new-button"
+                onClick={
+                  openCreate
+                }
+              >
+                <Plus
+                  size={15}
+                />
+
+                Nuevo usuario
+              </button>
+            </div>
+          </div>
+
+
+          <article className="access-table-panel">
             {loading ? (
-              <div className="access-state">
-                Cargando usuarios...
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="access-state">
-                No se encontraron usuarios.
-              </div>
+              <ModuleState
+                type="loading"
+                title="Cargando usuarios"
+                description="Consultando las cuentas registradas."
+              />
+            ) : filteredUsers.length ===
+              0 ? (
+              <ModuleState
+                type="empty"
+                title="No encontramos usuarios"
+                description={
+                  search
+                  || roleFilter
+                  || statusFilter
+                    ? "No existen usuarios que coincidan con los filtros."
+                    : "No existen usuarios registrados."
+                }
+              />
             ) : (
-              <div className="access-table-wrapper">
-                <table className="access-table">
-                  <thead>
-                    <tr>
-                      <th>DNI</th>
-                      <th>Usuario</th>
-                      <th>Rol</th>
-                      <th>Teléfono</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
+              <>
+                <DataTable
+                  columns={
+                    columns
+                  }
+                  data={
+                    paginatedUsers
+                  }
+                  getRowKey={(
+                    item,
+                  ) =>
+                    item.id
+                  }
+                  actions={(
+                    item,
+                  ) => (
+                    <div className="table-actions">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        title="Editar usuario"
+                        disabled={
+                          saving
+                        }
+                        onClick={() =>
+                          openEdit(
+                            item,
+                          )
+                        }
+                      >
+                        <Pencil
+                          size={15}
+                        />
+                      </button>
 
-                  <tbody>
-                    {filteredUsers.map(
-                      (user) => (
-                        <tr key={user.id}>
-                          <td>
-                            <strong>
-                              {user.dni}
-                            </strong>
-                          </td>
 
-                          <td>
-                            <div className="access-user-cell">
-                              <div className="access-avatar">
-                                {user.first_name
-                                  .charAt(0)
-                                  .toUpperCase()}
-
-                                {user.last_name
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </div>
-
-                              <div>
-                                <strong>
-                                  {user.first_name}{" "}
-                                  {user.last_name}
-                                </strong>
-
-                                <span>
-                                  {user.company}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td>
-                            <span className="access-role">
-                              {user.role}
-                            </span>
-                          </td>
-
-                          <td>
-                            {user.phone || "—"}
-                          </td>
-
-                          <td>
-                            <span
-                              className={
-                                user.status ===
+                      <button
+                        type="button"
+                        className="icon-button"
+                        disabled={
+                          saving
+                          || isCurrentUser(
+                            item,
+                          )
+                        }
+                        title={
+                          isCurrentUser(
+                            item,
+                          )
+                            ? "No puedes desactivar tu propia cuenta"
+                            : item.status ===
                                 "active"
-                                  ? "access-status active"
-                                  : "access-status inactive"
-                              }
-                            >
-                              {user.status ===
-                              "active"
-                                ? "Activo"
-                                : "Inactivo"}
-                            </span>
-                          </td>
+                              ? "Desactivar usuario"
+                              : "Reactivar usuario"
+                        }
+                        onClick={() =>
+                          void toggleStatus(
+                            item,
+                          )
+                        }
+                      >
+                        {item.status ===
+                          "active" ? (
+                          <UserRoundX
+                            size={15}
+                          />
+                        ) : (
+                          <UserRoundCheck
+                            size={15}
+                          />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                />
 
-                          <td>
-                            <div className="access-row-actions">
-                              <button
-                                type="button"
-                                className="icon-button"
-                                title="Editar usuario"
-                                onClick={() =>
-                                  openEdit(user)
-                                }
-                              >
-                                <Pencil size={16} />
-                              </button>
 
-                              <button
-                                type="button"
-                                className="icon-button"
-                                title={
-                                  user.status ===
-                                  "active"
-                                    ? "Desactivar"
-                                    : "Reactivar"
-                                }
-                                onClick={() =>
-                                  void toggleStatus(
-                                    user,
-                                  )
-                                }
-                              >
-                                {user.status ===
-                                "active" ? (
-                                  <UserRoundX
-                                    size={16}
-                                  />
-                                ) : (
-                                  <UserRoundCheck
-                                    size={16}
-                                  />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ),
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                <Pagination
+                  page={
+                    safePage
+                  }
+                  totalPages={
+                    totalPages
+                  }
+                  onPageChange={
+                    setPage
+                  }
+                />
+              </>
             )}
-          </section>
-        </>
+          </article>
+        </section>
       )}
 
 
       {showRoles && (
         <section className="access-roles-section">
-          <div className="access-section-heading">
+          <div className="access-roles-heading">
             <div>
               <span>
-                SEGURIDAD
+                Niveles de acceso
               </span>
 
               <h2>
-                Roles del sistema
+                Roles
               </h2>
 
               <p>
-                Los roles son estructurales y sus
-                permisos se aplican tanto en el
-                frontend como en el backend.
+                {roles.length}{" "}
+                {roles.length ===
+                  1
+                  ? "rol disponible"
+                  : "roles disponibles"}
               </p>
             </div>
-
-            <ShieldCheck size={24} />
           </div>
 
 
-          <div className="access-role-grid">
-            {roles.map(
-              (role) => (
-                <article
-                  key={role.id}
-                  className="access-role-card"
-                >
-                  <div className="access-role-card-icon">
-                    <ShieldCheck
-                      size={20}
-                    />
-                  </div>
+          {loading ? (
+            <ModuleState
+              type="loading"
+              title="Cargando roles"
+              description="Consultando los roles disponibles."
+            />
+          ) : roles.length ===
+            0 ? (
+            <ModuleState
+              type="empty"
+              title="No hay roles disponibles"
+              description="No existen roles configurados."
+            />
+          ) : (
+            <div className="access-role-grid">
+              {roles.map(
+                (role) => (
+                  <article
+                    key={
+                      role.id
+                    }
+                    className="access-role-card"
+                  >
+                    <div className="access-role-icon">
+                      <ShieldCheck
+                        size={18}
+                      />
+                    </div>
 
-                  <strong>
-                    {role.name}
-                  </strong>
+                    <div>
+                      <strong>
+                        {role.name}
+                      </strong>
 
-                  <p>
-                    {role.description
-                      || ROLE_SCOPE[
-                        role.name
-                      ]}
-                  </p>
-
-                  <small>
-                    {ROLE_SCOPE[
-                      role.name
-                    ]}
-                  </small>
-                </article>
-              ),
-            )}
-          </div>
+                      <p>
+                        {role.description
+                          || ROLE_SCOPE[
+                            role.name
+                          ]}
+                      </p>
+                    </div>
+                  </article>
+                ),
+              )}
+            </div>
+          )}
         </section>
       )}
 
 
-      {modalOpen && (
-        <div
-          className="access-modal-backdrop"
-          onMouseDown={closeModal}
+      <Modal
+        open={
+          modalOpen
+        }
+        title={
+          editingUser
+            ? "Editar usuario"
+            : "Nuevo usuario"
+        }
+        description={
+          editingUser
+            ? "Actualiza los datos, rol y estado de la cuenta."
+            : "Registra una nueva cuenta de acceso."
+        }
+        onClose={
+          closeModal
+        }
+      >
+        <form
+          className="enterprise-form"
+          onSubmit={
+            handleSubmit
+          }
         >
-          <div
-            className="access-modal"
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <div className="access-modal-header">
-              <div>
-                <div className="access-modal-icon">
-                  {editingUser ? (
-                    <Pencil size={21} />
-                  ) : (
-                    <UsersRound size={21} />
-                  )}
-                </div>
+          {error && (
+            <ModuleState
+              type="error"
+              title="No se pudo guardar"
+              description={
+                error
+              }
+            />
+          )}
 
-                <div>
-                  <h2>
-                    {editingUser
-                      ? "Editar usuario"
-                      : "Nuevo usuario"}
-                  </h2>
 
-                  <p>
-                    {editingUser
-                      ? "Actualiza datos, rol y estado."
-                      : "Crea una nueva cuenta de acceso."}
-                  </p>
-                </div>
-              </div>
+          <div className="form-grid">
+            <label>
+              <span>
+                DNI
+              </span>
 
-              <button
-                className="access-close"
-                onClick={closeModal}
-                type="button"
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                value={
+                  form.dni
+                }
+                disabled={
+                  Boolean(
+                    editingUser,
+                  )
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+
+                    dni:
+                      event.target.value
+                        .replace(
+                          /\D/g,
+                          "",
+                        )
+                        .slice(
+                          0,
+                          8,
+                        ),
+                  })
+                }
+                placeholder="12345678"
+                required
+              />
+            </label>
+
+
+            <label>
+              <span>
+                Rol
+              </span>
+
+              <select
+                value={
+                  form.role
+                }
+                disabled={
+                  Boolean(
+                    editingUser
+                    && isCurrentUser(
+                      editingUser,
+                    ),
+                  )
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+
+                    role:
+                      event.target.value as
+                        UserRole,
+                  })
+                }
               >
-                <X size={20} />
-              </button>
-            </div>
-
-
-            <form
-              onSubmit={handleSubmit}
-              className="access-form"
-            >
-              {error && (
-                <div className="access-message error">
-                  {error}
-                </div>
-              )}
-
-              <div className="access-form-grid">
-                <label>
-                  <span>DNI</span>
-
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={8}
-                    value={form.dni}
-                    disabled={
-                      Boolean(
-                        editingUser,
-                      )
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        dni:
-                          event.target
-                            .value
-                            .replace(
-                              /\D/g,
-                              "",
-                            )
-                            .slice(
-                              0,
-                              8,
-                            ),
-                      })
-                    }
-                  />
-                </label>
-
-
-                <label>
-                  <span>Rol</span>
-
-                  <select
-                    value={form.role}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        role:
-                          event.target.value as UserRole,
-                      })
-                    }
-                  >
-                    {roles.map(
-                      (role) => (
-                        <option
-                          key={role.id}
-                          value={
-                            role.name
-                          }
-                        >
-                          {role.name}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-
-
-                <label>
-                  <span>Nombres</span>
-
-                  <input
-                    value={
-                      form.first_name
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        first_name:
-                          event.target
-                            .value,
-                      })
-                    }
-                  />
-                </label>
-
-
-                <label>
-                  <span>Apellidos</span>
-
-                  <input
-                    value={
-                      form.last_name
-                    }
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        last_name:
-                          event.target
-                            .value,
-                      })
-                    }
-                  />
-                </label>
-
-
-                <label>
-                  <span>Teléfono</span>
-
-                  <input
-                    value={form.phone}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        phone:
-                          event.target
-                            .value,
-                      })
-                    }
-                  />
-                </label>
-
-
-                {editingUser ? (
-                  <label>
-                    <span>Estado</span>
-
-                    <select
-                      value={
-                        form.status
+                {roles.map(
+                  (role) => (
+                    <option
+                      key={
+                        role.id
                       }
-                      onChange={(
-                        event,
-                      ) =>
-                        setForm({
-                          ...form,
-                          status:
-                            event.target.value as UserStatus,
-                        })
+                      value={
+                        role.name
                       }
                     >
-                      <option value="active">
-                        Activo
-                      </option>
-
-                      <option value="inactive">
-                        Inactivo
-                      </option>
-                    </select>
-                  </label>
-                ) : (
-                  <label>
-                    <span>Contraseña</span>
-
-                    <input
-                      type="password"
-                      value={
-                        form.password
-                      }
-                      autoComplete="new-password"
-                      onChange={(event) =>
-                        setForm({
-                          ...form,
-                          password:
-                            event.target
-                              .value,
-                        })
-                      }
-                    />
-                  </label>
+                      {role.name}
+                    </option>
+                  ),
                 )}
-              </div>
+              </select>
+            </label>
 
 
-              <div className="access-form-info">
-                El DNI no puede modificarse
-                después de crear la cuenta porque
-                forma parte de la identidad de
-                acceso del usuario.
-              </div>
+            <label>
+              <span>
+                Nombres
+              </span>
+
+              <input
+                value={
+                  form.first_name
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+
+                    first_name:
+                      event.target.value,
+                  })
+                }
+                required
+              />
+            </label>
 
 
-              <div className="access-modal-actions">
-                <button
-                  type="button"
-                  className="access-secondary-button"
-                  onClick={closeModal}
-                  disabled={saving}
+            <label>
+              <span>
+                Apellidos
+              </span>
+
+              <input
+                value={
+                  form.last_name
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+
+                    last_name:
+                      event.target.value,
+                  })
+                }
+                required
+              />
+            </label>
+
+
+            <label>
+              <span>
+                Teléfono
+              </span>
+
+              <input
+                value={
+                  form.phone
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setForm({
+                    ...form,
+
+                    phone:
+                      event.target.value,
+                  })
+                }
+                placeholder="+51 999 999 999"
+              />
+            </label>
+
+
+            {editingUser ? (
+              <label>
+                <span>
+                  Estado
+                </span>
+
+                <select
+                  value={
+                    form.status
+                  }
+                  disabled={
+                    isCurrentUser(
+                      editingUser,
+                    )
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setForm({
+                      ...form,
+
+                      status:
+                        event.target.value as
+                          UserStatus,
+                    })
+                  }
                 >
-                  Cancelar
-                </button>
+                  <option value="active">
+                    Activo
+                  </option>
 
-                <button
-                  type="submit"
-                  className="access-primary-button"
-                  disabled={saving}
-                >
-                  {saving
-                    ? "Guardando..."
-                    : editingUser
-                      ? "Guardar cambios"
-                      : "Crear usuario"}
-                </button>
-              </div>
-            </form>
+                  <option value="inactive">
+                    Inactivo
+                  </option>
+                </select>
+              </label>
+            ) : (
+              <label>
+                <span>
+                  Contraseña
+                </span>
+
+                <input
+                  type="password"
+                  value={
+                    form.password
+                  }
+                  minLength={8}
+                  autoComplete="new-password"
+                  onChange={(
+                    event,
+                  ) =>
+                    setForm({
+                      ...form,
+
+                      password:
+                        event.target.value,
+                    })
+                  }
+                  required
+                />
+              </label>
+            )}
           </div>
-        </div>
-      )}
+
+
+          <p className="access-form-note">
+            El DNI identifica la cuenta y no puede modificarse después de crear el usuario.
+          </p>
+
+
+          {editingUser
+            && isCurrentUser(
+              editingUser,
+            ) && (
+            <p className="access-form-note">
+              Tu propia cuenta debe permanecer activa y conservar el rol Administrador.
+            </p>
+          )}
+
+
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={
+                saving
+              }
+              onClick={
+                closeModal
+              }
+            >
+              Cancelar
+            </button>
+
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={
+                saving
+              }
+            >
+              {saving
+                ? "Guardando..."
+                : editingUser
+                  ? "Guardar cambios"
+                  : "Crear usuario"}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
