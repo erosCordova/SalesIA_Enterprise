@@ -1,4 +1,5 @@
-from uuid import UUID
+import json
+from uuid import UUID, uuid4
 
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
@@ -70,3 +71,101 @@ def list_audit_logs(
             "limit": limit,
         },
     ).mappings().all()
+
+
+def insert_audit_log(
+    connection: Connection,
+    *,
+    company_id,
+    user_id,
+    action: str,
+    table_name: str | None,
+    record_id=None,
+    old_data: dict | None = None,
+    new_data: dict | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+):
+    audit_id = uuid4()
+
+    connection.execute(
+        text(
+            """
+            INSERT INTO audit_logs (
+                id,
+                company_id,
+                user_id,
+                action,
+                table_name,
+                record_id,
+                old_data,
+                new_data,
+                ip_address,
+                user_agent,
+                created_at
+            )
+            VALUES (
+                :id,
+                :company_id,
+                :user_id,
+                :action,
+                :table_name,
+                :record_id,
+                CAST(:old_data AS JSONB),
+                CAST(:new_data AS JSONB),
+                CAST(:ip_address AS INET),
+                :user_agent,
+                NOW()
+            )
+            """
+        ),
+        {
+            "id":
+                audit_id,
+
+            "company_id":
+                company_id,
+
+            "user_id":
+                user_id,
+
+            "action":
+                action,
+
+            "table_name":
+                table_name,
+
+            "record_id":
+                record_id,
+
+            "old_data":
+                (
+                    json.dumps(
+                        old_data,
+                        ensure_ascii=False,
+                        default=str,
+                    )
+                    if old_data is not None
+                    else None
+                ),
+
+            "new_data":
+                (
+                    json.dumps(
+                        new_data,
+                        ensure_ascii=False,
+                        default=str,
+                    )
+                    if new_data is not None
+                    else None
+                ),
+
+            "ip_address":
+                ip_address,
+
+            "user_agent":
+                user_agent,
+        },
+    )
+
+    return audit_id

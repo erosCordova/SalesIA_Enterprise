@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
     Depends,
+    Request,
     HTTPException,
     status,
 )
@@ -8,6 +9,10 @@ from sqlalchemy import text
 from supabase import create_client
 
 from app.api.dependencies.auth import get_current_user
+from app.services.audit import (
+    record_audit_event,
+    snapshot,
+)
 from app.core.config import settings
 from app.core.database import engine
 from app.schemas.auth import (
@@ -26,6 +31,7 @@ router = APIRouter()
     summary="Iniciar sesión con DNI y contraseña",
 )
 def login(
+    request: Request,
     credentials: LoginRequest,
 ) -> LoginResponse:
     dni = credentials.dni.strip()
@@ -226,6 +232,25 @@ def login(
     # ---------------------------------------------------------
 
     session = auth_response.session
+
+    record_audit_event(
+        action="user.login",
+        table_name="auth_sessions",
+        record_id=user["id"],
+        company_id=user["company_id"],
+        user_id=user["id"],
+        request=request,
+        new_data={
+            "status": "success",
+            "auth_method": "DNI_PASSWORD",
+            "dni": user["dni"],
+            "role": user["role"],
+            "user_name": (
+                f'{user["first_name"]} '
+                f'{user["last_name"]}'
+            ).strip(),
+        },
+    )
 
     return LoginResponse(
         access_token=session.access_token,
