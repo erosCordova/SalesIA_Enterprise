@@ -170,7 +170,7 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    title: "CONTROL",
+    title: "ADMINISTRACIÓN",
     items: [
       {
         label: "Mantenimiento",
@@ -274,7 +274,7 @@ function Sidebar({
             ) => (
               <div
                 className="sidebar-section"
-                key={section.title}
+                key={`${section.title}-${sectionIndex}`}
               >
                 {sectionIndex > 0 && (
                   <div

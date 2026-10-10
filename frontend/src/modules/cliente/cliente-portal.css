@@ -1,0 +1,865 @@
+/* =========================================================
+   SALESIA ENTERPRISE
+   PORTAL CLIENTE
+   SOLO COMPONENTES EXCLUSIVOS DEL PORTAL
+
+   El sistema visual principal se hereda del mismo
+   reference-shell utilizado por el panel administrativo.
+   ========================================================= */
+
+
+/* =========================================================
+   TOPBAR CLIENTE
+   ========================================================= */
+
+.client-topbar-context {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.client-topbar-context span {
+  color: #8996a6;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.client-topbar-context strong {
+  overflow: hidden;
+  margin-top: 2px;
+  color: #182039;
+  font-size: 9px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   TARJETAS KPI
+   ========================================================= */
+
+.client-stat-card {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.client-stat-date {
+  font-size: 16px !important;
+}
+
+
+/* =========================================================
+   COMPRAS
+   ========================================================= */
+
+.client-purchase-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.client-purchase-item {
+  display: grid;
+  width: 100%;
+
+  grid-template-columns:
+    auto
+    minmax(0, 1fr)
+    auto
+    auto
+    auto;
+
+  min-height: 48px;
+
+  align-items: center;
+  gap: 8px;
+
+  padding:
+    7px
+    4px;
+
+  border: 0;
+  border-bottom:
+    1px solid #edf1f4;
+
+  color: inherit;
+  background: transparent;
+
+  text-align: left;
+  font: inherit;
+
+  cursor: pointer;
+}
+
+.client-purchase-item:last-child {
+  border-bottom: 0;
+}
+
+.client-purchase-item:hover {
+  background: #f8fafc;
+}
+
+.client-purchase-icon {
+  display: grid;
+
+  width: 31px;
+  height: 31px;
+
+  place-items: center;
+
+  border-radius: 7px;
+
+  color: #0b9f73;
+  background: #e9faf3;
+}
+
+.client-purchase-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.client-purchase-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.client-purchase-info strong {
+  overflow: hidden;
+
+  color: #26354d;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-purchase-info span {
+  margin-top: 2px;
+
+  color: #8a98a9;
+
+  font-size: 6.8px;
+}
+
+.client-status-badge {
+  font-size: 7px;
+}
+
+.client-purchase-total {
+  min-width: 78px;
+
+  color: #26354d;
+
+  font-size: 8px;
+  font-weight: 750;
+
+  text-align: right;
+}
+
+.client-purchase-item > svg {
+  width: 13px;
+  color: #8a98a9;
+}
+
+
+/* =========================================================
+   PERFIL RESUMIDO
+   ========================================================= */
+
+.client-info-row {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 8px;
+
+  padding:
+    9px
+    0;
+
+  border-bottom:
+    1px solid #edf1f4;
+}
+
+.client-info-row:last-of-type {
+  border-bottom: 0;
+}
+
+.client-info-row > svg {
+  width: 14px;
+  height: 14px;
+
+  margin-top: 1px;
+
+  color: #8494a7;
+}
+
+.client-info-row span {
+  display: block;
+
+  color: #8a98a9;
+
+  font-size: 6.8px;
+}
+
+.client-info-row strong {
+  display: block;
+
+  overflow-wrap: anywhere;
+
+  margin-top: 2px;
+
+  color: #26354d;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.client-panel-action {
+  width: 100%;
+  margin-top: 10px;
+}
+
+
+/* =========================================================
+   BUSCADOR DE COMPRAS
+   ========================================================= */
+
+.client-table-toolbar {
+  margin-bottom: 10px;
+}
+
+.client-table-toolbar > span {
+  color: #8a98a9;
+  font-size: 7px;
+}
+
+
+/* =========================================================
+   PERFIL
+   ========================================================= */
+
+.client-profile-heading,
+.client-security-heading {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding-bottom: 11px;
+
+  border-bottom:
+    1px solid #edf1f4;
+}
+
+.client-profile-avatar-large {
+  display: grid;
+
+  width: 34px;
+  height: 34px;
+
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  border-radius: 8px;
+
+  color: #ffffff;
+
+  background: #0d9996;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.client-profile-heading h3,
+.client-security-heading h3 {
+  margin: 0;
+
+  color: #17213a;
+
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.client-profile-heading span,
+.client-security-heading p {
+  display: block;
+
+  margin:
+    2px
+    0
+    0;
+
+  color: #8a98a9;
+
+  font-size: 7px;
+}
+
+.client-edit-button {
+  margin-left: auto;
+}
+
+.client-profile-data {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+
+  padding-top: 10px;
+}
+
+.client-profile-data > div {
+  padding: 10px;
+
+  border:
+    1px solid #e5ebf0;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+}
+
+.client-profile-data span {
+  display: block;
+
+  color: #8a98a9;
+
+  font-size: 7px;
+}
+
+.client-profile-data strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #26354d;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   FORMULARIOS
+   ========================================================= */
+
+.client-profile-form,
+.client-security-form {
+  padding-top: 12px;
+}
+
+.client-security-form {
+  display: grid;
+  max-width: 600px;
+  gap: 11px;
+}
+
+.client-security-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.client-security-form label > span {
+  color: #53677d;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.client-security-form small {
+  color: #8a98a9;
+  font-size: 7px;
+}
+
+.client-form-actions,
+.client-security-actions {
+  justify-content: flex-end;
+}
+
+
+/* =========================================================
+   ESTADO DE CUENTA / SEGURIDAD
+   ========================================================= */
+
+.client-account-status,
+.client-security-note {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 9px;
+
+  padding: 10px;
+
+  border:
+    1px solid #ccefe3;
+
+  border-radius: 8px;
+
+  color: #07966d;
+
+  background: #e9faf3;
+}
+
+.client-account-status span,
+.client-security-note span {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #708096;
+
+  font-size: 7px;
+}
+
+.client-account-status strong,
+.client-security-note strong {
+  color: #26354d;
+  font-size: 8px;
+}
+
+.client-account-description {
+  margin-top: 10px;
+
+  color: #708096;
+
+  font-size: 8px;
+  line-height: 1.6;
+}
+
+.client-security-icon {
+  display: grid;
+
+  width: 31px;
+  height: 31px;
+
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  border-radius: 7px;
+
+  color: #0b9f73;
+  background: #e9faf3;
+}
+
+
+/* =========================================================
+   MENSAJES
+   ========================================================= */
+
+.client-message {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin-bottom: 10px;
+
+  font-size: 8px;
+}
+
+.client-message.error {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.client-message.success {
+  color: #07966d;
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+}
+
+
+/* =========================================================
+   ESTADO VACIO
+   ========================================================= */
+
+.client-empty-state {
+  display: grid;
+
+  min-height: 190px;
+
+  place-items: center;
+  align-content: center;
+
+  text-align: center;
+}
+
+.client-empty-state.large {
+  min-height: 280px;
+}
+
+.client-empty-state svg {
+  margin-bottom: 8px;
+  color: #8997a8;
+}
+
+.client-empty-state strong {
+  color: #26354d;
+  font-size: 9px;
+}
+
+.client-empty-state p {
+  max-width: 380px;
+
+  margin:
+    4px
+    0
+    0;
+
+  color: #8997a8;
+
+  font-size: 7px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   MODAL DE COMPRA
+   ========================================================= */
+
+.client-modal {
+  width:
+    min(
+      720px,
+      100%
+    );
+}
+
+.client-modal-header span {
+  color: #0b9f73;
+
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.client-modal-header h2 {
+  margin-top: 3px;
+}
+
+
+/* =========================================================
+   DETALLE
+   ========================================================= */
+
+.client-detail-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+}
+
+.client-detail-grid > div {
+  padding: 9px;
+
+  border:
+    1px solid #e5ebf0;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+}
+
+.client-detail-grid span {
+  display: block;
+
+  color: #8a98a9;
+
+  font-size: 7px;
+}
+
+.client-detail-grid strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #26354d;
+
+  font-size: 8px;
+}
+
+.client-detail-total {
+  grid-column:
+    1 / -1;
+
+  border-color:
+    #ccefe3 !important;
+
+  background:
+    #e9faf3 !important;
+}
+
+.client-detail-total strong {
+  color: #07966d;
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   PRODUCTOS
+   ========================================================= */
+
+.client-purchased-products {
+  margin-top: 13px;
+
+  padding-top: 12px;
+
+  border-top:
+    1px solid #edf1f4;
+}
+
+.client-products-heading {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  margin-bottom: 8px;
+}
+
+.client-products-heading > span {
+  color: #0b9f73;
+
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.client-products-heading > strong {
+  color: #8a98a9;
+  font-size: 7px;
+}
+
+.client-products-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.client-product-line {
+  display: grid;
+
+  grid-template-columns:
+    31px
+    minmax(0, 1fr)
+    55px
+    78px
+    82px;
+
+  min-height: 46px;
+
+  align-items: center;
+
+  gap: 7px;
+
+  border-bottom:
+    1px solid #edf1f4;
+}
+
+.client-product-line:last-child {
+  border-bottom: 0;
+}
+
+.client-product-symbol {
+  display: grid;
+
+  width: 31px;
+  height: 31px;
+
+  place-items: center;
+
+  border-radius: 7px;
+
+  color: #2384ed;
+  background: #eaf4ff;
+}
+
+.client-product-description {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.client-product-description strong {
+  overflow: hidden;
+
+  color: #26354d;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-product-description span,
+.client-product-quantity span,
+.client-product-price span,
+.client-product-subtotal span {
+  color: #8a98a9;
+  font-size: 6.5px;
+}
+
+.client-product-quantity,
+.client-product-price,
+.client-product-subtotal {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.client-product-quantity strong,
+.client-product-price strong,
+.client-product-subtotal strong {
+  margin-top: 2px;
+  color: #26354d;
+  font-size: 7.5px;
+}
+
+.client-product-subtotal strong {
+  color: #07966d;
+}
+
+.client-products-empty {
+  padding: 14px;
+
+  color: #8997a8;
+
+  font-size: 8px;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   COMPROBANTE
+   ========================================================= */
+
+.client-receipt-actions {
+  padding-top: 12px;
+
+  border-top:
+    1px solid #edf1f4;
+}
+
+
+/* =========================================================
+   ANIMACION
+   ========================================================= */
+
+.client-spin {
+  animation:
+    client-spin
+    0.8s
+    linear
+    infinite;
+}
+
+@keyframes client-spin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE ESPECIFICO DEL PORTAL
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  .client-profile-grid,
+  .client-security-grid {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .client-purchase-item {
+    grid-template-columns:
+      auto
+      minmax(0, 1fr)
+      auto;
+  }
+
+  .client-status-badge {
+    display: none;
+  }
+
+  .client-purchase-total {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .client-purchase-item > svg {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .client-profile-data,
+  .client-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-detail-total {
+    grid-column: 1;
+  }
+
+  .client-product-line {
+    grid-template-columns:
+      31px
+      minmax(0, 1fr)
+      auto;
+  }
+
+  .client-product-quantity,
+  .client-product-price {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .client-product-subtotal {
+    grid-column: 3;
+    grid-row: 1 / span 3;
+  }
+
+  .client-receipt-actions,
+  .client-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .client-receipt-actions button,
+  .client-form-actions button,
+  .client-security-actions button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .client-spin {
+    animation: none;
+  }
+}

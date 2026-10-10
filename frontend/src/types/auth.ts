@@ -3,7 +3,8 @@ export type UserRole =
   | "Gerente"
   | "Vendedor"
   | "Analista"
-  | "Almacén";
+  | "Almacén"
+  | "Cliente";
 
 export interface LoginRequest {
   dni: string;
@@ -14,6 +15,7 @@ export interface AuthUser {
   id: string;
   auth_user_id: string;
   company_id: string;
+  customer_id: string | null;
   dni: string;
   first_name: string;
   last_name: string;

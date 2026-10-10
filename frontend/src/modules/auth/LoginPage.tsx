@@ -21,8 +21,12 @@ import {
 } from "react";
 
 import {
-  login,
-} from "../../services/auth.service";
+  useAuth,
+} from "../../services/auth.context";
+
+import {
+  useNavigate,
+} from "react-router-dom";
 
 import {
   getPublicManuals,
@@ -38,6 +42,13 @@ import "./login.css";
 
 
 export default function LoginPage() {
+  const navigate =
+    useNavigate();
+
+  const { login } =
+    useAuth();
+
+
   const [
     dni,
     setDni,
@@ -154,10 +165,7 @@ export default function LoginPage() {
   ) {
     event.preventDefault();
 
-    setError(
-      "",
-    );
-
+    setError("");
 
     if (
       !dni.trim()
@@ -170,23 +178,24 @@ export default function LoginPage() {
       return;
     }
 
-
-    setLoading(
-      true,
-    );
-
+    setLoading(true);
 
     try {
-      await login({
-        dni:
-          dni.trim(),
+      const authenticatedUser =
+        await login({
+          dni:
+            dni.trim(),
 
-        password,
-      });
+          password,
+        });
 
-
-      window.location.replace(
-        "/dashboard",
+      navigate(
+        authenticatedUser.role === "Cliente"
+          ? "/portal"
+          : "/dashboard",
+        {
+          replace: true,
+        },
       );
     } catch (
       currentError
@@ -198,9 +207,7 @@ export default function LoginPage() {
           : "No se pudo iniciar sesión.",
       );
     } finally {
-      setLoading(
-        false,
-      );
+      setLoading(false);
     }
   }
 

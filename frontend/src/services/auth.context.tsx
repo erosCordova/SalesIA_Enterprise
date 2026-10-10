@@ -75,9 +75,29 @@ export function AuthProvider({
 
         return currentUser;
       } catch {
-        clearSession();
-        setUser(null);
-        return null;
+        const storedUser =
+          getStoredUser();
+
+        const tokenStillExists =
+          Boolean(
+            localStorage.getItem(
+              "access_token",
+            ),
+          );
+
+        if (
+          !tokenStillExists
+          || !storedUser
+        ) {
+          clearSession();
+          setUser(null);
+
+          return null;
+        }
+
+        setUser(storedUser);
+
+        return storedUser;
       }
     }, []);
 
@@ -105,11 +125,31 @@ export function AuthProvider({
         }
       })
       .catch(() => {
-        clearSession();
-
-        if (mounted) {
-          setUser(null);
+        if (!mounted) {
+          return;
         }
+
+        const storedUser =
+          getStoredUser();
+
+        const tokenStillExists =
+          Boolean(
+            localStorage.getItem(
+              "access_token",
+            ),
+          );
+
+        if (
+          !tokenStillExists
+          || !storedUser
+        ) {
+          clearSession();
+          setUser(null);
+
+          return;
+        }
+
+        setUser(storedUser);
       })
       .finally(() => {
         if (mounted) {

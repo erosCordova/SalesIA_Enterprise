@@ -63,6 +63,40 @@ class CustomerAccountUpdateRequest(BaseModel):
     )
 
 
+class CustomerPortalUpdateRequest(BaseModel):
+    email: str | None = Field(
+        default=None,
+        max_length=200,
+    )
+
+    phone: str | None = Field(
+        default=None,
+        max_length=30,
+    )
+
+    address: str | None = Field(
+        default=None,
+        max_length=500,
+    )
+
+    city: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+
+class CustomerPasswordChangeRequest(BaseModel):
+    current_password: str = Field(
+        ...,
+        min_length=8,
+    )
+
+    new_password: str = Field(
+        ...,
+        min_length=8,
+    )
+
+
 # ============================================================
 # HELPERS
 # ============================================================
@@ -843,12 +877,90 @@ def portal_me(
         )
 
 
+        sale_details = (
+            connection.execute(
+                text("""
+                    SELECT
+                        sd.sale_id,
+                        sd.product_id,
+
+                        p.sku,
+                        p.name AS product_name,
+                        p.unit,
+
+                        sd.quantity,
+                        sd.unit_price,
+                        sd.discount,
+                        sd.subtotal
+
+                    FROM sale_details sd
+
+                    INNER JOIN sales s
+                        ON s.id = sd.sale_id
+
+                    LEFT JOIN products p
+                        ON p.id = sd.product_id
+
+                    WHERE
+                        s.customer_id =
+                            :customer_id
+
+                    ORDER BY
+                        s.sale_date DESC,
+                        p.name ASC
+                """),
+                {
+                    "customer_id":
+                        customer_id,
+                },
+            )
+            .mappings()
+            .all()
+        )
+
+
     if not customer:
         raise HTTPException(
             status_code=
                 status.HTTP_404_NOT_FOUND,
             detail=
                 "Cliente no encontrado.",
+        )
+
+
+    details_by_sale = {}
+
+    for row in sale_details:
+        sale_id = str(
+            row["sale_id"]
+        )
+
+        details_by_sale.setdefault(
+            sale_id,
+            [],
+        ).append(
+            dict(row)
+        )
+
+
+    sales_response = []
+
+    for row in sales:
+        sale = dict(
+            row
+        )
+
+        sale["items"] = (
+            details_by_sale.get(
+                str(
+                    row["id"]
+                ),
+                [],
+            )
+        )
+
+        sales_response.append(
+            sale
         )
 
 
@@ -859,10 +971,294 @@ def portal_me(
             ),
 
         "sales":
-            [
-                dict(row)
-                for row in sales
-            ],
+            sales_response,
+    }
+
+
+# ============================================================
+# ACTUALIZAR MI PERFIL
+# ============================================================
+
+@router.put(
+    "/portal/me",
+    summary="Actualizar mi perfil",
+)
+def update_my_profile(
+    data: CustomerPortalUpdateRequest,
+
+    current_user: dict =
+        Depends(
+            require_roles(
+                "Cliente"
+            )
+        ),
+):
+    customer_id = (
+        current_user.get(
+            "customer_id"
+        )
+    )
+
+    if not customer_id:
+        raise HTTPException(
+            status_code=
+                status.HTTP_403_FORBIDDEN,
+
+            detail=
+                "La cuenta no está vinculada a un cliente.",
+        )
+
+    values = {
+        "email":
+            clean(
+                data.email
+            ),
+
+        "phone":
+            clean(
+                data.phone
+            ),
+
+        "address":
+            clean(
+                data.address
+            ),
+
+        "city":
+            clean(
+                data.city
+            ),
+    }
+
+    with engine.begin() as connection:
+        customer = (
+            connection.execute(
+                text("""
+                    UPDATE customers
+
+                    SET
+                        email = :email,
+                        phone = :phone,
+                        address = :address,
+                        city = :city,
+                        updated_at = NOW()
+
+                    WHERE
+                        id = :customer_id
+
+                    RETURNING *
+                """),
+                {
+                    **values,
+
+                    "customer_id":
+                        customer_id,
+                },
+            )
+            .mappings()
+            .first()
+        )
+
+    if not customer:
+        raise HTTPException(
+            status_code=
+                status.HTTP_404_NOT_FOUND,
+
+            detail=
+                "Cliente no encontrado.",
+        )
+
+    return dict(
+        customer
+    )
+
+
+# ============================================================
+# CAMBIAR MI CONTRASEÑA
+# ============================================================
+
+@router.put(
+    "/portal/password",
+    summary="Cambiar mi contraseña",
+)
+def change_customer_password(
+    data: CustomerPasswordChangeRequest,
+
+    current_user: dict =
+        Depends(
+            require_roles(
+                "Cliente"
+            )
+        ),
+):
+    auth_user_id = (
+        current_user.get(
+            "auth_user_id"
+        )
+    )
+
+    dni = str(
+        current_user.get(
+            "dni"
+        )
+        or ""
+    ).strip()
+
+    stored_email = str(
+        current_user.get(
+            "email"
+        )
+        or ""
+    ).strip()
+
+
+    if not auth_user_id:
+        raise HTTPException(
+            status_code=
+                status.HTTP_403_FORBIDDEN,
+
+            detail=
+                "La cuenta no está vinculada al sistema de autenticación.",
+        )
+
+
+    if (
+        data.current_password
+        ==
+        data.new_password
+    ):
+        raise HTTPException(
+            status_code=
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+
+            detail=
+                "La nueva contraseña debe ser diferente a la actual.",
+        )
+
+
+    # --------------------------------------------------------
+    # VALIDAR CONTRASEÑA ACTUAL
+    # --------------------------------------------------------
+
+    auth_client = create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_PUBLISHABLE_KEY,
+    )
+
+
+    candidate_emails = []
+
+    if stored_email:
+        candidate_emails.append(
+            stored_email
+        )
+
+    if dni:
+        internal_email = (
+            f"{dni}@salesia.local"
+        )
+
+        if (
+            internal_email
+            not in candidate_emails
+        ):
+            candidate_emails.append(
+                internal_email
+            )
+
+
+    valid_password = False
+
+
+    for email in candidate_emails:
+        try:
+            response = (
+                auth_client
+                .auth
+                .sign_in_with_password(
+                    {
+                        "email":
+                            email,
+
+                        "password":
+                            data.current_password,
+                    }
+                )
+            )
+
+            if (
+                response.user
+                and
+                str(
+                    response.user.id
+                )
+                ==
+                str(
+                    auth_user_id
+                )
+            ):
+                valid_password = True
+                break
+
+        except Exception:
+            continue
+
+
+    try:
+        auth_client.auth.sign_out()
+    except Exception:
+        pass
+
+
+    if not valid_password:
+        raise HTTPException(
+            status_code=
+                status.HTTP_401_UNAUTHORIZED,
+
+            detail=
+                "La contraseña actual es incorrecta.",
+        )
+
+
+    # --------------------------------------------------------
+    # CAMBIAR CONTRASEÑA
+    # --------------------------------------------------------
+
+    admin_client = create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_SECRET_KEY,
+    )
+
+
+    try:
+        (
+            admin_client
+            .auth
+            .admin
+            .update_user_by_id(
+                str(
+                    auth_user_id
+                ),
+                {
+                    "password":
+                        data.new_password,
+                },
+            )
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+
+            detail=
+                "No se pudo actualizar la contraseña.",
+        ) from exc
+
+
+    return {
+        "message":
+            "Contraseña actualizada correctamente."
     }
 
 

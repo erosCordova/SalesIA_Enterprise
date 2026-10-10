@@ -84,7 +84,7 @@ const initialForm:
 
 
 const ROLE_SCOPE:
-  Record<UserRole, string> = {
+  Partial<Record<UserRole, string>> = {
     Administrador:
       "Administración general, mantenimiento, usuarios y auditoría.",
 

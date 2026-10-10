@@ -141,3 +141,5 @@ coverage/
 .vercel/
 .netlify/
 frontend/build_*.txt
+auditoria_salesia_roles_portal.txt
+*.portal.bak
