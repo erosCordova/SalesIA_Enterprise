@@ -48,6 +48,8 @@ import type {
   BranchUpdate,
 } from "../../types/organization";
 
+import PeruBranchMap from "../../components/maps/PeruBranchMap";
+
 import PeruLocationFields from "../../components/organization/PeruLocationFields";
 
 import "./sucursales-commercial.css";
@@ -1302,6 +1304,12 @@ export default function SucursalesPage() {
         )}
       </article>
 
+
+      <PeruBranchMap
+        branches={filteredBranches}
+        loading={loading}
+        error={error}
+      />
 
       <Modal
         open={

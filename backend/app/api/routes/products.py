@@ -3,12 +3,17 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
+    Request,
     File,
     UploadFile,
     status,
 )
 
 from app.api.dependencies.auth import require_roles
+from app.services.audit import (
+    record_audit_event,
+    snapshot,
+)
 from app.schemas.commercial import (
     ProductCreateRequest,
     ProductResponse,
@@ -61,6 +66,7 @@ def list_products(
     summary="Crear producto",
 )
 def register_product(
+    request: Request,
     data: ProductCreateRequest,
     current_user: dict = Depends(
         require_roles(
@@ -70,10 +76,21 @@ def register_product(
         )
     ),
 ):
-    return create_product(
+    result = create_product(
         data,
         current_user,
     )
+
+    record_audit_event(
+        action="product.created",
+        table_name="products",
+        record_id=result.id,
+        current_user=current_user,
+        request=request,
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 @router.post(
@@ -82,6 +99,7 @@ def register_product(
     summary="Subir imagen de producto",
 )
 def upload_product_image(
+    request: Request,
     product_id: UUID,
     image: UploadFile = File(...),
     current_user: dict = Depends(
@@ -92,11 +110,28 @@ def upload_product_image(
         )
     ),
 ):
-    return save_product_image(
+    before = get_product(
+        product_id,
+        current_user,
+    )
+
+    result = save_product_image(
         product_id,
         image,
         current_user,
     )
+
+    record_audit_event(
+        action="product.image_updated",
+        table_name="products",
+        record_id=product_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 @router.get(
@@ -127,6 +162,7 @@ def read_product(
     summary="Actualizar producto",
 )
 def edit_product(
+    request: Request,
     product_id: UUID,
     data: ProductUpdateRequest,
     current_user: dict = Depends(
@@ -137,11 +173,28 @@ def edit_product(
         )
     ),
 ):
-    return update_product(
+    before = get_product(
+        product_id,
+        current_user,
+    )
+
+    result = update_product(
         product_id,
         data,
         current_user,
     )
+
+    record_audit_event(
+        action="product.updated",
+        table_name="products",
+        record_id=product_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 @router.delete(
@@ -149,6 +202,7 @@ def edit_product(
     summary="Desactivar producto",
 )
 def remove_product(
+    request: Request,
     product_id: UUID,
     current_user: dict = Depends(
         require_roles(
@@ -158,7 +212,24 @@ def remove_product(
         )
     ),
 ):
-    return delete_product(
+    before = get_product(
         product_id,
         current_user,
     )
+
+    result = delete_product(
+        product_id,
+        current_user,
+    )
+
+    record_audit_event(
+        action="product.deactivated",
+        table_name="products",
+        record_id=product_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result

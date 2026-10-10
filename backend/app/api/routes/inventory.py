@@ -1,11 +1,16 @@
 from fastapi import (
     APIRouter,
     Depends,
+    Request,
     status,
 )
 
 from app.api.dependencies.auth import (
     require_roles,
+)
+from app.services.audit import (
+    record_audit_event,
+    snapshot,
 )
 
 from app.schemas.commercial import (
@@ -80,6 +85,7 @@ def list_movements(
     summary="Registrar movimiento manual de inventario",
 )
 def register_movement(
+    request: Request,
     data: InventoryMovementCreateRequest,
     current_user: dict = Depends(
         require_roles(
@@ -87,10 +93,44 @@ def register_movement(
         )
     ),
 ):
-    return create_inventory_movement(
+    result = create_inventory_movement(
         data,
         current_user,
     )
+
+    movement_type = str(
+        getattr(
+            result,
+            "movement_type",
+            "movement",
+        )
+    ).lower()
+
+    action = (
+        f"inventory.{movement_type}"
+        if movement_type
+        in {
+            "entry",
+            "exit",
+            "adjustment",
+        }
+        else "inventory.movement"
+    )
+
+    record_audit_event(
+        action=action,
+        table_name="inventory_movements",
+        record_id=getattr(
+            result,
+            "id",
+            None,
+        ),
+        current_user=current_user,
+        request=request,
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 @router.get(

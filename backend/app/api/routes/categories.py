@@ -3,10 +3,15 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
+    Request,
     status,
 )
 
 from app.api.dependencies.auth import require_roles
+from app.services.audit import (
+    record_audit_event,
+    snapshot,
+)
 
 from app.schemas.commercial import (
     CategoryCreateRequest,
@@ -55,6 +60,7 @@ def list_categories(
     summary="Crear categoría",
 )
 def register_category(
+    request: Request,
     data: CategoryCreateRequest,
     current_user: dict = Depends(
         require_roles(
@@ -64,10 +70,21 @@ def register_category(
         )
     ),
 ):
-    return create_category(
+    result = create_category(
         data,
         current_user,
     )
+
+    record_audit_event(
+        action="category.created",
+        table_name="categories",
+        record_id=result.id,
+        current_user=current_user,
+        request=request,
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 @router.get(
@@ -98,6 +115,7 @@ def read_category(
     summary="Actualizar categoría",
 )
 def edit_category(
+    request: Request,
     category_id: UUID,
     data: CategoryUpdateRequest,
     current_user: dict = Depends(
@@ -108,11 +126,28 @@ def edit_category(
         )
     ),
 ):
-    return update_category(
+    before = get_category(
+        category_id,
+        current_user,
+    )
+
+    result = update_category(
         category_id,
         data,
         current_user,
     )
+
+    record_audit_event(
+        action="category.updated",
+        table_name="categories",
+        record_id=category_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 @router.delete(
@@ -120,6 +155,7 @@ def edit_category(
     summary="Desactivar categoría",
 )
 def remove_category(
+    request: Request,
     category_id: UUID,
     current_user: dict = Depends(
         require_roles(
@@ -129,7 +165,24 @@ def remove_category(
         )
     ),
 ):
-    return delete_category(
+    before = get_category(
         category_id,
         current_user,
     )
+
+    result = delete_category(
+        category_id,
+        current_user,
+    )
+
+    record_audit_event(
+        action="category.deactivated",
+        table_name="categories",
+        record_id=category_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result

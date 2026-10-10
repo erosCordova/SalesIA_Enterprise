@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
     Depends,
+    Request,
     HTTPException,
     status,
 )
@@ -10,6 +11,10 @@ from sqlalchemy import text
 from supabase import create_client
 
 from app.api.dependencies.auth import require_roles
+from app.services.audit import (
+    record_audit_event,
+    snapshot,
+)
 from app.core.config import settings
 from app.core.database import engine
 
@@ -173,6 +178,7 @@ def list_users(
     summary="Crear usuario",
 )
 def create_user(
+    request: Request,
     data: UserCreateRequest,
     current_user: dict = Depends(
         require_roles(
@@ -421,6 +427,37 @@ def create_user(
             ),
         )
 
+    record_audit_event(
+        action="user.created",
+        table_name="users",
+        record_id=created_user["id"],
+        current_user=current_user,
+        request=request,
+        new_data={
+            "dni":
+                created_user["dni"],
+
+            "first_name":
+                created_user[
+                    "first_name"
+                ],
+
+            "last_name":
+                created_user[
+                    "last_name"
+                ],
+
+            "phone":
+                created_user["phone"],
+
+            "role":
+                role["name"],
+
+            "status":
+                created_user["status"],
+        },
+    )
+
     return UserCreatedResponse(
         id=str(
             created_user["id"]
@@ -452,6 +489,7 @@ def create_user(
     summary="Actualizar usuario",
 )
 def update_user(
+    request: Request,
     user_id: str,
     data: UserUpdateRequest,
     current_user: dict = Depends(
@@ -616,6 +654,71 @@ def update_user(
                     company_id,
             },
         ).mappings().one()
+
+    user_audit_action = (
+        "user.updated"
+    )
+
+    if (
+        existing["status"]
+        != row["status"]
+    ):
+        user_audit_action = (
+            "user.activated"
+            if row["status"]
+            == "active"
+            else "user.deactivated"
+        )
+
+    record_audit_event(
+        action=user_audit_action,
+        table_name="users",
+        record_id=row["id"],
+        current_user=current_user,
+        request=request,
+        old_data={
+            "dni":
+                existing["dni"],
+
+            "first_name":
+                existing[
+                    "first_name"
+                ],
+
+            "last_name":
+                existing[
+                    "last_name"
+                ],
+
+            "phone":
+                existing["phone"],
+
+            "role":
+                existing["role"],
+
+            "status":
+                existing["status"],
+        },
+        new_data={
+            "dni":
+                row["dni"],
+
+            "first_name":
+                row["first_name"],
+
+            "last_name":
+                row["last_name"],
+
+            "phone":
+                row["phone"],
+
+            "role":
+                role["name"],
+
+            "status":
+                row["status"],
+        },
+    )
 
     return UserListItem(
         id=str(row["id"]),

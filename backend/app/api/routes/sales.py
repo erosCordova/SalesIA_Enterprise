@@ -3,10 +3,15 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
+    Request,
     status,
 )
 
 from app.api.dependencies.auth import require_roles
+from app.services.audit import (
+    record_audit_event,
+    snapshot,
+)
 
 from app.schemas.commercial import (
     SaleCancelRequest,
@@ -55,6 +60,7 @@ def list_sales(
     summary="Registrar venta",
 )
 def register_sale(
+    request: Request,
     data: SaleCreateRequest,
     current_user: dict = Depends(
         require_roles(
@@ -63,10 +69,21 @@ def register_sale(
         )
     ),
 ):
-    return create_sale(
+    result = create_sale(
         data,
         current_user,
     )
+
+    record_audit_event(
+        action="sale.created",
+        table_name="sales",
+        record_id=result.id,
+        current_user=current_user,
+        request=request,
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 @router.get(
@@ -96,6 +113,7 @@ def sale_detail(
     summary="Anular venta",
 )
 def sale_cancel(
+    request: Request,
     sale_id: UUID,
     data: SaleCancelRequest,
     current_user: dict = Depends(
@@ -105,8 +123,25 @@ def sale_cancel(
         )
     ),
 ):
-    return cancel_sale(
+    before = get_sale_detail(
+        sale_id,
+        current_user,
+    )
+
+    result = cancel_sale(
         sale_id,
         data.reason,
         current_user,
     )
+
+    record_audit_event(
+        action="sale.cancelled",
+        table_name="sales",
+        record_id=sale_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result

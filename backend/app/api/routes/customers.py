@@ -5,12 +5,17 @@ from fastapi import (
     APIRouter,
 
     Depends,
+    Request,
 
     status,
 
 )
 
 from app.api.dependencies.auth import require_roles
+from app.services.audit import (
+    record_audit_event,
+    snapshot,
+)
 
 from app.schemas.commercial import (
 
@@ -95,6 +100,7 @@ def list_customers(
 
 def register_customer(
 
+    request: Request,
     data: CustomerCreateRequest,
 
     current_user: dict = Depends(
@@ -113,13 +119,21 @@ def register_customer(
 
 ):
 
-    return create_customer(
-
+    result = create_customer(
         data,
-
         current_user,
-
     )
+
+    record_audit_event(
+        action="customer.created",
+        table_name="customers",
+        record_id=result.id,
+        current_user=current_user,
+        request=request,
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 
@@ -215,6 +229,7 @@ def read_customer(
 
 def edit_customer(
 
+    request: Request,
     customer_id: UUID,
 
     data: CustomerUpdateRequest,
@@ -235,15 +250,28 @@ def edit_customer(
 
 ):
 
-    return update_customer(
-
+    before = get_customer(
         customer_id,
-
-        data,
-
         current_user,
-
     )
+
+    result = update_customer(
+        customer_id,
+        data,
+        current_user,
+    )
+
+    record_audit_event(
+        action="customer.updated",
+        table_name="customers",
+        record_id=customer_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result
 
 
 
@@ -257,6 +285,7 @@ def edit_customer(
 
 def remove_customer(
 
+    request: Request,
     customer_id: UUID,
 
     current_user: dict = Depends(
@@ -273,10 +302,24 @@ def remove_customer(
 
 ):
 
-    return delete_customer(
-
+    before = get_customer(
         customer_id,
-
         current_user,
-
     )
+
+    result = delete_customer(
+        customer_id,
+        current_user,
+    )
+
+    record_audit_event(
+        action="customer.deactivated",
+        table_name="customers",
+        record_id=customer_id,
+        current_user=current_user,
+        request=request,
+        old_data=snapshot(before),
+        new_data=snapshot(result),
+    )
+
+    return result
