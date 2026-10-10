@@ -408,8 +408,18 @@ export default function AppRouter() {
               />
 
               <Route
-                path="/probability"
+                path="/forecasts"
                 element={<ProbabilidadPage />}
+              />
+
+              <Route
+                path="/probability"
+                element={
+                  <Navigate
+                    to="/forecasts"
+                    replace
+                  />
+                }
               />
 
               <Route

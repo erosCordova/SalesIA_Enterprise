@@ -95,7 +95,7 @@ const ROLE_SCOPE:
       "Gestión y consulta de operaciones de venta.",
 
     Analista:
-      "Análisis, probabilidad, insights y reportes.",
+      "Análisis, pronósticos, insights y reportes.",
 
     Almacén:
       "Control de inventario, existencias y Kardex.",

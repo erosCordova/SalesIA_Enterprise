@@ -1,78 +1,194 @@
 import {
+  useEffect,
   useMemo,
+  useRef,
   useState,
-  type FormEvent,
 } from "react";
 
 import {
+  Activity,
   BarChart3,
-  Calculator,
-  CheckCircle2,
-  Info,
-  RefreshCcw,
+  CalendarRange,
+  CircleGauge,
+  ReceiptText,
+  RefreshCw,
   Sigma,
+  SlidersHorizontal,
+  WalletCards,
 } from "lucide-react";
 
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
+import ExportActions from "../../components/ui/ExportActions";
+import ModuleState from "../../components/ui/ModuleState";
+
 import {
-  analyzeRandomVariable,
-} from "../../services/analytics.service";
+  getSalesBusinessStatistics,
+} from "../../services/business-statistics.service";
+
+import {
+  getBranches,
+} from "../../services/organization.service";
+
+import {
+  useApiResource,
+} from "../../hooks/useApiResource";
+
+import {
+  createVisualPdfFile,
+  downloadVisualPdf,
+  exportDateStamp,
+  exportRowsToCsv,
+  exportRowsToExcel,
+  shareFile,
+  type ExportRow,
+} from "../../utils/exporting";
 
 import type {
-  RandomVariableResponse,
-} from "../../types/analytics";
+  SalesBusinessStatistics,
+} from "../../types/business-statistics";
 
-import "./variance-commercial.css";
+import "./statistics.css";
 
 
-interface ChartItem {
-  index: string;
-  value: number;
+function inputDate(
+  date: Date,
+) {
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1,
+    ).padStart(
+      2,
+      "0",
+    );
+
+  const day =
+    String(
+      date.getDate(),
+    ).padStart(
+      2,
+      "0",
+    );
+
+  return `${year}-${month}-${day}`;
 }
 
 
-function formatNumber(
+function dateOffset(
+  offset: number,
+) {
+  const date =
+    new Date();
+
+  date.setDate(
+    date.getDate()
+      + offset,
+  );
+
+  return inputDate(
+    date,
+  );
+}
+
+
+function formatCurrency(
   value: number,
 ) {
   return new Intl.NumberFormat(
     "es-PE",
     {
-      maximumFractionDigits: 4,
+      style: "currency",
+      currency: "PEN",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     },
-  ).format(value);
+  ).format(
+    value,
+  );
 }
 
 
+function formatNumber(
+  value: number,
+  digits = 2,
+) {
+  return new Intl.NumberFormat(
+    "es-PE",
+    {
+      maximumFractionDigits:
+        digits,
+    },
+  ).format(
+    value,
+  );
+}
+
+
+const INITIAL_START =
+  dateOffset(-29);
+
+const INITIAL_END =
+  dateOffset(0);
+
+
 export default function StatisticsPage() {
+  const exportRef =
+    useRef<HTMLElement>(
+      null,
+    );
+
+  const branchesResource =
+    useApiResource(
+      getBranches,
+    );
+
   const [
-    rawValues,
-    setRawValues,
+    startDate,
+    setStartDate,
+  ] =
+    useState(
+      INITIAL_START,
+    );
+
+  const [
+    endDate,
+    setEndDate,
+  ] =
+    useState(
+      INITIAL_END,
+    );
+
+  const [
+    period,
+    setPeriod,
+  ] =
+    useState("30");
+
+  const [
+    branchId,
+    setBranchId,
   ] =
     useState("");
 
   const [
-    result,
-    setResult,
+    statistics,
+    setStatistics,
   ] =
     useState<
-      RandomVariableResponse | null
+      SalesBusinessStatistics
+      | null
     >(null);
-
-  const [
-    analyzedValues,
-    setAnalyzedValues,
-  ] =
-    useState<number[]>([]);
 
   const [
     loading,
@@ -86,168 +202,85 @@ export default function StatisticsPage() {
   ] =
     useState("");
 
+  const [
+    exportError,
+    setExportError,
+  ] =
+    useState("");
 
-  const chartData =
-    useMemo<ChartItem[]>(
+
+  const branches =
+    useMemo(
       () =>
-        analyzedValues.map(
-          (
-            value,
-            index,
-          ) => ({
-            index:
-              `${index + 1}`,
-            value,
-          }),
+        (
+          branchesResource.data
+          ?? []
+        ).filter(
+          (branch) =>
+            branch.status
+            === "active",
         ),
       [
-        analyzedValues,
+        branchesResource.data,
       ],
     );
 
 
-  const minimum =
-    analyzedValues.length > 0
-      ? Math.min(
-          ...analyzedValues,
-        )
-      : 0;
+  async function loadStatistics(
+    from =
+      startDate,
 
-  const maximum =
-    analyzedValues.length > 0
-      ? Math.max(
-          ...analyzedValues,
-        )
-      : 0;
+    to =
+      endDate,
 
-  const dataRange =
-    maximum - minimum;
-
-
-  function parseValues() {
-    const tokens =
-      rawValues
-        .trim()
-        .split(
-          /[\s,;]+/,
-        )
-        .filter(
-          Boolean,
-        );
-
+    selectedBranch =
+      branchId,
+  ) {
     if (
-      tokens.length < 2
+      from > to
     ) {
-      throw new Error(
-        "Ingresa por lo menos dos valores numéricos.",
+      setError(
+        "La fecha inicial no puede ser posterior a la fecha final.",
       );
+
+      return;
     }
 
-    const values =
-      tokens.map(
-        Number,
-      );
-
-    if (
-      values.some(
-        (value) =>
-          !Number.isFinite(
-            value,
-          ),
-      )
-    ) {
-      throw new Error(
-        "Todos los datos deben ser valores numéricos válidos.",
-      );
-    }
-
-    return values;
-  }
-
-
-  function handleValuesChange(
-    value: string,
-  ) {
-    setRawValues(
-      value,
+    setLoading(
+      true,
     );
 
-    setResult(
-      null,
-    );
-
-    setAnalyzedValues(
-      [],
-    );
-
-    setError(
-      "",
-    );
-  }
-
-
-  async function handleAnalyze(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    setError(
-      "",
-    );
-
-    setResult(
-      null,
-    );
+    setError("");
 
     try {
-      const values =
-        parseValues();
-
-      setLoading(
-        true,
-      );
-
-      const probability =
-        1 /
-        values.length;
-
-      const probabilities =
-        values.map(
-          () =>
-            probability,
-        );
-
       const response =
-        await analyzeRandomVariable(
-          {
-            name:
-              "Varianza y desviación estándar",
+        await getSalesBusinessStatistics({
+          startDate:
+            from,
 
-            values,
+          endDate:
+            to,
 
-            probabilities,
-          },
-        );
+          branchId:
+            selectedBranch
+            || undefined,
+        });
 
-      setAnalyzedValues(
-        values,
-      );
-
-      setResult(
+      setStatistics(
         response,
       );
     } catch (
       currentError
     ) {
-      setAnalyzedValues(
-        [],
+      setStatistics(
+        null,
       );
 
       setError(
         currentError
           instanceof Error
           ? currentError.message
-          : "No se pudo realizar el análisis estadístico.",
+          : "No se pudieron cargar las estadísticas.",
       );
     } finally {
       setLoading(
@@ -257,466 +290,650 @@ export default function StatisticsPage() {
   }
 
 
-  function handleClear() {
-    setRawValues(
-      "",
+  useEffect(
+    () => {
+      void loadStatistics(
+        INITIAL_START,
+        INITIAL_END,
+        "",
+      );
+    },
+    [],
+  );
+
+
+  function selectPeriod(
+    value: string,
+  ) {
+    setPeriod(
+      value,
     );
 
-    setResult(
-      null,
+    if (
+      value ===
+      "custom"
+    ) {
+      return;
+    }
+
+    const days =
+      Number(value);
+
+    const from =
+      dateOffset(
+        -(days - 1),
+      );
+
+    const to =
+      dateOffset(0);
+
+    setStartDate(
+      from,
     );
 
-    setAnalyzedValues(
-      [],
-    );
-
-    setError(
-      "",
+    setEndDate(
+      to,
     );
   }
 
 
+  const variabilityClass =
+    statistics
+      ?.variability_label
+      .toLowerCase()
+      .replace(
+        /\s+/g,
+        "-",
+      )
+    ?? "";
+
+
+  function exportRows():
+    ExportRow[] {
+    if (!statistics) {
+      return [];
+    }
+
+    return [
+      {
+        Sucursal:
+          statistics
+            .branch_name,
+
+        "Ventas analizadas":
+          statistics.count,
+
+        "Ingresos":
+          statistics
+            .total_revenue,
+
+        "Ticket promedio":
+          statistics.mean,
+
+        Mediana:
+          statistics.median,
+
+        "Desviación estándar":
+          statistics
+            .standard_deviation,
+
+        Varianza:
+          statistics.variance,
+
+        Mínimo:
+          statistics.minimum,
+
+        Máximo:
+          statistics.maximum,
+
+        "Coeficiente de variación %":
+          statistics
+            .coefficient_variation,
+
+        Variabilidad:
+          statistics
+            .variability_label,
+      },
+    ];
+  }
+
+
+  function exportFilename() {
+    return `estadisticas-${exportDateStamp()}`;
+  }
+
+
+  async function handlePdf() {
+    if (
+      !exportRef.current
+      || !statistics
+    ) {
+      return;
+    }
+
+    setExportError("");
+
+    try {
+      await downloadVisualPdf(
+        exportRef.current,
+        exportFilename(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo generar el PDF.",
+      );
+    }
+  }
+
+
+  function handleCsv() {
+    if (!statistics) {
+      return;
+    }
+
+    setExportError("");
+
+    try {
+      exportRowsToCsv(
+        exportFilename(),
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo generar el CSV.",
+      );
+    }
+  }
+
+
+  async function handleExcel() {
+    if (!statistics) {
+      return;
+    }
+
+    setExportError("");
+
+    try {
+      await exportRowsToExcel(
+        exportFilename(),
+        "Estadísticas",
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo generar el Excel.",
+      );
+    }
+  }
+
+
+  async function handleShare() {
+    if (
+      !exportRef.current
+      || !statistics
+    ) {
+      return;
+    }
+
+    setExportError("");
+
+    try {
+      const file =
+        await createVisualPdfFile(
+          exportRef.current,
+          exportFilename(),
+        );
+
+      await shareFile(
+        file,
+        "Estadísticas comerciales - SalesIA",
+        "Resumen estadístico de las ventas seleccionadas.",
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo compartir el análisis.",
+      );
+    }
+  }
+
+
   return (
-    <section className="variance-page">
-      <header className="variance-header">
+    <section
+      ref={exportRef}
+      className="business-statistics-page"
+    >
+      <header className="business-statistics-header">
         <div>
-          <div className="variance-eyebrow">
+          <div className="business-statistics-eyebrow">
             <Sigma
-              size={14}
+              size={15}
             />
 
-            Análisis estadístico
+            Inteligencia comercial
           </div>
 
           <h1>
-            Varianza y Desviación Estándar
+            Estadísticas
           </h1>
 
           <p>
-            Analiza la dispersión de un conjunto
-            de datos mediante el motor estadístico
-            de SalesIA Enterprise.
+            Comprende cómo se distribuyen los importes de tus ventas sin necesidad de ingresar datos manualmente.
           </p>
         </div>
 
+        <div
+          className="business-statistics-actions"
+          data-export-hide="true"
+        >
+          {statistics && (
+            <ExportActions
+              disabled={
+                loading
+              }
+              onPdf={
+                handlePdf
+              }
+              onCsv={
+                handleCsv
+              }
+              onExcel={
+                handleExcel
+              }
+              onShare={
+                handleShare
+              }
+            />
+          )}
 
+          <button
+            type="button"
+            className="business-statistics-refresh"
+            disabled={
+              loading
+            }
+            onClick={() =>
+              void loadStatistics()
+            }
+          >
+            <RefreshCw
+              size={16}
+              className={
+                loading
+                  ? "business-statistics-spin"
+                  : ""
+              }
+            />
+
+            Actualizar
+          </button>
+        </div>
       </header>
 
 
-      <section className="variance-overview">
-        <div className="variance-overview-icon">
-          <Sigma
-            size={22}
-          />
-        </div>
-
-        <div className="variance-overview-content">
+      <section
+        className="business-statistics-filters"
+        data-export-hide="true"
+      >
+        <label>
           <span>
-            OBJETIVO
+            Periodo
           </span>
 
-          <strong>
-            Medir la dispersión de los datos
-          </strong>
+          <select
+            value={
+              period
+            }
+            onChange={(
+              event,
+            ) =>
+              selectPeriod(
+                event.target.value,
+              )
+            }
+          >
+            <option value="7">
+              Últimos 7 días
+            </option>
 
-          <p>
-            Determina cuánto se alejan las
-            observaciones respecto de su media.
-          </p>
-        </div>
+            <option value="30">
+              Últimos 30 días
+            </option>
 
+            <option value="90">
+              Últimos 90 días
+            </option>
+
+            <option value="custom">
+              Personalizado
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span>
+            Desde
+          </span>
+
+          <input
+            type="date"
+            value={
+              startDate
+            }
+            onChange={(
+              event,
+            ) => {
+              setStartDate(
+                event.target.value,
+              );
+
+              setPeriod(
+                "custom",
+              );
+            }}
+          />
+        </label>
+
+        <label>
+          <span>
+            Hasta
+          </span>
+
+          <input
+            type="date"
+            value={
+              endDate
+            }
+            onChange={(
+              event,
+            ) => {
+              setEndDate(
+                event.target.value,
+              );
+
+              setPeriod(
+                "custom",
+              );
+            }}
+          />
+        </label>
+
+        <label>
+          <span>
+            Sucursal
+          </span>
+
+          <select
+            value={
+              branchId
+            }
+            disabled={
+              branchesResource
+                .loading
+            }
+            onChange={(
+              event,
+            ) =>
+              setBranchId(
+                event.target.value,
+              )
+            }
+          >
+            <option value="">
+              Todas las sucursales
+            </option>
+
+            {branches.map(
+              (branch) => (
+                <option
+                  key={
+                    branch.id
+                  }
+                  value={
+                    branch.id
+                  }
+                >
+                  {branch.name}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          className="business-statistics-apply"
+          disabled={
+            loading
+          }
+          onClick={() =>
+            void loadStatistics()
+          }
+        >
+          <CalendarRange
+            size={16}
+          />
+
+          Aplicar
+        </button>
       </section>
 
 
-      <div className="variance-workspace">
-        <form
-          className="variance-panel variance-input-panel"
-          onSubmit={
-            handleAnalyze
+      {error && (
+        <ModuleState
+          type="error"
+          title="No se pudieron cargar las estadísticas"
+          description={
+            error
           }
-        >
-          <header className="variance-panel-header">
-            <div>
-              <span>
-                DATOS DE ENTRADA
-              </span>
+        />
+      )}
 
-              <h2>
-                Valores a analizar
-              </h2>
-
-              <p>
-                Introduce las observaciones
-                numéricas del conjunto.
-              </p>
-            </div>
-
-            <Calculator
-              size={19}
-            />
-          </header>
-
-
-          <div className="variance-form-body">
-            <label className="variance-field">
-              <span>
-                Conjunto de valores
-              </span>
-
-              <textarea
-                value={
-                  rawValues
-                }
-                onChange={(
-                  event,
-                ) =>
-                  handleValuesChange(
-                    event
-                      .target
-                      .value,
-                  )
-                }
-                placeholder="Ej. 12, 15, 18, 20, 22, 25"
-                disabled={
-                  loading
-                }
-              />
-
-              <small>
-                Puedes separar los valores con
-                comas, espacios, punto y coma
-                o saltos de línea.
-              </small>
-            </label>
-
-
-            <div className="variance-tip">
-              <Info
-                size={15}
-              />
-
-              <span>
-                Cada observación recibe el mismo
-                peso en el cálculo estadístico.
-              </span>
-            </div>
-
-
-            {error && (
-              <div
-                className="variance-error"
-                role="alert"
-              >
-                <Sigma
-                  size={15}
-                />
-
-                <span>
-                  {error}
-                </span>
-              </div>
-            )}
-
-
-            <div className="variance-actions">
-              <button
-                type="button"
-                className="variance-secondary-button"
-                onClick={
-                  handleClear
-                }
-                disabled={
-                  loading
-                }
-              >
-                <RefreshCcw
-                  size={15}
-                />
-
-                Limpiar
-              </button>
-
-              <button
-                type="submit"
-                className="variance-primary-button"
-                disabled={
-                  loading
-                }
-              >
-                <Sigma
-                  size={15}
-                />
-
-                {loading
-                  ? "Calculando..."
-                  : "Calcular dispersión"}
-              </button>
-            </div>
-          </div>
-        </form>
-
-
-        <section className="variance-panel variance-concept-panel">
-          <header className="variance-panel-header">
-            <div>
-              <span>
-                REFERENCIA
-              </span>
-
-              <h2>
-                Lectura de las medidas
-              </h2>
-
-              <p>
-                Cómo interpretar los resultados.
-              </p>
-            </div>
-
-            <BarChart3
-              size={19}
-            />
-          </header>
-
-
-          <div className="variance-concept-body">
-            <div className="variance-concept-item">
-              <div className="variance-concept-number">
-                01
-              </div>
-
-              <div>
-                <strong>
-                  Media
-                </strong>
-
-                <p>
-                  Representa el valor promedio
-                  del conjunto analizado.
-                </p>
-              </div>
-            </div>
-
-
-            <div className="variance-concept-item">
-              <div className="variance-concept-number">
-                02
-              </div>
-
-              <div>
-                <strong>
-                  Varianza
-                </strong>
-
-                <p>
-                  Mide cuánto se dispersan los
-                  datos respecto de la media.
-                </p>
-              </div>
-            </div>
-
-
-            <div className="variance-concept-item">
-              <div className="variance-concept-number">
-                03
-              </div>
-
-              <div>
-                <strong>
-                  Desviación estándar
-                </strong>
-
-                <p>
-                  Expresa la dispersión usando
-                  las mismas unidades de los
-                  datos originales.
-                </p>
-              </div>
-            </div>
-
-
-            <div className="variance-population-note">
-              <Info
-                size={15}
-              />
-
-              <div>
-                <strong>
-                  Cálculo poblacional
-                </strong>
-
-                <span>
-                  El análisis considera el conjunto
-                  ingresado como la población completa.
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-
-      {loading && (
-        <section className="variance-loading">
-          <div className="variance-spinner" />
-
-          <strong>
-            Procesando datos
-          </strong>
-
-          <span>
-            Calculando las medidas de dispersión.
-          </span>
-        </section>
+      {exportError && (
+        <div className="business-statistics-error">
+          {exportError}
+        </div>
       )}
 
 
-      {!result &&
-        !loading && (
-          <section className="variance-empty">
-            <div className="variance-empty-icon">
-              <BarChart3
-                size={26}
-              />
-            </div>
-
-            <strong>
-              Esperando análisis
-            </strong>
-
-            <p>
-              Ingresa al menos dos valores y
-              ejecuta el cálculo para visualizar
-              los resultados.
-            </p>
-          </section>
-        )}
-
-
-      {result &&
-        !loading && (
+      {loading &&
+      !statistics ? (
+        <ModuleState
+          type="loading"
+          title="Calculando estadísticas"
+          description="Analizando las ventas registradas..."
+        />
+      ) : statistics ? (
+        statistics.count === 0 ? (
+          <ModuleState
+            type="empty"
+            title="No hay ventas en este periodo"
+            description="Cambia el periodo o selecciona otra sucursal para consultar sus estadísticas."
+          />
+        ) : (
           <>
-            <div className="variance-success">
-              <CheckCircle2
-                size={15}
-              />
-
-              Análisis estadístico completado
-            </div>
-
-
-            <section className="variance-kpi-grid">
-              <article className="variance-kpi">
-                <div className="variance-kpi-top">
-                  <span>
-                    OBSERVACIONES
-                  </span>
-
-                  <BarChart3
-                    size={16}
+            <section className="business-statistics-kpis">
+              <article>
+                <div className="business-statistics-icon">
+                  <ReceiptText
+                    size={18}
                   />
                 </div>
 
+                <span>
+                  Ventas analizadas
+                </span>
+
                 <strong>
                   {
-                    result
-                      .observations
+                    statistics
+                      .count
                   }
                 </strong>
 
                 <small>
-                  Datos analizados
+                  Operaciones completadas
                 </small>
               </article>
 
-
-              <article className="variance-kpi">
-                <div className="variance-kpi-top">
-                  <span>
-                    MEDIA
-                  </span>
-
-                  <Sigma
-                    size={16}
+              <article>
+                <div className="business-statistics-icon">
+                  <WalletCards
+                    size={18}
                   />
                 </div>
 
+                <span>
+                  Ticket promedio
+                </span>
+
                 <strong>
-                  {formatNumber(
-                    result
-                      .expected_value,
+                  {formatCurrency(
+                    statistics.mean,
                   )}
                 </strong>
 
                 <small>
-                  Valor promedio
+                  Promedio por venta
                 </small>
               </article>
 
-
-              <article className="variance-kpi variance-kpi-blue">
-                <div className="variance-kpi-top">
-                  <span>
-                    VARIANZA
-                  </span>
-
-                  <Calculator
-                    size={16}
+              <article>
+                <div className="business-statistics-icon">
+                  <BarChart3
+                    size={18}
                   />
                 </div>
 
+                <span>
+                  Ticket mediano
+                </span>
+
                 <strong>
-                  {formatNumber(
-                    result
-                      .variance,
+                  {formatCurrency(
+                    statistics.median,
                   )}
                 </strong>
 
                 <small>
-                  Dispersión cuadrática
+                  Valor central
                 </small>
               </article>
 
-
-              <article className="variance-kpi variance-kpi-cyan">
-                <div className="variance-kpi-top">
-                  <span>
-                    DESVIACIÓN ESTÁNDAR
-                  </span>
-
-                  <Sigma
-                    size={16}
+              <article>
+                <div className="business-statistics-icon">
+                  <CircleGauge
+                    size={18}
                   />
                 </div>
 
-                <strong>
-                  {formatNumber(
-                    result
-                      .standard_deviation,
-                  )}
+                <span>
+                  Variabilidad
+                </span>
+
+                <strong
+                  className={
+                    `variability-${variabilityClass}`
+                  }
+                >
+                  {
+                    statistics
+                      .variability_label
+                  }
                 </strong>
 
                 <small>
-                  Dispersión en unidades originales
+                  CV{" "}
+                  {formatNumber(
+                    statistics
+                      .coefficient_variation,
+                    1,
+                  )}
+                  %
                 </small>
               </article>
             </section>
 
 
-            <section className="variance-results-grid">
-              <article className="variance-panel variance-chart-panel">
-                <header className="variance-panel-header">
+            <section className="business-statistics-summary">
+              <div className="business-statistics-summary-icon">
+                <Activity
+                  size={22}
+                />
+              </div>
+
+              <div>
+                <span>
+                  LECTURA ESTADÍSTICA
+                </span>
+
+                <h2>
+                  ¿Qué significan estos datos?
+                </h2>
+
+                <p>
+                  {
+                    statistics
+                      .interpretation
+                  }
+                </p>
+              </div>
+
+              <div className="business-statistics-total">
+                <span>
+                  Ingresos analizados
+                </span>
+
+                <strong>
+                  {formatCurrency(
+                    statistics
+                      .total_revenue,
+                  )}
+                </strong>
+
+                <small>
+                  {
+                    statistics
+                      .branch_name
+                  }
+                </small>
+              </div>
+            </section>
+
+
+            <section className="business-statistics-main-grid">
+              <article className="business-statistics-panel">
+                <header className="business-statistics-panel-header">
                   <div>
                     <span>
-                      VISUALIZACIÓN
+                      DISTRIBUCIÓN
                     </span>
 
                     <h2>
-                      Valores observados
+                      ¿Cómo se agrupan los tickets?
                     </h2>
 
                     <p>
-                      Comparación respecto de
-                      la media y ±1 desviación.
+                      Cantidad de ventas dentro de cada rango de importe.
                     </p>
                   </div>
 
@@ -725,272 +942,344 @@ export default function StatisticsPage() {
                   />
                 </header>
 
-
-                <div className="variance-chart">
+                <div className="business-statistics-chart">
                   <ResponsiveContainer
                     width="100%"
                     height="100%"
                   >
                     <BarChart
                       data={
-                        chartData
+                        statistics
+                          .distribution
                       }
                       margin={{
-                        top: 20,
-                        right: 18,
+                        top: 10,
+                        right: 10,
+                        bottom: 8,
                         left: 0,
-                        bottom: 4,
                       }}
                     >
                       <CartesianGrid
-                        strokeDasharray="3 3"
                         vertical={
                           false
                         }
-                        stroke="#e8edf1"
+                        stroke="#e8eef5"
+                        strokeDasharray="4 4"
                       />
 
                       <XAxis
-                        dataKey="index"
-                        tickLine={
-                          false
-                        }
+                        dataKey="label"
                         axisLine={
                           false
                         }
-                        fontSize={
-                          10
+                        tickLine={
+                          false
                         }
+                        interval={
+                          0
+                        }
+                        tick={{
+                          fill:
+                            "#64748b",
+                          fontSize:
+                            9,
+                        }}
                       />
 
                       <YAxis
-                        tickLine={
+                        allowDecimals={
                           false
                         }
                         axisLine={
                           false
                         }
-                        fontSize={
-                          10
+                        tickLine={
+                          false
                         }
+                        tick={{
+                          fill:
+                            "#64748b",
+                          fontSize:
+                            10,
+                        }}
                       />
 
-                      <Tooltip />
-
-                      <ReferenceLine
-                        y={
-                          result
-                            .expected_value
-                        }
-                        stroke="#16a34a"
-                        strokeDasharray="5 5"
-                      />
-
-                      <ReferenceLine
-                        y={
-                          result
-                            .expected_value
-                          +
-                          result
-                            .standard_deviation
-                        }
-                        stroke="#0ea5b7"
-                        strokeDasharray="3 3"
-                      />
-
-                      <ReferenceLine
-                        y={
-                          result
-                            .expected_value
-                          -
-                          result
-                            .standard_deviation
-                        }
-                        stroke="#0ea5b7"
-                        strokeDasharray="3 3"
+                      <Tooltip
+                        formatter={(
+                          value,
+                        ) => [
+                          `${value} ventas`,
+                          "Cantidad",
+                        ]}
                       />
 
                       <Bar
-                        dataKey="value"
-                        fill="#2563eb"
+                        dataKey="count"
+                        name="Cantidad"
+                        fill="#0891b2"
                         radius={[
                           5,
                           5,
                           0,
                           0,
                         ]}
+                        maxBarSize={
+                          54
+                        }
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-
-
-                <div className="variance-chart-legend">
-                  <span>
-                    <i className="variance-legend-values" />
-
-                    Valores
-                  </span>
-
-                  <span>
-                    <i className="variance-legend-mean" />
-
-                    Media
-                  </span>
-
-                  <span>
-                    <i className="variance-legend-deviation" />
-
-                    ± 1 desviación estándar
-                  </span>
-                </div>
               </article>
 
 
-              <article className="variance-panel variance-summary-panel">
-                <header className="variance-panel-header">
+              <aside className="business-statistics-panel">
+                <header className="business-statistics-panel-header">
                   <div>
                     <span>
-                      RESUMEN
+                      RANGO DE VENTAS
                     </span>
 
                     <h2>
-                      Lectura estadística
+                      Valores principales
                     </h2>
-
-                    <p>
-                      Indicadores derivados del
-                      conjunto analizado.
-                    </p>
                   </div>
 
-                  <Sigma
+                  <SlidersHorizontal
                     size={19}
                   />
                 </header>
 
-
-                <div className="variance-summary-body">
-                  <div className="variance-summary-row">
+                <div className="business-statistics-reading">
+                  <div>
                     <span>
-                      Valor mínimo
+                      Venta mínima
                     </span>
 
                     <strong>
-                      {formatNumber(
-                        minimum,
+                      {formatCurrency(
+                        statistics.minimum,
                       )}
                     </strong>
                   </div>
 
-
-                  <div className="variance-summary-row">
+                  <div>
                     <span>
-                      Valor máximo
+                      25% de las ventas hasta
                     </span>
 
                     <strong>
-                      {formatNumber(
-                        maximum,
+                      {formatCurrency(
+                        statistics.q1,
                       )}
                     </strong>
                   </div>
 
-
-                  <div className="variance-summary-row">
+                  <div>
                     <span>
-                      Rango
+                      Mediana
                     </span>
 
                     <strong>
-                      {formatNumber(
-                        dataRange,
+                      {formatCurrency(
+                        statistics.median,
                       )}
                     </strong>
                   </div>
 
-
-                  <div className="variance-summary-row">
+                  <div>
                     <span>
-                      Media
+                      75% de las ventas hasta
                     </span>
 
                     <strong>
-                      {formatNumber(
-                        result
-                          .expected_value,
+                      {formatCurrency(
+                        statistics.q3,
                       )}
                     </strong>
                   </div>
 
-
-                  <div className="variance-summary-row">
+                  <div>
                     <span>
-                      Varianza
+                      Venta máxima
                     </span>
 
                     <strong>
-                      {formatNumber(
-                        result
-                          .variance,
+                      {formatCurrency(
+                        statistics.maximum,
                       )}
                     </strong>
-                  </div>
-
-
-                  <div className="variance-summary-row">
-                    <span>
-                      Desviación estándar
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        result
-                          .standard_deviation,
-                      )}
-                    </strong>
-                  </div>
-
-
-                  <div className="variance-interpretation">
-                    <span>
-                      INTERPRETACIÓN
-                    </span>
-
-                    {result
-                      .standard_deviation ===
-                    0 ? (
-                      <p>
-                        Todos los valores son iguales.
-                        No existe dispersión respecto
-                        de la media.
-                      </p>
-                    ) : (
-                      <p>
-                        Los valores presentan una
-                        desviación estándar de{" "}
-                        <strong>
-                          {formatNumber(
-                            result
-                              .standard_deviation,
-                          )}
-                        </strong>{" "}
-                        unidades alrededor de una
-                        media de{" "}
-                        <strong>
-                          {formatNumber(
-                            result
-                              .expected_value,
-                          )}
-                        </strong>.
-                      </p>
-                    )}
                   </div>
                 </div>
-              </article>
+              </aside>
             </section>
+
+
+            <details className="business-statistics-advanced">
+              <summary>
+                <span>
+                  <Sigma
+                    size={18}
+                  />
+
+                  Estadística avanzada
+                </span>
+
+                <small>
+                  Varianza, desviación, rango y cuartiles
+                </small>
+              </summary>
+
+              <div className="business-statistics-advanced-grid">
+                <article>
+                  <span>
+                    Desviación estándar
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      statistics
+                        .standard_deviation,
+                    )}
+                  </strong>
+
+                  <small>
+                    Distancia típica respecto del promedio
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Varianza
+                  </span>
+
+                  <strong>
+                    {formatNumber(
+                      statistics
+                        .variance,
+                      2,
+                    )}
+                  </strong>
+
+                  <small>
+                    Dispersión estadística al cuadrado
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Rango
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      statistics
+                        .range_value,
+                    )}
+                  </strong>
+
+                  <small>
+                    Máximo menos mínimo
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Rango intercuartílico
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      statistics.iqr,
+                    )}
+                  </strong>
+
+                  <small>
+                    Dispersión del 50% central
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Coeficiente de variación
+                  </span>
+
+                  <strong>
+                    {formatNumber(
+                      statistics
+                        .coefficient_variation,
+                      1,
+                    )}
+                    %
+                  </strong>
+
+                  <small>
+                    Variación relativa frente al promedio
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Ingresos del periodo
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      statistics
+                        .total_revenue,
+                    )}
+                  </strong>
+
+                  <small>
+                    Total de ventas analizadas
+                  </small>
+                </article>
+              </div>
+            </details>
+
+
+            <details className="business-statistics-help">
+              <summary>
+                ¿Cómo interpretar estas estadísticas?
+              </summary>
+
+              <div>
+                <p>
+                  <strong>
+                    Promedio:
+                  </strong>
+                  {" "}
+                  importe medio de una venta.
+                </p>
+
+                <p>
+                  <strong>
+                    Mediana:
+                  </strong>
+                  {" "}
+                  la mitad de las ventas queda por debajo y la otra mitad por encima.
+                </p>
+
+                <p>
+                  <strong>
+                    Desviación estándar:
+                  </strong>
+                  {" "}
+                  indica cuánto suelen alejarse los tickets de su promedio.
+                </p>
+
+                <p>
+                  <strong>
+                    Coeficiente de variación:
+                  </strong>
+                  {" "}
+                  permite resumir la variabilidad como baja, media o alta.
+                </p>
+              </div>
+            </details>
           </>
-        )}
+        )
+      ) : null}
     </section>
   );
 }

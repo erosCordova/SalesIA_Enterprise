@@ -7,25 +7,23 @@ import {
 
 import {
   Activity,
+  ArrowDownRight,
   ArrowUpRight,
   Banknote,
   BarChart3,
   CalendarRange,
-  RefreshCw,
   ReceiptText,
+  RefreshCw,
   ShoppingBag,
   Sigma,
-  TrendingUp,
+  Sparkles,
   Trophy,
 } from "lucide-react";
 
 import {
   Area,
-  Bar,
-  BarChart,
+  AreaChart,
   CartesianGrid,
-  ComposedChart,
-  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -57,6 +55,47 @@ import type {
 import "./analytics-commercial.css";
 
 
+type ChartMetric =
+  | "revenue"
+  | "sales";
+
+
+interface ChangeInfo {
+  value: number | null;
+  label: string;
+  direction:
+    | "positive"
+    | "negative"
+    | "neutral";
+}
+
+
+function inputDate(
+  date: Date,
+) {
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1,
+    ).padStart(
+      2,
+      "0",
+    );
+
+  const day =
+    String(
+      date.getDate(),
+    ).padStart(
+      2,
+      "0",
+    );
+
+  return `${year}-${month}-${day}`;
+}
+
+
 function dateOffset(
   offset: number,
 ) {
@@ -67,9 +106,83 @@ function dateOffset(
     date.getDate() + offset,
   );
 
-  return date.toLocaleDateString(
-    "en-CA",
+  return inputDate(
+    date,
   );
+}
+
+
+function parseDate(
+  value: string,
+) {
+  return new Date(
+    `${value}T00:00:00`,
+  );
+}
+
+
+function daysInclusive(
+  start: string,
+  end: string,
+) {
+  const startDate =
+    parseDate(start);
+
+  const endDate =
+    parseDate(end);
+
+  const difference =
+    endDate.getTime()
+    - startDate.getTime();
+
+  return Math.max(
+    1,
+    Math.floor(
+      difference /
+        86_400_000,
+    ) + 1,
+  );
+}
+
+
+function previousPeriod(
+  start: string,
+  end: string,
+) {
+  const days =
+    daysInclusive(
+      start,
+      end,
+    );
+
+  const previousEnd =
+    parseDate(start);
+
+  previousEnd.setDate(
+    previousEnd.getDate() - 1,
+  );
+
+  const previousStart =
+    new Date(
+      previousEnd,
+    );
+
+  previousStart.setDate(
+    previousStart.getDate()
+      - (days - 1),
+  );
+
+  return {
+    start:
+      inputDate(
+        previousStart,
+      ),
+
+    end:
+      inputDate(
+        previousEnd,
+      ),
+  };
 }
 
 
@@ -79,7 +192,9 @@ function numberValue(
   const parsed =
     Number(value);
 
-  return Number.isFinite(parsed)
+  return Number.isFinite(
+    parsed,
+  )
     ? parsed
     : 0;
 }
@@ -104,12 +219,13 @@ function formatCurrency(
 
 function formatNumber(
   value: unknown,
-  maximumFractionDigits = 2,
+  digits = 0,
 ) {
   return new Intl.NumberFormat(
     "es-PE",
     {
-      maximumFractionDigits,
+      maximumFractionDigits:
+        digits,
     },
   ).format(
     numberValue(value),
@@ -117,27 +233,18 @@ function formatNumber(
 }
 
 
-function formatCompactCurrency(
-  value: unknown,
+function formatPercent(
+  value: number,
 ) {
-  const amount =
-    numberValue(value);
-
-  if (
-    Math.abs(amount) >=
-    1_000_000
-  ) {
-    return `S/ ${(amount / 1_000_000).toFixed(1)}M`;
-  }
-
-  if (
-    Math.abs(amount) >=
-    1_000
-  ) {
-    return `S/ ${(amount / 1_000).toFixed(1)}k`;
-  }
-
-  return `S/ ${Math.round(amount)}`;
+  return new Intl.NumberFormat(
+    "es-PE",
+    {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    },
+  ).format(
+    Math.abs(value),
+  );
 }
 
 
@@ -145,9 +252,7 @@ function formatDate(
   value: string,
 ) {
   const date =
-    new Date(
-      `${value}T00:00:00`,
-    );
+    parseDate(value);
 
   if (
     Number.isNaN(
@@ -164,7 +269,9 @@ function formatDate(
       month: "short",
       year: "numeric",
     },
-  ).format(date);
+  ).format(
+    date,
+  );
 }
 
 
@@ -172,9 +279,7 @@ function formatChartDate(
   value: string,
 ) {
   const date =
-    new Date(
-      `${value}T00:00:00`,
-    );
+    parseDate(value);
 
   if (
     Number.isNaN(
@@ -188,10 +293,76 @@ function formatChartDate(
     "es-PE",
     {
       day: "2-digit",
-      month: "2-digit",
+      month: "short",
     },
-  ).format(date);
+  ).format(
+    date,
+  );
 }
+
+
+function calculateChange(
+  current: number,
+  previous: number,
+): ChangeInfo {
+  if (
+    previous === 0
+  ) {
+    return {
+      value: null,
+      label:
+        current === 0
+          ? "Sin cambios"
+          : "Sin base comparable",
+      direction:
+        "neutral",
+    };
+  }
+
+  const value =
+    (
+      (
+        current
+        - previous
+      )
+      /
+      Math.abs(
+        previous,
+      )
+    )
+    * 100;
+
+  if (
+    Math.abs(value) < 0.05
+  ) {
+    return {
+      value: 0,
+      label:
+        "Sin cambios",
+      direction:
+        "neutral",
+    };
+  }
+
+  return {
+    value,
+    label:
+      `${formatPercent(
+        value,
+      )}% vs. periodo anterior`,
+    direction:
+      value > 0
+        ? "positive"
+        : "negative",
+  };
+}
+
+
+const INITIAL_START =
+  dateOffset(-29);
+
+const INITIAL_END =
+  dateOffset(0);
 
 
 export default function AnalyticsPage() {
@@ -200,20 +371,12 @@ export default function AnalyticsPage() {
       null,
     );
 
-
-  const [
-    exportError,
-    setExportError,
-  ] =
-    useState("");
-
-
   const [
     startDate,
     setStartDate,
   ] =
     useState(
-      dateOffset(-29),
+      INITIAL_START,
     );
 
   const [
@@ -221,7 +384,21 @@ export default function AnalyticsPage() {
     setEndDate,
   ] =
     useState(
-      dateOffset(0),
+      INITIAL_END,
+    );
+
+  const [
+    periodOption,
+    setPeriodOption,
+  ] =
+    useState("30");
+
+  const [
+    chartMetric,
+    setChartMetric,
+  ] =
+    useState<ChartMetric>(
+      "revenue",
     );
 
   const [
@@ -229,7 +406,17 @@ export default function AnalyticsPage() {
     setDashboard,
   ] =
     useState<
-      AnalyticsDashboardResponse | null
+      AnalyticsDashboardResponse
+      | null
+    >(null);
+
+  const [
+    previousDashboard,
+    setPreviousDashboard,
+  ] =
+    useState<
+      AnalyticsDashboardResponse
+      | null
     >(null);
 
   const [
@@ -237,7 +424,8 @@ export default function AnalyticsPage() {
     setSalesAnalysis,
   ] =
     useState<
-      SalesStatisticsResponse | null
+      SalesStatisticsResponse
+      | null
     >(null);
 
   const [
@@ -252,17 +440,36 @@ export default function AnalyticsPage() {
   ] =
     useState("");
 
+  const [
+    exportError,
+    setExportError,
+  ] =
+    useState("");
+
 
   async function loadAnalytics(
-    rangeStart = startDate,
-    rangeEnd = endDate,
+    rangeStart =
+      startDate,
+
+    rangeEnd =
+      endDate,
   ) {
     setError("");
 
     if (
+      !rangeStart
+      || !rangeEnd
+    ) {
+      setError(
+        "Selecciona las fechas del periodo.",
+      );
+
+      return;
+    }
+
+    if (
       rangeStart
-      && rangeEnd
-      && rangeStart > rangeEnd
+      > rangeEnd
     ) {
       setError(
         "La fecha inicial no puede ser posterior a la fecha final.",
@@ -271,42 +478,63 @@ export default function AnalyticsPage() {
       return;
     }
 
-    setLoading(true);
+    const previous =
+      previousPeriod(
+        rangeStart,
+        rangeEnd,
+      );
+
+    setLoading(
+      true,
+    );
 
     try {
       const [
-        dashboardResponse,
-        analysisResponse,
+        currentResponse,
+        statisticsResponse,
+        previousResponse,
       ] =
         await Promise.all([
           getAnalyticsDashboard(
-            rangeStart || undefined,
-            rangeEnd || undefined,
+            rangeStart,
+            rangeEnd,
           ),
 
           analyzeSalesStatistics(
-            rangeStart || undefined,
-            rangeEnd || undefined,
+            rangeStart,
+            rangeEnd,
+          ),
+
+          getAnalyticsDashboard(
+            previous.start,
+            previous.end,
           ),
         ]);
 
       setDashboard(
-        dashboardResponse,
+        currentResponse,
       );
 
       setSalesAnalysis(
-        analysisResponse,
+        statisticsResponse,
+      );
+
+      setPreviousDashboard(
+        previousResponse,
       );
     } catch (
       requestError
     ) {
       setError(
-        requestError instanceof Error
+        requestError
+          instanceof Error
           ? requestError.message
-          : "No se pudo cargar la información analítica.",
+          : "No se pudo cargar el análisis comercial.",
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false,
+      );
     }
   }
 
@@ -314,338 +542,60 @@ export default function AnalyticsPage() {
   useEffect(
     () => {
       void loadAnalytics(
-        dateOffset(-29),
-        dateOffset(0),
+        INITIAL_START,
+        INITIAL_END,
       );
     },
     [],
   );
 
 
-  function structuredExportRows(): ExportRow[] {
-    const rows: ExportRow[] = [];
-
-
-    rows.push(
-      {
-        Sección:
-          "Resumen",
-        Fecha:
-          "",
-        Indicador:
-          "Ingresos totales",
-        Valor:
-          totalRevenue,
-        Ventas:
-          "",
-        Ingresos:
-          "",
-        Detalle:
-          `Período ${startDate} al ${endDate}`,
-      },
-      {
-        Sección:
-          "Resumen",
-        Fecha:
-          "",
-        Indicador:
-          "Ventas completadas",
-        Valor:
-          totalSales,
-        Ventas:
-          "",
-        Ingresos:
-          "",
-        Detalle:
-          `Período ${startDate} al ${endDate}`,
-      },
-      {
-        Sección:
-          "Resumen",
-        Fecha:
-          "",
-        Indicador:
-          "Ticket promedio",
-        Valor:
-          averageTicket,
-        Ventas:
-          "",
-        Ingresos:
-          "",
-        Detalle:
-          "",
-      },
-      {
-        Sección:
-          "Resumen",
-        Fecha:
-          "",
-        Indicador:
-          "Ticket mediano",
-        Valor:
-          medianTicket,
-        Ventas:
-          "",
-        Ingresos:
-          "",
-        Detalle:
-          "",
-      },
-      {
-        Sección:
-          "Resumen",
-        Fecha:
-          "",
-        Indicador:
-          "Promedio diario de ingresos",
-        Valor:
-          averageDailyRevenue,
-        Ventas:
-          "",
-        Ingresos:
-          "",
-        Detalle:
-          "",
-      },
-      {
-        Sección:
-          "Resumen",
-        Fecha:
-          "",
-        Indicador:
-          "Promedio diario de ventas",
-        Valor:
-          averageDailySales,
-        Ventas:
-          "",
-        Ingresos:
-          "",
-        Detalle:
-          "",
-      },
-      {
-        Sección:
-          "Estadística",
-        Fecha:
-          "",
-        Indicador:
-          "Diferencia media-mediana",
-        Valor:
-          ticketDifference,
-        Ventas:
-          "",
-        Ingresos:
-          "",
-        Detalle:
-          salesAnalysis?.interpretation
-          ?? "",
-      },
-    );
-
-
-    dailySales.forEach(
-      (item) => {
-        const revenue =
-          numberValue(
-            item.revenue,
-          );
-
-
-        const dailyTicket =
-          item.sales_count > 0
-            ? revenue /
-              item.sales_count
-            : 0;
-
-
-        rows.push({
-          Sección:
-            "Rendimiento diario",
-
-          Fecha:
-            item.date,
-
-          Indicador:
-            "Actividad diaria",
-
-          Valor:
-            dailyTicket,
-
-          Ventas:
-            item.sales_count,
-
-          Ingresos:
-            revenue,
-
-          Detalle:
-            "Valor = ticket diario",
-        });
-      },
-    );
-
-
-    return rows;
-  }
-
-
-  function exportFilename() {
-    return `analytics-${startDate}-${endDate}-${exportDateStamp()}`;
-  }
-
-
-  async function handlePdf() {
-    if (
-      !exportRef.current
-    ) {
-      return;
-    }
-
-
-    setExportError("");
-
-
-    try {
-      await downloadVisualPdf(
-        exportRef.current,
-        exportFilename(),
-      );
-    } catch (
-      currentError
-    ) {
-      setExportError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No se pudo generar el PDF.",
-      );
-    }
-  }
-
-
-  function handleCsv() {
-    setExportError("");
-
-
-    try {
-      exportRowsToCsv(
-        exportFilename(),
-        structuredExportRows(),
-      );
-    } catch (
-      currentError
-    ) {
-      setExportError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No se pudo generar el CSV.",
-      );
-    }
-  }
-
-
-  async function handleExcel() {
-    setExportError("");
-
-
-    try {
-      await exportRowsToExcel(
-        exportFilename(),
-        "Analytics",
-        structuredExportRows(),
-      );
-    } catch (
-      currentError
-    ) {
-      setExportError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No se pudo generar el archivo Excel.",
-      );
-    }
-  }
-
-
-  async function handleShare() {
-    if (
-      !exportRef.current
-    ) {
-      return;
-    }
-
-
-    setExportError("");
-
-
-    try {
-      const file =
-        await createVisualPdfFile(
-          exportRef.current,
-          exportFilename(),
-        );
-
-
-      await shareFile(
-        file,
-        "Analytics - SalesIA Enterprise",
-        `Análisis comercial del ${startDate} al ${endDate}.`,
-      );
-    } catch (
-      currentError
-    ) {
-      setExportError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No se pudo compartir el análisis.",
-      );
-    }
-  }
-
-
-  function applyPreset(
-    days: number,
+  function changePeriod(
+    value: string,
   ) {
-    const from =
+    setPeriodOption(
+      value,
+    );
+
+    if (
+      value ===
+      "custom"
+    ) {
+      return;
+    }
+
+    const days =
+      Number(value);
+
+    if (
+      !Number.isFinite(
+        days,
+      )
+    ) {
+      return;
+    }
+
+    setStartDate(
       dateOffset(
         -(days - 1),
-      );
-
-    const to =
-      dateOffset(0);
-
-    setStartDate(from);
-    setEndDate(to);
-
-    void loadAnalytics(
-      from,
-      to,
+      ),
     );
-  }
 
-
-  function presetActive(
-    days: number,
-  ) {
-    return (
-      startDate ===
-        dateOffset(
-          -(days - 1),
-        )
-      &&
-      endDate ===
-        dateOffset(0)
+    setEndDate(
+      dateOffset(0),
     );
   }
 
 
   const dailySales =
-    dashboard?.daily_sales
-    ?? [];
-
-
-  const totalSales =
-    numberValue(
-      dashboard
-        ?.summary
-        .total_sales,
+    useMemo(
+      () =>
+        dashboard
+          ?.daily_sales
+        ?? [],
+      [
+        dashboard,
+      ],
     );
 
 
@@ -656,6 +606,12 @@ export default function AnalyticsPage() {
         .total_revenue,
     );
 
+  const totalSales =
+    numberValue(
+      dashboard
+        ?.summary
+        .total_sales,
+    );
 
   const averageTicket =
     numberValue(
@@ -663,7 +619,6 @@ export default function AnalyticsPage() {
         ?.summary
         .average_ticket,
     );
-
 
   const medianTicket =
     numberValue(
@@ -673,22 +628,69 @@ export default function AnalyticsPage() {
     );
 
 
+  const previousRevenue =
+    numberValue(
+      previousDashboard
+        ?.summary
+        .total_revenue,
+    );
+
+  const previousSales =
+    numberValue(
+      previousDashboard
+        ?.summary
+        .total_sales,
+    );
+
+  const previousAverageTicket =
+    numberValue(
+      previousDashboard
+        ?.summary
+        .average_ticket,
+    );
+
+
+  const periodDays =
+    daysInclusive(
+      startDate,
+      endDate,
+    );
+
   const activeDays =
     dailySales.length;
 
-
   const averageDailyRevenue =
-    activeDays > 0
-      ? totalRevenue /
-        activeDays
-      : 0;
+    totalRevenue
+    / periodDays;
+
+  const previousAverageDailyRevenue =
+    previousRevenue
+    / periodDays;
 
 
-  const averageDailySales =
-    activeDays > 0
-      ? totalSales /
-        activeDays
-      : 0;
+  const revenueChange =
+    calculateChange(
+      totalRevenue,
+      previousRevenue,
+    );
+
+  const salesChange =
+    calculateChange(
+      totalSales,
+      previousSales,
+    );
+
+  const ticketChange =
+    calculateChange(
+      averageTicket,
+      previousAverageTicket,
+    );
+
+  const dailyChange =
+    calculateChange(
+      averageDailyRevenue,
+      previousAverageDailyRevenue,
+    );
 
 
   const chartData =
@@ -699,7 +701,7 @@ export default function AnalyticsPage() {
             date:
               item.date,
 
-            day:
+            label:
               formatChartDate(
                 item.date,
               ),
@@ -729,15 +731,15 @@ export default function AnalyticsPage() {
         ]
           .sort(
             (
-              first,
-              second,
+              left,
+              right,
             ) =>
               numberValue(
-                second.revenue,
+                right.revenue,
               )
               -
               numberValue(
-                first.revenue,
+                left.revenue,
               ),
           )
           .slice(
@@ -754,103 +756,361 @@ export default function AnalyticsPage() {
     topDays[0]
     ?? null;
 
-
-  const maxDailyRevenue =
+  const bestDayRevenue =
     bestDay
       ? numberValue(
           bestDay.revenue,
         )
       : 0;
 
-
-  const ticketDifference =
-    salesAnalysis
-      ? numberValue(
-          salesAnalysis.difference,
+  const bestDayShare =
+    totalRevenue > 0
+      ? (
+          bestDayRevenue
+          /
+          totalRevenue
         )
-      : Math.abs(
-          averageTicket
-          -
-          medianTicket,
+        * 100
+      : 0;
+
+
+  const concentration =
+    bestDayShare >= 60
+      ? "Alta"
+      : bestDayShare >= 35
+        ? "Media"
+        : "Distribuida";
+
+
+  const activityRate =
+    periodDays > 0
+      ? (
+          activeDays
+          /
+          periodDays
+        )
+        * 100
+      : 0;
+
+
+  const summaryTitle =
+    revenueChange.value === null
+      ? "Periodo listo para analizar"
+      : revenueChange.value > 0
+        ? "Los ingresos mejoraron"
+        : revenueChange.value < 0
+          ? "Los ingresos disminuyeron"
+          : "Los ingresos se mantuvieron";
+
+
+  const summaryText =
+    revenueChange.value === null
+      ? "Todavía no existe una base suficiente para comparar este periodo con el anterior."
+      : revenueChange.value > 0
+        ? `Los ingresos crecieron ${formatPercent(
+            revenueChange.value,
+          )}% frente al periodo anterior.`
+        : revenueChange.value < 0
+          ? `Los ingresos bajaron ${formatPercent(
+              revenueChange.value,
+            )}% frente al periodo anterior.`
+          : "Los ingresos se mantuvieron prácticamente iguales al periodo anterior.";
+
+
+  const kpis = [
+    {
+      label:
+        "Ingresos",
+
+      value:
+        formatCurrency(
+          totalRevenue,
+        ),
+
+      description:
+        "Total vendido",
+
+      change:
+        revenueChange,
+
+      icon:
+        Banknote,
+    },
+
+    {
+      label:
+        "Ventas",
+
+      value:
+        formatNumber(
+          totalSales,
+          0,
+        ),
+
+      description:
+        "Operaciones completadas",
+
+      change:
+        salesChange,
+
+      icon:
+        ShoppingBag,
+    },
+
+    {
+      label:
+        "Ticket promedio",
+
+      value:
+        formatCurrency(
+          averageTicket,
+        ),
+
+      description:
+        "Promedio por venta",
+
+      change:
+        ticketChange,
+
+      icon:
+        ReceiptText,
+    },
+
+    {
+      label:
+        "Promedio diario",
+
+      value:
+        formatCurrency(
+          averageDailyRevenue,
+        ),
+
+      description:
+        `Promedio en ${periodDays} días`,
+
+      change:
+        dailyChange,
+
+      icon:
+        Activity,
+    },
+  ];
+
+
+  function exportRows():
+    ExportRow[] {
+    return dailySales.map(
+      (item) => {
+        const revenue =
+          numberValue(
+            item.revenue,
+          );
+
+        const count =
+          numberValue(
+            item.sales_count,
+          );
+
+        return {
+          Fecha:
+            formatDate(
+              item.date,
+            ),
+
+          Ventas:
+            count,
+
+          Ingresos:
+            revenue,
+
+          "Ticket diario":
+            count > 0
+              ? revenue
+                / count
+              : 0,
+        };
+      },
+    );
+  }
+
+
+  function exportFilename() {
+    return `analisis-${exportDateStamp()}`;
+  }
+
+
+  async function handlePdf() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+    setExportError("");
+
+    try {
+      await downloadVisualPdf(
+        exportRef.current,
+        exportFilename(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo generar el PDF.",
+      );
+    }
+  }
+
+
+  function handleCsv() {
+    setExportError("");
+
+    try {
+      exportRowsToCsv(
+        exportFilename(),
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo generar el CSV.",
+      );
+    }
+  }
+
+
+  async function handleExcel() {
+    setExportError("");
+
+    try {
+      await exportRowsToExcel(
+        exportFilename(),
+        "Análisis",
+        exportRows(),
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo generar el Excel.",
+      );
+    }
+  }
+
+
+  async function handleShare() {
+    if (
+      !exportRef.current
+    ) {
+      return;
+    }
+
+    setExportError("");
+
+    try {
+      const file =
+        await createVisualPdfFile(
+          exportRef.current,
+          exportFilename(),
         );
+
+      await shareFile(
+        file,
+        "Análisis - SalesIA Enterprise",
+        "Resumen del rendimiento comercial.",
+      );
+    } catch (
+      currentError
+    ) {
+      setExportError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudo compartir el análisis.",
+      );
+    }
+  }
 
 
   return (
     <section
       ref={exportRef}
-      className="analytics-bi-page"
+      className="analysis-page"
     >
-      <header className="analytics-bi-header">
+      <header className="analysis-header">
         <div>
-          <div className="analytics-bi-eyebrow">
+          <div className="analysis-eyebrow">
             <BarChart3
-              size={14}
+              size={15}
             />
 
             Inteligencia comercial
           </div>
 
           <h1>
-            Analytics
+            Análisis
           </h1>
 
           <p>
-            Rendimiento de ventas,
-            comportamiento diario y
-            lectura estadística del negocio.
+            Entiende rápidamente cómo está funcionando el negocio y qué cambió frente al periodo anterior.
           </p>
         </div>
 
-
-        <div className="analytics-bi-header-actions">
-          <div className="analytics-period-chip">
-            <CalendarRange
-              size={15}
-            />
-
-            <span>
-              {formatDate(
-                startDate,
-              )}
-              {" — "}
-              {formatDate(
-                endDate,
-              )}
-            </span>
-          </div>
-
+        <div
+          className="analysis-header-actions"
+          data-export-hide="true"
+        >
           <ExportActions
             disabled={
               loading
               || !dashboard
             }
-            onPdf={handlePdf}
-            onCsv={handleCsv}
-            onExcel={handleExcel}
-            onShare={handleShare}
+            onPdf={
+              handlePdf
+            }
+            onCsv={
+              handleCsv
+            }
+            onExcel={
+              handleExcel
+            }
+            onShare={
+              handleShare
+            }
           />
-
 
           <button
             type="button"
-            className="analytics-bi-refresh"
-            data-export-hide="true"
-            disabled={loading}
+            className="analysis-refresh"
+            disabled={
+              loading
+            }
             onClick={() =>
               void loadAnalytics()
             }
           >
             <RefreshCw
-              size={15}
+              size={16}
               className={
                 loading
-                  ? "analytics-bi-spin"
+                  ? "analysis-spin"
                   : ""
               }
             />
 
             {loading
-              ? "Actualizando"
+              ? "Actualizando..."
               : "Actualizar"}
           </button>
         </div>
@@ -858,360 +1118,349 @@ export default function AnalyticsPage() {
 
 
       <section
-        className="analytics-bi-filterbar"
+        className="analysis-filters"
         data-export-hide="true"
       >
-        <div className="analytics-presets">
+        <label>
           <span>
             Periodo
           </span>
 
-          {[7, 30, 90].map(
-            (days) => (
-              <button
-                key={days}
-                type="button"
-                className={
-                  presetActive(
-                    days,
-                  )
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  applyPreset(
-                    days,
-                  )
-                }
-              >
-                {days} días
-              </button>
-            ),
-          )}
-        </div>
-
-
-        <div className="analytics-custom-range">
-          <label>
-            <span>
-              Desde
-            </span>
-
-            <input
-              type="date"
-              value={startDate}
-              onChange={(
-                event,
-              ) =>
-                setStartDate(
-                  event.target.value,
-                )
-              }
-            />
-          </label>
-
-          <label>
-            <span>
-              Hasta
-            </span>
-
-            <input
-              type="date"
-              value={endDate}
-              onChange={(
-                event,
-              ) =>
-                setEndDate(
-                  event.target.value,
-                )
-              }
-            />
-          </label>
-
-          <button
-            type="button"
-            className="analytics-bi-apply"
-            disabled={loading}
-            onClick={() =>
-              void loadAnalytics()
+          <select
+            value={
+              periodOption
+            }
+            onChange={(
+              event,
+            ) =>
+              changePeriod(
+                event.target.value,
+              )
             }
           >
-            <TrendingUp
-              size={15}
-            />
+            <option value="7">
+              Últimos 7 días
+            </option>
 
-            Aplicar
-          </button>
+            <option value="30">
+              Últimos 30 días
+            </option>
+
+            <option value="90">
+              Últimos 90 días
+            </option>
+
+            <option value="custom">
+              Personalizado
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span>
+            Desde
+          </span>
+
+          <input
+            type="date"
+            value={
+              startDate
+            }
+            onChange={(
+              event,
+            ) => {
+              setStartDate(
+                event.target.value,
+              );
+
+              setPeriodOption(
+                "custom",
+              );
+            }}
+          />
+        </label>
+
+        <label>
+          <span>
+            Hasta
+          </span>
+
+          <input
+            type="date"
+            value={
+              endDate
+            }
+            onChange={(
+              event,
+            ) => {
+              setEndDate(
+                event.target.value,
+              );
+
+              setPeriodOption(
+                "custom",
+              );
+            }}
+          />
+        </label>
+
+        <div className="analysis-comparison">
+          <span>
+            Comparación
+          </span>
+
+          <strong>
+            Periodo anterior
+          </strong>
         </div>
+
+        <button
+          type="button"
+          className="analysis-apply"
+          disabled={
+            loading
+          }
+          onClick={() =>
+            void loadAnalytics()
+          }
+        >
+          <CalendarRange
+            size={16}
+          />
+
+          Aplicar
+        </button>
       </section>
 
 
+      {error && (
+        <div className="analysis-error">
+          {error}
+        </div>
+      )}
+
       {exportError && (
-        <div
-          className="analytics-bi-error"
-          data-export-hide="true"
-        >
+        <div className="analysis-error">
           {exportError}
         </div>
       )}
 
 
-      {error && (
-        <div className="analytics-bi-error">
-          {error}
+      {loading &&
+        !dashboard ? (
+        <div className="analysis-loading">
+          <RefreshCw
+            size={24}
+            className="analysis-spin"
+          />
+
+          <div>
+            <strong>
+              Preparando análisis
+            </strong>
+
+            <span>
+              Procesando la información comercial...
+            </span>
+          </div>
         </div>
-      )}
-
-
-      {dashboard ? (
+      ) : dashboard ? (
         <>
-          <section className="analytics-overview-card">
-            <div className="analytics-overview-main">
-              <span className="analytics-overview-label">
-                INGRESOS DEL PERIODO
+          <section className="analysis-kpis">
+            {kpis.map(
+              (kpi) => {
+                const Icon =
+                  kpi.icon;
+
+                return (
+                  <article
+                    key={
+                      kpi.label
+                    }
+                    className="analysis-kpi"
+                  >
+                    <div className="analysis-kpi-top">
+                      <span className="analysis-kpi-icon">
+                        <Icon
+                          size={18}
+                        />
+                      </span>
+
+                      <div
+                        className={`analysis-change ${kpi.change.direction}`}
+                      >
+                        {kpi.change.direction ===
+                        "positive" ? (
+                          <ArrowUpRight
+                            size={14}
+                          />
+                        ) : kpi.change.direction ===
+                          "negative" ? (
+                          <ArrowDownRight
+                            size={14}
+                          />
+                        ) : null}
+
+                        <span>
+                          {
+                            kpi.change.label
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="analysis-kpi-label">
+                      {
+                        kpi.label
+                      }
+                    </span>
+
+                    <strong>
+                      {
+                        kpi.value
+                      }
+                    </strong>
+
+                    <small>
+                      {
+                        kpi.description
+                      }
+                    </small>
+                  </article>
+                );
+              },
+            )}
+          </section>
+
+
+          <section className="analysis-summary">
+            <div className="analysis-summary-icon">
+              <Sparkles
+                size={21}
+              />
+            </div>
+
+            <div className="analysis-summary-content">
+              <span>
+                RESUMEN DEL PERIODO
               </span>
 
-              <strong>
-                {formatCurrency(
-                  totalRevenue,
-                )}
-              </strong>
+              <h2>
+                {summaryTitle}
+              </h2>
 
               <p>
-                Total generado por ventas
-                completadas dentro del rango
-                seleccionado.
+                {summaryText}
+                {" "}
+
+                {bestDay
+                  ? `El mejor día fue ${formatDate(
+                      bestDay.date,
+                    )}, con ${formatCurrency(
+                      bestDay.revenue,
+                    )}.`
+                  : "No hubo ventas completadas en el periodo."}
               </p>
             </div>
 
-
-            <div className="analytics-overview-divider" />
-
-
-            <div className="analytics-overview-item">
+            <div className="analysis-summary-status">
               <span>
-                Ventas
-              </span>
-
-              <strong>
-                {formatNumber(
-                  totalSales,
-                  0,
-                )}
-              </strong>
-
-              <small>
-                operaciones
-              </small>
-            </div>
-
-
-            <div className="analytics-overview-item">
-              <span>
-                Días con actividad
+                Actividad
               </span>
 
               <strong>
                 {activeDays}
+                {" de "}
+                {periodDays}
+                {" días"}
               </strong>
 
               <small>
-                registrados
-              </small>
-            </div>
-
-
-            <div className="analytics-overview-item">
-              <span>
-                Promedio diario
-              </span>
-
-              <strong>
-                {formatCurrency(
-                  averageDailyRevenue,
-                )}
-              </strong>
-
-              <small>
-                ingresos / día
-              </small>
-            </div>
-          </section>
-
-
-          <section className="analytics-bi-kpis">
-            <article>
-              <div className="analytics-kpi-top">
-                <span className="analytics-kpi-icon cyan">
-                  <ShoppingBag
-                    size={17}
-                  />
-                </span>
-
-                <ArrowUpRight
-                  size={15}
-                />
-              </div>
-
-              <span className="analytics-kpi-label">
-                Ventas completadas
-              </span>
-
-              <strong>
                 {formatNumber(
-                  totalSales,
-                  0,
-                )}
-              </strong>
-
-              <small>
-                Total del periodo
-              </small>
-            </article>
-
-
-            <article>
-              <div className="analytics-kpi-top">
-                <span className="analytics-kpi-icon blue">
-                  <ReceiptText
-                    size={17}
-                  />
-                </span>
-
-                <Activity
-                  size={15}
-                />
-              </div>
-
-              <span className="analytics-kpi-label">
-                Ticket promedio
-              </span>
-
-              <strong>
-                {formatCurrency(
-                  averageTicket,
-                )}
-              </strong>
-
-              <small>
-                Media por venta
-              </small>
-            </article>
-
-
-            <article>
-              <div className="analytics-kpi-top">
-                <span className="analytics-kpi-icon violet">
-                  <Sigma
-                    size={17}
-                  />
-                </span>
-
-                <Activity
-                  size={15}
-                />
-              </div>
-
-              <span className="analytics-kpi-label">
-                Ticket mediano
-              </span>
-
-              <strong>
-                {formatCurrency(
-                  medianTicket,
-                )}
-              </strong>
-
-              <small>
-                Punto central
-              </small>
-            </article>
-
-
-            <article>
-              <div className="analytics-kpi-top">
-                <span className="analytics-kpi-icon green">
-                  <Banknote
-                    size={17}
-                  />
-                </span>
-
-                <TrendingUp
-                  size={15}
-                />
-              </div>
-
-              <span className="analytics-kpi-label">
-                Ventas por día
-              </span>
-
-              <strong>
-                {formatNumber(
-                  averageDailySales,
+                  activityRate,
                   1,
                 )}
-              </strong>
-
-              <small>
-                Promedio diario
+                % del periodo
               </small>
-            </article>
+            </div>
           </section>
 
 
-          <section className="analytics-bi-primary-grid">
-            <article className="analytics-bi-panel analytics-performance-panel">
-              <header className="analytics-bi-panel-header">
+          <section className="analysis-main-grid">
+            <article className="analysis-panel analysis-chart-panel">
+              <header className="analysis-panel-header">
                 <div>
                   <span>
-                    RENDIMIENTO COMERCIAL
+                    EVOLUCIÓN
                   </span>
 
                   <h2>
-                    Evolución de ingresos
+                    Rendimiento comercial
                   </h2>
 
                   <p>
-                    Ingresos y volumen de
-                    operaciones por día.
+                    Consulta la evolución diaria sin mezclar demasiadas métricas.
                   </p>
                 </div>
 
-                <div className="analytics-chart-legend">
-                  <span>
-                    <i className="revenue" />
+                <div className="analysis-chart-switch">
+                  <button
+                    type="button"
+                    className={
+                      chartMetric ===
+                      "revenue"
+                        ? "active"
+                        : ""
+                    }
+                    onClick={() =>
+                      setChartMetric(
+                        "revenue",
+                      )
+                    }
+                  >
                     Ingresos
-                  </span>
+                  </button>
 
-                  <span>
-                    <i className="sales" />
-                    Ventas
-                  </span>
+                  <button
+                    type="button"
+                    className={
+                      chartMetric ===
+                      "sales"
+                        ? "active"
+                        : ""
+                    }
+                    onClick={() =>
+                      setChartMetric(
+                        "sales",
+                      )
+                    }
+                  >
+                    N.º ventas
+                  </button>
                 </div>
               </header>
 
-
-              <div className="analytics-bi-main-chart">
+              <div className="analysis-chart">
                 {chartData.length >
                 0 ? (
                   <ResponsiveContainer
                     width="100%"
                     height="100%"
                   >
-                    <ComposedChart
+                    <AreaChart
                       data={
                         chartData
                       }
                       margin={{
                         top: 12,
-                        right: 6,
+                        right: 14,
                         bottom: 0,
                         left: 0,
                       }}
                     >
                       <defs>
                         <linearGradient
-                          id="analyticsMainGradient"
+                          id="analysisArea"
                           x1="0"
                           y1="0"
                           x2="0"
@@ -1219,17 +1468,17 @@ export default function AnalyticsPage() {
                         >
                           <stop
                             offset="0%"
-                            stopColor="#0EA5B7"
+                            stopColor="#0891b2"
                             stopOpacity={
-                              0.32
+                              0.25
                             }
                           />
 
                           <stop
                             offset="100%"
-                            stopColor="#0EA5B7"
+                            stopColor="#0891b2"
                             stopOpacity={
-                              0.015
+                              0.02
                             }
                           />
                         </linearGradient>
@@ -1239,12 +1488,12 @@ export default function AnalyticsPage() {
                         vertical={
                           false
                         }
-                        stroke="#E8EEF2"
+                        stroke="#e8eef5"
                         strokeDasharray="4 4"
                       />
 
                       <XAxis
-                        dataKey="day"
+                        dataKey="label"
                         axisLine={
                           false
                         }
@@ -1253,14 +1502,13 @@ export default function AnalyticsPage() {
                         }
                         tick={{
                           fill:
-                            "#64748B",
+                            "#64748b",
                           fontSize:
-                            10,
+                            11,
                         }}
                       />
 
                       <YAxis
-                        yAxisId="revenue"
                         axisLine={
                           false
                         }
@@ -1268,223 +1516,386 @@ export default function AnalyticsPage() {
                           false
                         }
                         width={72}
+                        allowDecimals={
+                          chartMetric ===
+                          "revenue"
+                        }
                         tick={{
                           fill:
-                            "#64748B",
+                            "#64748b",
                           fontSize:
                             10,
                         }}
-                        tickFormatter={
-                          formatCompactCurrency
+                        tickFormatter={(
+                          value,
+                        ) =>
+                          chartMetric ===
+                          "revenue"
+                            ? `S/ ${formatNumber(
+                                value,
+                                0,
+                              )}`
+                            : formatNumber(
+                                value,
+                                0,
+                              )
                         }
-                      />
-
-                      <YAxis
-                        yAxisId="sales"
-                        orientation="right"
-                        axisLine={
-                          false
-                        }
-                        tickLine={
-                          false
-                        }
-                        width={32}
-                        tick={{
-                          fill:
-                            "#94A3B8",
-                          fontSize:
-                            9,
-                        }}
                       />
 
                       <Tooltip
                         contentStyle={{
                           border:
-                            "1px solid #DCE6EB",
+                            "1px solid #dbe5ee",
                           borderRadius:
-                            11,
-                          boxShadow:
-                            "0 10px 30px rgba(15,23,42,.10)",
-                          fontSize:
                             10,
+                          boxShadow:
+                            "0 10px 28px rgba(15,23,42,.08)",
                         }}
                         formatter={(
                           value,
-                          name,
-                        ) =>
-                          name ===
-                          "Ingresos"
-                            ? [
-                                formatCurrency(
-                                  value,
-                                ),
-                                "Ingresos",
-                              ]
-                            : [
-                                formatNumber(
-                                  value,
-                                  0,
-                                ),
-                                "Ventas",
-                              ]
-                        }
+                        ) => [
+                          chartMetric ===
+                          "revenue"
+                            ? formatCurrency(
+                                value,
+                              )
+                            : formatNumber(
+                                value,
+                                0,
+                              ),
+
+                          chartMetric ===
+                          "revenue"
+                            ? "Ingresos"
+                            : "Ventas",
+                        ]}
                       />
 
                       <Area
-                        yAxisId="revenue"
                         type="monotone"
-                        dataKey="revenue"
-                        name="Ingresos"
-                        stroke="#0EA5B7"
-                        strokeWidth={
-                          2.5
+                        dataKey={
+                          chartMetric
                         }
-                        fill="url(#analyticsMainGradient)"
-                      />
-
-                      <Line
-                        yAxisId="sales"
-                        type="monotone"
-                        dataKey="sales"
-                        name="Ventas"
-                        stroke="#2563EB"
-                        strokeWidth={
-                          2
-                        }
-                        dot={{
-                          r: 2.5,
-                          fill:
-                            "#2563EB",
-                        }}
+                        stroke="#0891b2"
+                        strokeWidth={2.5}
+                        fill="url(#analysisArea)"
                         activeDot={{
-                          r: 4,
+                          r: 5,
                         }}
                       />
-                    </ComposedChart>
+                    </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="analytics-bi-empty-chart">
-                    <BarChart3
-                      size={25}
-                    />
-
-                    <span>
-                      No hay actividad en
-                      el periodo seleccionado.
-                    </span>
+                  <div className="analysis-empty">
+                    No hay ventas completadas en este periodo.
                   </div>
                 )}
               </div>
             </article>
 
 
-            <aside className="analytics-pulse-panel">
-              <div className="analytics-pulse-heading">
+            <aside className="analysis-panel analysis-reading">
+              <header className="analysis-panel-header">
                 <div>
                   <span>
-                    PULSO COMERCIAL
+                    LECTURA RÁPIDA
                   </span>
 
                   <h2>
-                    Lectura del periodo
+                    Qué debes saber
                   </h2>
                 </div>
 
                 <Activity
                   size={19}
                 />
-              </div>
+              </header>
 
-
-              <div className="analytics-pulse-list">
+              <div className="analysis-reading-list">
                 <div>
-                  <span className="analytics-pulse-icon trophy">
-                    <Trophy
-                      size={16}
-                    />
-                  </span>
-
-                  <div>
-                    <small>
-                      Mejor día
-                    </small>
-
-                    <strong>
-                      {bestDay
-                        ? formatDate(
-                            bestDay.date,
-                          )
-                        : "Sin datos"}
-                    </strong>
-
-                    <span>
-                      {bestDay
-                        ? formatCurrency(
-                            bestDay.revenue,
-                          )
-                        : "—"}
-                    </span>
-                  </div>
-                </div>
-
-
-                <div>
-                  <span className="analytics-pulse-icon">
-                    <Banknote
-                      size={16}
-                    />
-                  </span>
-
-                  <div>
-                    <small>
-                      Ingreso diario medio
-                    </small>
-
-                    <strong>
-                      {formatCurrency(
-                        averageDailyRevenue,
-                      )}
-                    </strong>
-
-                    <span>
-                      {activeDays} días
-                      con actividad
-                    </span>
-                  </div>
-                </div>
-
-
-                <div>
-                  <span className="analytics-pulse-icon blue">
-                    <Sigma
-                      size={16}
-                    />
-                  </span>
-
-                  <div>
-                    <small>
-                      Diferencia media-mediana
-                    </small>
-
-                    <strong>
-                      {formatCurrency(
-                        ticketDifference,
-                      )}
-                    </strong>
-
-                    <span>
-                      dispersión del ticket
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-
-              {salesAnalysis && (
-                <div className="analytics-pulse-insight">
                   <span>
-                    INTERPRETACIÓN
+                    Mejor día
                   </span>
+
+                  <strong>
+                    {bestDay
+                      ? formatDate(
+                          bestDay.date,
+                        )
+                      : "Sin datos"}
+                  </strong>
+
+                  <small>
+                    {bestDay
+                      ? formatCurrency(
+                          bestDay.revenue,
+                        )
+                      : "—"}
+                  </small>
+                </div>
+
+                <div>
+                  <span>
+                    Días con ventas
+                  </span>
+
+                  <strong>
+                    {activeDays}
+                    {" / "}
+                    {periodDays}
+                  </strong>
+
+                  <small>
+                    {formatNumber(
+                      activityRate,
+                      1,
+                    )}
+                    % del periodo
+                  </small>
+                </div>
+
+                <div>
+                  <span>
+                    Concentración
+                  </span>
+
+                  <strong>
+                    {concentration}
+                  </strong>
+
+                  <small>
+                    El mejor día representa{" "}
+                    {formatNumber(
+                      bestDayShare,
+                      1,
+                    )}
+                    % de los ingresos
+                  </small>
+                </div>
+
+                <div>
+                  <span>
+                    Ticket promedio
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      averageTicket,
+                    )}
+                  </strong>
+
+                  <small>
+                    Por cada venta completada
+                  </small>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+
+          <section className="analysis-panel analysis-ranking">
+            <header className="analysis-panel-header">
+              <div>
+                <span>
+                  RANKING
+                </span>
+
+                <h2>
+                  Días con mayores ingresos
+                </h2>
+
+                <p>
+                  Identifica rápidamente cuándo se concentraron las ventas.
+                </p>
+              </div>
+
+              <Trophy
+                size={19}
+              />
+            </header>
+
+            {topDays.length ===
+            0 ? (
+              <div className="analysis-empty small">
+                No hay información disponible.
+              </div>
+            ) : (
+              <div className="analysis-ranking-list">
+                {topDays.map(
+                  (
+                    item,
+                    index,
+                  ) => {
+                    const revenue =
+                      numberValue(
+                        item.revenue,
+                      );
+
+                    const width =
+                      bestDayRevenue >
+                      0
+                        ? (
+                            revenue
+                            /
+                            bestDayRevenue
+                          )
+                          * 100
+                        : 0;
+
+                    return (
+                      <div
+                        className="analysis-ranking-row"
+                        key={
+                          item.date
+                        }
+                      >
+                        <span className="analysis-ranking-position">
+                          {index + 1}
+                        </span>
+
+                        <div className="analysis-ranking-data">
+                          <div>
+                            <strong>
+                              {formatDate(
+                                item.date,
+                              )}
+                            </strong>
+
+                            <span>
+                              {
+                                item.sales_count
+                              }{" "}
+                              venta
+                              {item.sales_count ===
+                              1
+                                ? ""
+                                : "s"}
+                            </span>
+                          </div>
+
+                          <div className="analysis-ranking-amount">
+                            {formatCurrency(
+                              revenue,
+                            )}
+                          </div>
+
+                          <div className="analysis-ranking-track">
+                            <div
+                              style={{
+                                width:
+                                  `${width}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            )}
+          </section>
+
+
+          <details className="analysis-advanced">
+            <summary>
+              <span>
+                <Sigma
+                  size={18}
+                />
+
+                Estadística avanzada y detalle diario
+              </span>
+
+              <small>
+                Ver media, mediana y desglose del periodo
+              </small>
+            </summary>
+
+            <div className="analysis-advanced-content">
+              <div className="analysis-stat-grid">
+                <article>
+                  <span>
+                    Observaciones
+                  </span>
+
+                  <strong>
+                    {
+                      salesAnalysis
+                        ?.count
+                      ?? 0
+                    }
+                  </strong>
+
+                  <small>
+                    Ventas analizadas
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Media
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      salesAnalysis
+                        ?.mean
+                      ?? averageTicket,
+                    )}
+                  </strong>
+
+                  <small>
+                    Promedio estadístico
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Mediana
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      salesAnalysis
+                        ?.median
+                      ?? medianTicket,
+                    )}
+                  </strong>
+
+                  <small>
+                    Valor central
+                  </small>
+                </article>
+
+                <article>
+                  <span>
+                    Diferencia
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      salesAnalysis
+                        ?.difference
+                      ?? Math.abs(
+                        averageTicket
+                        - medianTicket,
+                      ),
+                    )}
+                  </strong>
+
+                  <small>
+                    Media vs. mediana
+                  </small>
+                </article>
+              </div>
+
+              {salesAnalysis
+                ?.interpretation && (
+                <div className="analysis-interpretation">
+                  <strong>
+                    Interpretación
+                  </strong>
 
                   <p>
                     {
@@ -1494,348 +1905,9 @@ export default function AnalyticsPage() {
                   </p>
                 </div>
               )}
-            </aside>
-          </section>
 
-
-          <section className="analytics-bi-secondary-grid">
-            <article className="analytics-bi-panel">
-              <header className="analytics-bi-panel-header compact">
-                <div>
-                  <span>
-                    VOLUMEN
-                  </span>
-
-                  <h2>
-                    Operaciones por día
-                  </h2>
-                </div>
-
-                <ShoppingBag
-                  size={18}
-                />
-              </header>
-
-
-              <div className="analytics-volume-chart">
-                {chartData.length >
-                0 ? (
-                  <ResponsiveContainer
-                    width="100%"
-                    height="100%"
-                  >
-                    <BarChart
-                      data={
-                        chartData
-                      }
-                      margin={{
-                        top: 8,
-                        right: 5,
-                        bottom: 0,
-                        left: -20,
-                      }}
-                    >
-                      <CartesianGrid
-                        vertical={
-                          false
-                        }
-                        stroke="#EEF2F5"
-                      />
-
-                      <XAxis
-                        dataKey="day"
-                        axisLine={
-                          false
-                        }
-                        tickLine={
-                          false
-                        }
-                        tick={{
-                          fill:
-                            "#64748B",
-                          fontSize:
-                            9,
-                        }}
-                      />
-
-                      <YAxis
-                        axisLine={
-                          false
-                        }
-                        tickLine={
-                          false
-                        }
-                        allowDecimals={
-                          false
-                        }
-                        tick={{
-                          fill:
-                            "#94A3B8",
-                          fontSize:
-                            9,
-                        }}
-                      />
-
-                      <Tooltip
-                        contentStyle={{
-                          border:
-                            "1px solid #DCE6EB",
-                          borderRadius:
-                            10,
-                          fontSize:
-                            10,
-                        }}
-                        formatter={(
-                          value,
-                        ) => [
-                          formatNumber(
-                            value,
-                            0,
-                          ),
-                          "Ventas",
-                        ]}
-                      />
-
-                      <Bar
-                        dataKey="sales"
-                        name="Ventas"
-                        fill="#22B8CC"
-                        radius={[
-                          5,
-                          5,
-                          0,
-                          0,
-                        ]}
-                        maxBarSize={
-                          30
-                        }
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="analytics-bi-empty-chart">
-                    Sin datos
-                  </div>
-                )}
-              </div>
-            </article>
-
-
-            <article className="analytics-ranking-panel">
-              <header className="analytics-bi-panel-header compact">
-                <div>
-                  <span>
-                    RANKING
-                  </span>
-
-                  <h2>
-                    Días con mayor ingreso
-                  </h2>
-                </div>
-
-                <Trophy
-                  size={18}
-                />
-              </header>
-
-
-              <div className="analytics-ranking-list">
-                {topDays.length ===
-                0 ? (
-                  <div className="analytics-ranking-empty">
-                    Sin información disponible.
-                  </div>
-                ) : (
-                  topDays.map(
-                    (
-                      item,
-                      index,
-                    ) => {
-                      const revenue =
-                        numberValue(
-                          item.revenue,
-                        );
-
-                      const width =
-                        maxDailyRevenue >
-                        0
-                          ? (
-                              revenue
-                              /
-                              maxDailyRevenue
-                            ) * 100
-                          : 0;
-
-                      return (
-                        <div
-                          className="analytics-ranking-row"
-                          key={
-                            item.date
-                          }
-                        >
-                          <span className="analytics-ranking-position">
-                            {index + 1}
-                          </span>
-
-                          <div className="analytics-ranking-content">
-                            <div className="analytics-ranking-top">
-                              <span>
-                                {formatDate(
-                                  item.date,
-                                )}
-                              </span>
-
-                              <strong>
-                                {formatCurrency(
-                                  revenue,
-                                )}
-                              </strong>
-                            </div>
-
-                            <div className="analytics-ranking-track">
-                              <div
-                                style={{
-                                  width:
-                                    `${width}%`,
-                                }}
-                              />
-                            </div>
-
-                            <small>
-                              {
-                                item.sales_count
-                              }{" "}
-                              venta
-                              {item.sales_count ===
-                              1
-                                ? ""
-                                : "s"}
-                            </small>
-                          </div>
-                        </div>
-                      );
-                    },
-                  )
-                )}
-              </div>
-            </article>
-          </section>
-
-
-          <section className="analytics-bi-panel analytics-statistics-strip">
-            <header className="analytics-bi-panel-header compact">
-              <div>
-                <span>
-                  ESTADÍSTICA COMERCIAL
-                </span>
-
-                <h2>
-                  Distribución de los tickets
-                </h2>
-              </div>
-
-              <Sigma
-                size={18}
-              />
-            </header>
-
-
-            <div className="analytics-statistics-values">
-              <div>
-                <span>
-                  Observaciones
-                </span>
-
-                <strong>
-                  {
-                    salesAnalysis
-                      ?.count
-                    ?? 0
-                  }
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Media
-                </span>
-
-                <strong>
-                  {formatCurrency(
-                    salesAnalysis
-                      ?.mean
-                    ?? averageTicket,
-                  )}
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Mediana
-                </span>
-
-                <strong>
-                  {formatCurrency(
-                    salesAnalysis
-                      ?.median
-                    ?? medianTicket,
-                  )}
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Diferencia
-                </span>
-
-                <strong>
-                  {formatCurrency(
-                    ticketDifference,
-                  )}
-                </strong>
-              </div>
-            </div>
-          </section>
-
-
-          <section className="analytics-bi-panel analytics-detail-panel">
-            <header className="analytics-bi-panel-header">
-              <div>
-                <span>
-                  DETALLE OPERATIVO
-                </span>
-
-                <h2>
-                  Rendimiento diario
-                </h2>
-
-                <p>
-                  Desglose de ventas e
-                  ingresos del periodo.
-                </p>
-              </div>
-
-              <div className="analytics-record-count">
-                {dailySales.length}
-                {" "}
-                registro
-                {dailySales.length ===
-                1
-                  ? ""
-                  : "s"}
-              </div>
-            </header>
-
-
-            {dailySales.length ===
-            0 ? (
-              <div className="analytics-bi-table-empty">
-                No hay ventas completadas
-                en este periodo.
-              </div>
-            ) : (
-              <div className="analytics-bi-table-wrapper">
-                <table className="analytics-bi-table">
+              <div className="analysis-table-wrap">
+                <table className="analysis-table">
                   <thead>
                     <tr>
                       <th>
@@ -1843,7 +1915,7 @@ export default function AnalyticsPage() {
                       </th>
 
                       <th>
-                        Operaciones
+                        Ventas
                       </th>
 
                       <th>
@@ -1853,40 +1925,21 @@ export default function AnalyticsPage() {
                       <th>
                         Ticket diario
                       </th>
-
-                      <th>
-                        Participación en ingresos
-                      </th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {dailySales.map(
-                      (
-                        item,
-                      ) => {
+                      (item) => {
                         const revenue =
                           numberValue(
                             item.revenue,
                           );
 
-                        const share =
-                          totalRevenue >
-                          0
-                            ? (
-                                revenue
-                                /
-                                totalRevenue
-                              ) * 100
-                            : 0;
-
-                        const dailyTicket =
-                          item.sales_count >
-                          0
-                            ? revenue
-                              /
-                              item.sales_count
-                            : 0;
+                        const count =
+                          numberValue(
+                            item.sales_count,
+                          );
 
                         return (
                           <tr
@@ -1895,55 +1948,31 @@ export default function AnalyticsPage() {
                             }
                           >
                             <td>
-                              <strong>
-                                {formatDate(
-                                  item.date,
-                                )}
-                              </strong>
-                            </td>
-
-                            <td>
-                              {
-                                item.sales_count
-                              }
-                            </td>
-
-                            <td>
-                              <strong className="analytics-bi-revenue">
-                                {formatCurrency(
-                                  revenue,
-                                )}
-                              </strong>
-                            </td>
-
-                            <td>
-                              {formatCurrency(
-                                dailyTicket,
+                              {formatDate(
+                                item.date,
                               )}
                             </td>
 
                             <td>
-                              <div className="analytics-share-cell">
-                                <div className="analytics-share-track">
-                                  <div
-                                    style={{
-                                      width:
-                                        `${Math.min(
-                                          100,
-                                          share,
-                                        )}%`,
-                                    }}
-                                  />
-                                </div>
+                              {formatNumber(
+                                count,
+                                0,
+                              )}
+                            </td>
 
-                                <span>
-                                  {formatNumber(
-                                    share,
-                                    1,
-                                  )}
-                                  %
-                                </span>
-                              </div>
+                            <td>
+                              {formatCurrency(
+                                revenue,
+                              )}
+                            </td>
+
+                            <td>
+                              {formatCurrency(
+                                count > 0
+                                  ? revenue
+                                    / count
+                                  : 0,
+                              )}
                             </td>
                           </tr>
                         );
@@ -1952,27 +1981,9 @@ export default function AnalyticsPage() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
+            </div>
+          </details>
         </>
-      ) : loading ? (
-        <section className="analytics-bi-loading">
-          <RefreshCw
-            size={22}
-            className="analytics-bi-spin"
-          />
-
-          <div>
-            <strong>
-              Preparando Analytics
-            </strong>
-
-            <span>
-              Procesando información
-              comercial...
-            </span>
-          </div>
-        </section>
       ) : null}
     </section>
   );

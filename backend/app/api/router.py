@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, branches, categories, commercial, company, customers, customer_accounts, dashboard, insights, inventory, products, reports, sales, users, analytics, audit, statistics, probability, random_variables, manuals
+from app.api.routes import auth, branches, categories, commercial, company, customers, customer_accounts, dashboard, insights, inventory, products, reports, sales, users, analytics, audit, statistics, probability, random_variables, manuals, forecasts, business_statistics
 
 api_router = APIRouter()
 
@@ -18,8 +18,10 @@ api_router.include_router(reports.router, prefix="/reports", tags=["Reportes"])
 api_router.include_router(sales.router, prefix="/sales", tags=["Ventas"])
 api_router.include_router(users.router, prefix="/users", tags=["Usuarios"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(forecasts.router, prefix="/forecasts", tags=["Pronósticos"])
 api_router.include_router(audit.router, prefix="/audit", tags=["Auditoría"])
 api_router.include_router(statistics.router, prefix="/statistics", tags=["Estadística"])
+api_router.include_router(business_statistics.router, prefix="/statistics", tags=["Estadísticas"])
 api_router.include_router(probability.router, prefix="/probability", tags=["Probabilidad"])
 api_router.include_router(random_variables.router, prefix="/random-variables", tags=["Variables Aleatorias"])
 api_router.include_router(manuals.router, prefix="/manuals", tags=["Manuales"])

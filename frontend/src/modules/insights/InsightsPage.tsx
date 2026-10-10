@@ -1,30 +1,43 @@
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 
 import {
+  Activity,
   AlertTriangle,
-  CheckCircle2,
-  Clock3,
-  Database,
+  ArrowRight,
+  BellRing,
+  CircleCheckBig,
+  Info,
   Lightbulb,
   RefreshCw,
-  Search,
   Sparkles,
+  Store,
+  TrendingUp,
+  WalletCards,
 } from "lucide-react";
 
+import {
+  Link,
+} from "react-router-dom";
+
 import ExportActions from "../../components/ui/ExportActions";
+import ModuleState from "../../components/ui/ModuleState";
+
+import {
+  getBusinessInsights,
+} from "../../services/business-insights.service";
+
+import {
+  getBranches,
+} from "../../services/organization.service";
 
 import {
   useApiResource,
 } from "../../hooks/useApiResource";
-
-import {
-  generateInsights,
-  getInsights,
-} from "../../services/reporting.service";
 
 import {
   createVisualPdfFile,
@@ -37,13 +50,66 @@ import {
 } from "../../utils/exporting";
 
 import type {
-  InsightItem,
-} from "../../types/reporting";
+  BusinessInsight,
+  BusinessInsightCategory,
+  BusinessInsightsResponse,
+} from "../../types/business-insights";
 
 import "./insights-commercial.css";
 
 
+type InsightFilter =
+  | "all"
+  | BusinessInsightCategory;
+
+
+function formatCurrency(
+  value: number,
+) {
+  return new Intl.NumberFormat(
+    "es-PE",
+    {
+      style: "currency",
+      currency: "PEN",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    },
+  ).format(
+    value,
+  );
+}
+
+
 function formatDate(
+  value: string,
+) {
+  const date =
+    new Date(
+      `${value}T00:00:00`,
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-PE",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  ).format(
+    date,
+  );
+}
+
+
+function formatDateTime(
   value: string,
 ) {
   const date =
@@ -63,413 +129,104 @@ function formatDate(
       dateStyle: "medium",
       timeStyle: "short",
     },
-  ).format(date);
-}
-
-
-function normalize(
-  value: string | null | undefined,
-) {
-  return (
-    value
-      ?.normalize("NFD")
-      .replace(
-        /[\u0300-\u036f]/g,
-        "",
-      )
-      .trim()
-      .toLowerCase()
-    ?? ""
+  ).format(
+    date,
   );
 }
 
 
-function translateStatus(
-  value: string,
+function categoryLabel(
+  category:
+    BusinessInsightCategory,
 ) {
-  const normalized =
-    normalize(value);
+  const labels:
+    Record<
+      BusinessInsightCategory,
+      string
+    > = {
+      attention:
+        "Requiere atención",
 
-  const translations: Record<string, string> = {
-    active: "Activo",
-    inactive: "Inactivo",
-    pending: "Pendiente",
-    resolved: "Resuelto",
-    closed: "Cerrado",
-    open: "Abierto",
-    completed: "Completado",
-  };
+      opportunity:
+        "Oportunidad",
 
-  return (
-    translations[normalized]
-    ?? value
-  );
-}
+      trend:
+        "Tendencia",
 
-
-function translateSeverity(
-  value: string | null,
-) {
-  if (!value) {
-    return "";
-  }
-
-  const normalized =
-    normalize(value);
-
-  const translations: Record<string, string> = {
-    critical: "Crítica",
-    critica: "Crítica",
-    high: "Alta",
-    alta: "Alta",
-    medium: "Media",
-    moderate: "Media",
-    moderada: "Media",
-    low: "Baja",
-    baja: "Baja",
-  };
-
-  return (
-    translations[normalized]
-    ?? value
-  );
-}
-
-
-function translateInsightType(
-  value: string | null,
-) {
-  if (!value) {
-    return "";
-  }
-
-  const normalized =
-    normalize(value)
-      .replace(/[-_]+/g, " ");
-
-  const exact: Record<string, string> = {
-    revenue: "Ingresos",
-    sales: "Ventas",
-
-    "sales trend": "Tendencia de ventas",
-    "revenue trend": "Tendencia de ingresos",
-    "average ticket trend": "Tendencia del ticket promedio",
-
-    average_ticket: "Ticket promedio",
-    "average ticket": "Ticket promedio",
-
-    revenue_growth: "Crecimiento de ingresos",
-    "revenue growth": "Crecimiento de ingresos",
-
-    revenue_drop: "Caída de ingresos",
-    "revenue drop": "Caída de ingresos",
-
-    sales_growth: "Crecimiento de ventas",
-    "sales growth": "Crecimiento de ventas",
-
-    sales_drop: "Caída de ventas",
-    "sales drop": "Caída de ventas",
-
-    ticket_growth: "Aumento del ticket promedio",
-    "ticket growth": "Aumento del ticket promedio",
-
-    ticket_drop: "Caída del ticket promedio",
-    "ticket drop": "Caída del ticket promedio",
-
-    trend: "Tendencia",
-    warning: "Alerta",
-    opportunity: "Oportunidad",
-  };
-
-  if (exact[normalized]) {
-    return exact[normalized];
-  }
-
-  const words: Record<string, string> = {
-    revenue: "ingresos",
-    sales: "ventas",
-    average: "promedio",
-    ticket: "ticket",
-    growth: "crecimiento",
-    increase: "aumento",
-    decrease: "disminución",
-    drop: "caída",
-    trend: "tendencia",
-    warning: "alerta",
-    opportunity: "oportunidad",
-    risk: "riesgo",
-    stock: "stock",
-    inventory: "inventario",
-    customer: "cliente",
-    customers: "clientes",
-  };
-
-  const translated =
-    normalized
-      .split(" ")
-      .map(
-        (word) =>
-          words[word]
-          ?? word,
-      )
-      .join(" ");
-
-  return (
-    translated
-      .charAt(0)
-      .toUpperCase()
-    + translated.slice(1)
-  );
-}
-
-
-function severityClass(
-  value: string | null,
-) {
-  const normalized =
-    normalize(value);
-
-  if (
-    normalized === "critical"
-    || normalized === "critica"
-    || normalized === "high"
-    || normalized === "alta"
-  ) {
-    return "insight-severity high";
-  }
-
-  if (
-    normalized === "medium"
-    || normalized === "media"
-    || normalized === "moderate"
-    || normalized === "moderada"
-  ) {
-    return "insight-severity medium";
-  }
-
-  if (
-    normalized === "low"
-    || normalized === "baja"
-  ) {
-    return "insight-severity low";
-  }
-
-  return "insight-severity neutral";
-}
-
-
-function statusClass(
-  value: string,
-) {
-  const normalized =
-    normalize(value);
-
-  if (
-    normalized === "active"
-    || normalized === "activo"
-    || normalized === "activa"
-  ) {
-    return "insight-status active";
-  }
-
-  if (
-    normalized === "resolved"
-    || normalized === "resuelto"
-    || normalized === "resuelta"
-    || normalized === "closed"
-    || normalized === "cerrado"
-    || normalized === "cerrada"
-  ) {
-    return "insight-status resolved";
-  }
-
-  return "insight-status";
-}
-
-
-function formatEvidenceKey(
-  value: string,
-) {
-  const normalized =
-    normalize(value)
-      .replace(/[- ]+/g, "_");
-
-  const translations:
-    Record<string, string> = {
-      rule: "Regla",
-      current_sales: "Ventas actuales",
-      previous_sales: "Ventas anteriores",
-      change_percent: "Variación porcentual",
-      current_period: "Periodo actual",
-      previous_period: "Periodo anterior",
-      current_revenue: "Ingresos actuales",
-      previous_revenue: "Ingresos anteriores",
-      threshold_percent: "Umbral porcentual",
-      current_average_ticket: "Ticket promedio actual",
-      previous_average_ticket: "Ticket promedio anterior",
-      average_ticket_change: "Variación del ticket promedio",
-      revenue_change: "Variación de ingresos",
-      sales_change: "Variación de ventas",
-      start_date: "Fecha inicial",
-      end_date: "Fecha final",
-      days: "Días",
-      total_sales: "Ventas totales",
-      total_revenue: "Ingresos totales",
-      average_ticket: "Ticket promedio",
+      info:
+        "Información",
     };
 
-  if (translations[normalized]) {
-    return translations[normalized];
-  }
+  return labels[
+    category
+  ];
+}
 
-  const clean =
-    value
-      .replace(/_/g, " ")
-      .trim();
+
+function categoryIcon(
+  category:
+    BusinessInsightCategory,
+) {
+  switch (
+    category
+  ) {
+    case "attention":
+      return AlertTriangle;
+
+    case "opportunity":
+      return TrendingUp;
+
+    case "trend":
+      return Activity;
+
+    default:
+      return Info;
+  }
+}
+
+
+function severityLabel(
+  severity: string,
+) {
+  switch (
+    severity
+  ) {
+    case "high":
+      return "Prioridad alta";
+
+    case "medium":
+      return "Prioridad media";
+
+    default:
+      return "Informativo";
+  }
+}
+
+
+function insightPriority(
+  insight:
+    BusinessInsight,
+) {
+  const categoryWeight = {
+    attention: 0,
+    opportunity: 1,
+    trend: 2,
+    info: 3,
+  };
+
+  const severityWeight = {
+    high: 0,
+    medium: 1,
+    low: 2,
+  };
 
   return (
-    clean.charAt(0).toUpperCase()
-    + clean.slice(1)
-  );
-}
-
-
-function formatEvidenceValue(
-  value: unknown,
-) {
-  if (
-    value === null
-    || value === undefined
-  ) {
-    return "—";
-  }
-
-  if (
-    typeof value ===
-    "boolean"
-  ) {
-    return value
-      ? "Sí"
-      : "No";
-  }
-
-  if (
-    typeof value ===
-    "number"
-  ) {
-    return new Intl.NumberFormat(
-      "es-PE",
-      {
-        maximumFractionDigits: 4,
-      },
-    ).format(value);
-  }
-
-  if (
-    typeof value ===
-    "string"
-  ) {
-    const normalized =
-      normalize(value)
-        .replace(/[- ]+/g, "_");
-
-    const translations:
-      Record<string, string> = {
-        weekly_revenue_change:
-          "Variación semanal de ingresos",
-
-        weekly_sales_change:
-          "Variación semanal de ventas",
-
-        weekly_average_ticket_change:
-          "Variación semanal del ticket promedio",
-
-        revenue_growth:
-          "Crecimiento de ingresos",
-
-        revenue_drop:
-          "Caída de ingresos",
-
-        sales_growth:
-          "Crecimiento de ventas",
-
-        sales_drop:
-          "Caída de ventas",
-
-        average_ticket_growth:
-          "Aumento del ticket promedio",
-
-        average_ticket_drop:
-          "Caída del ticket promedio",
-
-        current_period:
-          "Periodo actual",
-
-        previous_period:
-          "Periodo anterior",
-
-        active:
-          "Activo",
-
-        inactive:
-          "Inactivo",
-
-        high:
-          "Alta",
-
-        medium:
-          "Media",
-
-        low:
-          "Baja",
-      };
-
-    return (
-      translations[normalized]
-      ?? value
-    );
-  }
-
-  try {
-    return JSON.stringify(
-      value,
-    );
-  } catch {
-    return String(value);
-  }
-}
-
-
-function uniqueOptions(
-  values: Array<
-    string | null
-  >,
-) {
-  return Array.from(
-    new Set(
-      values
-        .filter(
-          (
-            value,
-          ): value is string =>
-            Boolean(
-              value?.trim(),
-            ),
-        )
-        .map(
-          (value) =>
-            value.trim(),
-        ),
-    ),
-  ).sort(
-    (
-      left,
-      right,
-    ) =>
-      left.localeCompare(
-        right,
-        "es",
-      ),
+    categoryWeight[
+      insight.category
+    ] * 10
+    + severityWeight[
+      insight.severity
+    ]
   );
 }
 
@@ -480,6 +237,45 @@ export default function InsightsPage() {
       null,
     );
 
+  const branchesResource =
+    useApiResource(
+      getBranches,
+    );
+
+  const [
+    branchId,
+    setBranchId,
+  ] =
+    useState("");
+
+  const [
+    filter,
+    setFilter,
+  ] =
+    useState<InsightFilter>(
+      "all",
+    );
+
+  const [
+    response,
+    setResponse,
+  ] =
+    useState<
+      BusinessInsightsResponse
+      | null
+    >(null);
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(false);
+
+  const [
+    error,
+    setError,
+  ] =
+    useState("");
 
   const [
     exportError,
@@ -488,234 +284,159 @@ export default function InsightsPage() {
     useState("");
 
 
-  const {
-    data,
-    loading,
-    error,
-    reload,
-  } =
-    useApiResource<
-      InsightItem[]
-    >(getInsights);
-
-
-  const [
-    generating,
-    setGenerating,
-  ] =
-    useState(false);
-
-  const [
-    generationError,
-    setGenerationError,
-  ] =
-    useState("");
-
-  const [
-    generationMessage,
-    setGenerationMessage,
-  ] =
-    useState("");
-
-  const [
-    search,
-    setSearch,
-  ] =
-    useState("");
-
-  const [
-    statusFilter,
-    setStatusFilter,
-  ] =
-    useState("all");
-
-  const [
-    severityFilter,
-    setSeverityFilter,
-  ] =
-    useState("all");
-
-
-  const insights =
-    data ?? [];
-
-
-  const statusOptions =
+  const branches =
     useMemo(
       () =>
-        uniqueOptions(
-          insights.map(
-            (item) =>
-              item.status,
-          ),
+        (
+          branchesResource.data
+          ?? []
+        ).filter(
+          (branch) =>
+            branch.status ===
+            "active",
         ),
-      [insights],
+      [
+        branchesResource.data,
+      ],
     );
 
 
-  const severityOptions =
+  async function loadInsights(
+    selectedBranch =
+      branchId,
+  ) {
+    setLoading(
+      true,
+    );
+
+    setError("");
+
+    try {
+      const result =
+        await getBusinessInsights(
+          selectedBranch
+          || undefined,
+        );
+
+      setResponse(
+        result,
+      );
+    } catch (
+      currentError
+    ) {
+      setResponse(
+        null,
+      );
+
+      setError(
+        currentError
+          instanceof Error
+          ? currentError.message
+          : "No se pudieron generar los insights.",
+      );
+    } finally {
+      setLoading(
+        false,
+      );
+    }
+  }
+
+
+  useEffect(
+    () => {
+      void loadInsights(
+        "",
+      );
+    },
+    [],
+  );
+
+
+  const insights =
     useMemo(
       () =>
-        uniqueOptions(
-          insights.map(
-            (item) =>
-              item.severity,
+        [
+          ...(
+            response
+              ?.insights
+            ?? []
           ),
+        ].sort(
+          (
+            left,
+            right,
+          ) =>
+            insightPriority(
+              left,
+            )
+            - insightPriority(
+              right,
+            ),
         ),
-      [insights],
+      [
+        response,
+      ],
     );
 
 
   const filteredInsights =
     useMemo(
-      () => {
-        const query =
-          normalize(search);
-
-        return [...insights]
-          .filter(
-            (insight) => {
-              const matchesSearch =
-                !query
-                || normalize(
-                  insight.title,
-                ).includes(
-                  query,
-                )
-                || normalize(
-                  insight.description,
-                ).includes(
-                  query,
-                )
-                || normalize(
-                  insight.insight_type,
-                ).includes(
-                  query,
-                )
-                || normalize(
-                  insight.severity,
-                ).includes(
-                  query,
-                )
-                || normalize(
-                  insight.status,
-                ).includes(
-                  query,
-                );
-
-              const matchesStatus =
-                statusFilter ===
-                  "all"
-                || normalize(
-                  insight.status,
-                ) ===
-                  normalize(
-                    statusFilter,
-                  );
-
-              const matchesSeverity =
-                severityFilter ===
-                  "all"
-                || normalize(
-                  insight.severity,
-                ) ===
-                  normalize(
-                    severityFilter,
-                  );
-
-              return (
-                matchesSearch
-                && matchesStatus
-                && matchesSeverity
-              );
-            },
-          )
-          .sort(
-            (
-              left,
-              right,
-            ) => {
-              const leftTime =
-                new Date(
-                  left.created_at,
-                ).getTime();
-
-              const rightTime =
-                new Date(
-                  right.created_at,
-                ).getTime();
-
-              if (
-                Number.isNaN(
-                  leftTime,
-                )
-                || Number.isNaN(
-                  rightTime,
-                )
-              ) {
-                return 0;
-              }
-
-              return (
-                rightTime
-                - leftTime
-              );
-            },
-          );
-      },
+      () =>
+        filter === "all"
+          ? insights
+          : insights.filter(
+              (insight) =>
+                insight.category
+                === filter,
+            ),
       [
+        filter,
         insights,
-        search,
-        statusFilter,
-        severityFilter,
       ],
     );
 
 
-  function evidenceText(
-    insight: InsightItem,
-  ) {
-    if (!insight.evidence) {
-      return "";
-    }
+  const attentionCount =
+    insights.filter(
+      (insight) =>
+        insight.category
+        === "attention",
+    ).length;
+
+  const opportunityCount =
+    insights.filter(
+      (insight) =>
+        insight.category
+        === "opportunity",
+    ).length;
+
+  const trendCount =
+    insights.filter(
+      (insight) =>
+        insight.category
+        === "trend"
+        || insight.category
+        === "info",
+    ).length;
 
 
-    return Object.entries(
-      insight.evidence,
-    )
-      .map(
-        ([key, value]) =>
-          `${formatEvidenceKey(key)}: ${formatEvidenceValue(value)}`,
-      )
-      .join("; ");
-  }
+  const mainInsight =
+    insights[0]
+    ?? null;
 
 
-  function exportRows(): ExportRow[] {
+  function exportRows():
+    ExportRow[] {
     return filteredInsights.map(
       (insight) => ({
-        Fecha:
-          formatDate(
-            insight.created_at,
+        Categoría:
+          categoryLabel(
+            insight.category,
           ),
 
-        Tipo:
-          insight.insight_type
-            ? translateInsightType(
-                insight.insight_type,
-              )
-            : "",
-
-        Severidad:
-          insight.severity
-            ? translateSeverity(
-                insight.severity,
-              )
-            : "",
-
-        Estado:
-          translateStatus(
-            insight.status,
+        Prioridad:
+          severityLabel(
+            insight.severity,
           ),
 
         Título:
@@ -724,10 +445,16 @@ export default function InsightsPage() {
         Descripción:
           insight.description,
 
-        Evidencia:
-          evidenceText(
-            insight,
-          ),
+        Motivo:
+          insight.reason,
+
+        Acción:
+          insight.action_label,
+
+        Sucursal:
+          response
+            ?.branch_name
+          ?? "",
       }),
     );
   }
@@ -741,14 +468,13 @@ export default function InsightsPage() {
   async function handlePdf() {
     if (
       !exportRef.current
-      || filteredInsights.length === 0
+      || filteredInsights
+          .length === 0
     ) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       await downloadVisualPdf(
@@ -759,7 +485,8 @@ export default function InsightsPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo generar el PDF.",
       );
@@ -769,14 +496,13 @@ export default function InsightsPage() {
 
   function handleCsv() {
     if (
-      filteredInsights.length === 0
+      filteredInsights
+        .length === 0
     ) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       exportRowsToCsv(
@@ -787,7 +513,8 @@ export default function InsightsPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo generar el CSV.",
       );
@@ -797,14 +524,13 @@ export default function InsightsPage() {
 
   async function handleExcel() {
     if (
-      filteredInsights.length === 0
+      filteredInsights
+        .length === 0
     ) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       await exportRowsToExcel(
@@ -816,9 +542,10 @@ export default function InsightsPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
-          : "No se pudo generar el archivo Excel.",
+          : "No se pudo generar el Excel.",
       );
     }
   }
@@ -827,14 +554,13 @@ export default function InsightsPage() {
   async function handleShare() {
     if (
       !exportRef.current
-      || filteredInsights.length === 0
+      || filteredInsights
+          .length === 0
     ) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       const file =
@@ -843,17 +569,17 @@ export default function InsightsPage() {
           exportFilename(),
         );
 
-
       await shareFile(
         file,
-        "Insights - SalesIA Enterprise",
-        "Insights empresariales de SalesIA Enterprise.",
+        "Insights empresariales - SalesIA",
+        "Hallazgos detectados a partir de los datos comerciales.",
       );
     } catch (
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudieron compartir los insights.",
       );
@@ -861,83 +587,19 @@ export default function InsightsPage() {
   }
 
 
-  async function handleGenerateInsights() {
-    setExportError("");
-
-    setGenerating(
-      true,
-    );
-
-    setGenerationError(
-      "",
-    );
-
-    setGenerationMessage(
-      "",
-    );
-
-    try {
-      const generated =
-        await generateInsights();
-
-      await reload();
-
-      if (
-        generated.length > 0
-      ) {
-        setGenerationMessage(
-          `Se generaron ${generated.length} insight(s).`,
-        );
-      } else {
-        setGenerationMessage(
-          "El análisis finalizó sin nuevos insights.",
-        );
-      }
-    } catch (
-      currentError
-    ) {
-      setGenerationError(
-        currentError
-          instanceof Error
-          ? currentError.message
-          : "No se pudieron generar los insights.",
-      );
-    } finally {
-      setGenerating(
-        false,
-      );
-    }
-  }
-
-
-  async function handleReload() {
-    setExportError("");
-
-    setGenerationError(
-      "",
-    );
-
-    setGenerationMessage(
-      "",
-    );
-
-    await reload();
-  }
-
-
   return (
     <section
       ref={exportRef}
-      className="insights-page"
+      className="business-insights-page"
     >
-      <header className="insights-header">
+      <header className="business-insights-header">
         <div>
-          <div className="insights-eyebrow">
+          <div className="business-insights-eyebrow">
             <Lightbulb
-              size={14}
+              size={15}
             />
 
-            Inteligencia empresarial
+            Inteligencia comercial
           </div>
 
           <h1>
@@ -945,442 +607,678 @@ export default function InsightsPage() {
           </h1>
 
           <p>
-            Identifica observaciones relevantes
-            obtenidas a partir de los datos
-            empresariales registrados.
+            SalesIA revisa tus datos y destaca situaciones que merecen atención, oportunidades y tendencias relevantes.
           </p>
         </div>
 
-
         <div
-          className="insights-header-actions"
+          className="business-insights-header-actions"
           data-export-hide="true"
         >
           <ExportActions
             disabled={
               loading
-              || generating
-              || filteredInsights.length === 0
+              || filteredInsights
+                  .length === 0
             }
-            onPdf={handlePdf}
-            onCsv={handleCsv}
-            onExcel={handleExcel}
-            onShare={handleShare}
+            onPdf={
+              handlePdf
+            }
+            onCsv={
+              handleCsv
+            }
+            onExcel={
+              handleExcel
+            }
+            onShare={
+              handleShare
+            }
           />
 
-
           <button
             type="button"
-            className="insights-secondary-button"
+            className="business-insights-refresh"
             disabled={
               loading
-              || generating
             }
-            onClick={() => {
-              void handleReload();
-            }}
+            onClick={() =>
+              void loadInsights()
+            }
           >
             <RefreshCw
-              size={15}
+              size={16}
+              className={
+                loading
+                  ? "business-insights-spin"
+                  : ""
+              }
             />
 
-            Actualizar
-          </button>
-
-          <button
-            type="button"
-            className="insights-primary-button"
-            disabled={
-              loading
-              || generating
-            }
-            onClick={() => {
-              void handleGenerateInsights();
-            }}
-          >
-            <Sparkles
-              size={15}
-            />
-
-            {generating
+            {loading
               ? "Analizando..."
-              : "Generar insights"}
+              : "Analizar ahora"}
           </button>
         </div>
       </header>
 
 
-      {generationMessage && (
-        <div
-          className="insights-message success"
-          role="status"
-          data-export-hide="true"
+      <section
+        className="business-insights-controls"
+        data-export-hide="true"
+      >
+        <label>
+          <span>
+            Sucursal
+          </span>
+
+          <select
+            value={
+              branchId
+            }
+            disabled={
+              branchesResource
+                .loading
+            }
+            onChange={(
+              event,
+            ) =>
+              setBranchId(
+                event.target.value,
+              )
+            }
+          >
+            <option value="">
+              Todas las sucursales
+            </option>
+
+            {branches.map(
+              (branch) => (
+                <option
+                  key={
+                    branch.id
+                  }
+                  value={
+                    branch.id
+                  }
+                >
+                  {branch.name}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+
+        <div className="business-insights-period">
+          <span>
+            Periodo analizado
+          </span>
+
+          <strong>
+            Últimos 7 días
+          </strong>
+
+          <small>
+            Comparado con los 7 anteriores
+          </small>
+        </div>
+
+        <button
+          type="button"
+          className="business-insights-apply"
+          disabled={
+            loading
+          }
+          onClick={() =>
+            void loadInsights()
+          }
         >
-          <CheckCircle2
-            size={15}
+          <Sparkles
+            size={16}
           />
 
-          <span>
-            {generationMessage}
-          </span>
-        </div>
+          Aplicar
+        </button>
+      </section>
+
+
+      {error && (
+        <ModuleState
+          type="error"
+          title="No se pudieron analizar los datos"
+          description={
+            error
+          }
+        />
       )}
-
-
-      {generationError && (
-        <div
-          className="insights-message error"
-          role="alert"
-          data-export-hide="true"
-        >
-          <AlertTriangle
-            size={15}
-          />
-
-          <span>
-            {generationError}
-          </span>
-        </div>
-      )}
-
 
       {exportError && (
-        <div
-          className="insights-export-error"
-          data-export-hide="true"
-        >
+        <div className="business-insights-error">
           {exportError}
         </div>
       )}
 
 
-      <section className="insights-panel">
-        <div
-          className="insights-toolbar"
-          data-export-hide="true"
-        >
-          <div className="insights-search">
-            <Search
-              size={15}
-            />
+      {loading &&
+      !response ? (
+        <ModuleState
+          type="loading"
+          title="Analizando el negocio"
+          description="SalesIA está revisando ventas, comportamiento estadístico y pronósticos..."
+        />
+      ) : response ? (
+        <>
+          <section className="business-insights-kpis">
+            <article>
+              <div className="business-insights-kpi-icon">
+                <Lightbulb
+                  size={18}
+                />
+              </div>
 
-            <input
-              type="search"
-              value={search}
-              onChange={(
-                event,
-              ) =>
-                setSearch(
-                  event
-                    .target
-                    .value,
+              <span>
+                Hallazgos
+              </span>
+
+              <strong>
+                {
+                  insights.length
+                }
+              </strong>
+
+              <small>
+                Situaciones detectadas
+              </small>
+            </article>
+
+            <article>
+              <div className="business-insights-kpi-icon attention">
+                <BellRing
+                  size={18}
+                />
+              </div>
+
+              <span>
+                Requieren atención
+              </span>
+
+              <strong>
+                {
+                  attentionCount
+                }
+              </strong>
+
+              <small>
+                Conviene revisarlos
+              </small>
+            </article>
+
+            <article>
+              <div className="business-insights-kpi-icon opportunity">
+                <TrendingUp
+                  size={18}
+                />
+              </div>
+
+              <span>
+                Oportunidades
+              </span>
+
+              <strong>
+                {
+                  opportunityCount
+                }
+              </strong>
+
+              <small>
+                Señales positivas
+              </small>
+            </article>
+
+            <article>
+              <div className="business-insights-kpi-icon">
+                <WalletCards
+                  size={18}
+                />
+              </div>
+
+              <span>
+                Ingresos recientes
+              </span>
+
+              <strong>
+                {formatCurrency(
+                  response
+                    .current_revenue,
+                )}
+              </strong>
+
+              <small>
+                {
+                  response
+                    .current_sales
+                }{" "}
+                ventas en 7 días
+              </small>
+            </article>
+          </section>
+
+
+          {mainInsight && (
+            <section
+              className={
+                `business-insights-highlight ${mainInsight.category}`
+              }
+            >
+              <div className="business-insights-highlight-icon">
+                {(() => {
+                  const Icon =
+                    categoryIcon(
+                      mainInsight
+                        .category,
+                    );
+
+                  return (
+                    <Icon
+                      size={23}
+                    />
+                  );
+                })()}
+              </div>
+
+              <div>
+                <span>
+                  PRINCIPAL HALLAZGO
+                </span>
+
+                <h2>
+                  {
+                    mainInsight
+                      .title
+                  }
+                </h2>
+
+                <p>
+                  {
+                    mainInsight
+                      .description
+                  }
+                </p>
+              </div>
+
+              <Link
+                to={
+                  mainInsight
+                    .action_path
+                }
+                className="business-insights-highlight-action"
+                data-export-hide="true"
+              >
+                {
+                  mainInsight
+                    .action_label
+                }
+
+                <ArrowRight
+                  size={15}
+                />
+              </Link>
+            </section>
+          )}
+
+
+          <section
+            className="business-insights-filter-bar"
+            data-export-hide="true"
+          >
+            <button
+              type="button"
+              className={
+                filter === "all"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setFilter(
+                  "all",
                 )
               }
-              placeholder="Buscar insights..."
-              aria-label="Buscar insights"
+            >
+              Todos
+              <span>
+                {
+                  insights.length
+                }
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                filter ===
+                "attention"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setFilter(
+                  "attention",
+                )
+              }
+            >
+              Atención
+              <span>
+                {
+                  attentionCount
+                }
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                filter ===
+                "opportunity"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setFilter(
+                  "opportunity",
+                )
+              }
+            >
+              Oportunidades
+              <span>
+                {
+                  opportunityCount
+                }
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                filter === "trend"
+                  || filter === "info"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setFilter(
+                  "trend",
+                )
+              }
+            >
+              Tendencias
+              <span>
+                {
+                  trendCount
+                }
+              </span>
+            </button>
+          </section>
+
+
+          {filteredInsights.length ===
+          0 ? (
+            <ModuleState
+              type="empty"
+              title="No hay hallazgos en esta categoría"
+              description="Selecciona otro filtro para consultar los demás insights."
             />
-          </div>
+          ) : (
+            <section className="business-insights-list">
+              {filteredInsights.map(
+                (insight) => {
+                  const Icon =
+                    categoryIcon(
+                      insight.category,
+                    );
 
+                  return (
+                    <article
+                      key={
+                        insight.id
+                      }
+                      className={
+                        `business-insight-card ${insight.category}`
+                      }
+                    >
+                      <div className="business-insight-card-top">
+                        <div className="business-insight-card-heading">
+                          <div
+                            className={
+                              `business-insight-card-icon ${insight.category}`
+                            }
+                          >
+                            <Icon
+                              size={19}
+                            />
+                          </div>
 
-          <select
-            value={
-              statusFilter
-            }
-            onChange={(
-              event,
-            ) =>
-              setStatusFilter(
-                event
-                  .target
-                  .value,
-              )
-            }
-            aria-label="Filtrar por estado"
-          >
-            <option value="all">
-              Todos los estados
-            </option>
-
-            {statusOptions.map(
-              (status) => (
-                <option
-                  key={
-                    status
-                  }
-                  value={
-                    status
-                  }
-                >
-                  {status}
-                </option>
-              ),
-            )}
-          </select>
-
-
-          <select
-            value={
-              severityFilter
-            }
-            onChange={(
-              event,
-            ) =>
-              setSeverityFilter(
-                event
-                  .target
-                  .value,
-              )
-            }
-            aria-label="Filtrar por severidad"
-          >
-            <option value="all">
-              Todas las severidades
-            </option>
-
-            {severityOptions.map(
-              (
-                severity,
-              ) => (
-                <option
-                  key={
-                    severity
-                  }
-                  value={
-                    severity
-                  }
-                >
-                  {severity}
-                </option>
-              ),
-            )}
-          </select>
-
-
-          <div className="insights-result-count">
-            {filteredInsights.length}
-            {" "}
-            de
-            {" "}
-            {insights.length}
-          </div>
-        </div>
-
-
-        {loading ? (
-          <div className="insights-loading">
-            <div className="insights-spinner" />
-
-            <strong>
-              Cargando insights
-            </strong>
-          </div>
-        ) : error ? (
-          <div
-            className="insights-state-error"
-            role="alert"
-          >
-            <AlertTriangle
-              size={22}
-            />
-
-            <strong>
-              No se pudieron cargar los insights
-            </strong>
-
-            <p>
-              {error}
-            </p>
-          </div>
-        ) : insights.length === 0 ? (
-          <div className="insights-empty">
-            <div className="insights-empty-icon">
-              <Database
-                size={25}
-              />
-            </div>
-
-            <strong>
-              No hay insights registrados
-            </strong>
-
-            <p>
-              Ejecuta el análisis para detectar
-              nuevas observaciones en los datos.
-            </p>
-          </div>
-        ) : filteredInsights.length === 0 ? (
-          <div className="insights-empty compact">
-            <div className="insights-empty-icon">
-              <Search
-                size={23}
-              />
-            </div>
-
-            <strong>
-              Sin coincidencias
-            </strong>
-
-            <p>
-              Modifica la búsqueda o los filtros.
-            </p>
-          </div>
-        ) : (
-          <div className="insights-list">
-            {filteredInsights.map(
-              (
-                insight,
-              ) => {
-                const evidenceEntries =
-                  insight.evidence
-                    ? Object.entries(
-                        insight
-                          .evidence,
-                      )
-                    : [];
-
-                return (
-                  <article
-                    key={
-                      insight.id
-                    }
-                    className="insight-card"
-                  >
-                    <div className="insight-card-accent" />
-
-
-                    <div className="insight-card-header">
-                      <div className="insight-card-heading">
-                        <div className="insight-card-icon">
-                          <Lightbulb
-                            size={18}
-                          />
-                        </div>
-
-                        <div>
-                          <div className="insight-card-tags">
-                            {insight.insight_type && (
-                              <span className="insight-type">
-                                {
-                                  translateInsightType(
-                                    insight
-                                      .insight_type,
-                                  )
-                                }
-                              </span>
-                            )}
-
-                            {insight.severity && (
+                          <div>
+                            <div className="business-insight-tags">
                               <span
                                 className={
-                                  severityClass(
-                                    insight
-                                      .severity,
-                                  )
+                                  `business-insight-category ${insight.category}`
                                 }
                               >
                                 {
-                                  translateSeverity(
-                                    insight
-                                      .severity,
+                                  categoryLabel(
+                                    insight.category,
                                   )
                                 }
                               </span>
-                            )}
-                          </div>
 
-                          <h2>
-                            {
-                              insight
-                                .title
-                            }
-                          </h2>
+                              <span
+                                className={
+                                  `business-insight-severity ${insight.severity}`
+                                }
+                              >
+                                {
+                                  severityLabel(
+                                    insight.severity,
+                                  )
+                                }
+                              </span>
+                            </div>
+
+                            <h2>
+                              {
+                                insight.title
+                              }
+                            </h2>
+                          </div>
                         </div>
                       </div>
 
 
-                      <span
-                        className={
-                          statusClass(
-                            insight
-                              .status,
-                          )
-                        }
-                      >
+                      <p className="business-insight-description">
                         {
-                          translateStatus(
-                            insight
-                              .status,
-                          )
+                          insight
+                            .description
                         }
-                      </span>
-                    </div>
+                      </p>
 
 
-                    <p className="insight-description">
-                      {
-                        insight
-                          .description
-                      }
-                    </p>
+                      <div className="business-insight-reason">
+                        <strong>
+                          ¿Por qué importa?
+                        </strong>
+
+                        <p>
+                          {
+                            insight.reason
+                          }
+                        </p>
+                      </div>
 
 
-                    {evidenceEntries.length >
-                      0 && (
-                      <section className="insight-evidence">
-                        <div className="insight-evidence-title">
-                          Evidencia
-                        </div>
-
-                        <div className="insight-evidence-grid">
-                          {evidenceEntries.map(
-                            ([
-                              key,
-                              value,
-                            ]) => (
+                      {insight.metrics.length >
+                        0 && (
+                        <div className="business-insight-metrics">
+                          {insight.metrics.map(
+                            (metric) => (
                               <div
                                 key={
-                                  key
+                                  metric.label
                                 }
-                                className="insight-evidence-item"
                               >
                                 <span>
-                                  {formatEvidenceKey(
-                                    key,
-                                  )}
+                                  {
+                                    metric
+                                      .label
+                                  }
                                 </span>
 
                                 <strong>
-                                  {formatEvidenceValue(
-                                    value,
-                                  )}
+                                  {
+                                    metric
+                                      .value
+                                  }
                                 </strong>
                               </div>
                             ),
                           )}
                         </div>
-                      </section>
-                    )}
+                      )}
 
 
-                    <footer className="insight-card-footer">
-                      <Clock3
-                        size={13}
-                      />
+                      <footer className="business-insight-footer">
+                        <Link
+                          to={
+                            insight
+                              .action_path
+                          }
+                          className="business-insight-action"
+                          data-export-hide="true"
+                        >
+                          {
+                            insight
+                              .action_label
+                          }
 
-                      <span>
-                        {formatDate(
-                          insight
-                            .created_at,
-                        )}
-                      </span>
-                    </footer>
-                  </article>
-                );
-              },
-            )}
-          </div>
-        )}
-      </section>
+                          <ArrowRight
+                            size={14}
+                          />
+                        </Link>
+                      </footer>
+                    </article>
+                  );
+                },
+              )}
+            </section>
+          )}
+
+
+          <section className="business-insights-context">
+            <div>
+              <Store
+                size={18}
+              />
+
+              <span>
+                Sucursal
+              </span>
+
+              <strong>
+                {
+                  response
+                    .branch_name
+                }
+              </strong>
+            </div>
+
+            <div>
+              <Activity
+                size={18}
+              />
+
+              <span>
+                Días con ventas
+              </span>
+
+              <strong>
+                {
+                  response
+                    .active_days
+                }
+                {" de 7"}
+              </strong>
+            </div>
+
+            <div>
+              <WalletCards
+                size={18}
+              />
+
+              <span>
+                Ticket promedio
+              </span>
+
+              <strong>
+                {formatCurrency(
+                  response
+                    .current_average_ticket,
+                )}
+              </strong>
+            </div>
+
+            <div>
+              <CircleCheckBig
+                size={18}
+              />
+
+              <span>
+                Actualizado
+              </span>
+
+              <strong>
+                {formatDateTime(
+                  response
+                    .generated_at,
+                )}
+              </strong>
+            </div>
+          </section>
+
+
+          <details className="business-insights-method">
+            <summary>
+              ¿Cómo obtiene SalesIA estos insights?
+            </summary>
+
+            <div>
+              <p>
+                SalesIA compara los últimos 7 días con los 7 días anteriores y revisa ingresos, cantidad de ventas, ticket promedio, días con actividad y concentración de los ingresos.
+              </p>
+
+              <p>
+                También utiliza la variabilidad de las ventas y la calidad del pronóstico comercial para detectar situaciones que pueden ser útiles para la toma de decisiones.
+              </p>
+
+              <p>
+                Los insights son reglas analíticas sobre datos reales. No representan una garantía de resultados futuros y deben utilizarse como apoyo para investigar el negocio.
+              </p>
+
+              <p>
+                Periodo actual:{" "}
+                <strong>
+                  {formatDate(
+                    response
+                      .period_start,
+                  )}
+                  {" – "}
+                  {formatDate(
+                    response
+                      .period_end,
+                  )}
+                </strong>
+              </p>
+            </div>
+          </details>
+        </>
+      ) : null}
     </section>
   );
 }

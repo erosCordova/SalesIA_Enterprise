@@ -33,6 +33,7 @@ def list_company_branches(
             "Administrador",
             "Gerente",
             "Vendedor",
+            "Analista",
         )
     ),
 ):

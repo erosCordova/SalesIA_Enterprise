@@ -1,24 +1,48 @@
 import {
+  useEffect,
+  useMemo,
   useRef,
   useState,
-  type FormEvent,
 } from "react";
 
 import {
-  ArrowRight,
-  BrainCircuit,
-  Calculator,
-  CheckCircle2,
-  Info,
-  Percent,
-  RotateCcw,
+  Activity,
+  BarChart3,
+  CalendarDays,
+  ChartNoAxesCombined,
+  CircleAlert,
+  RefreshCw,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  WalletCards,
 } from "lucide-react";
 
+import {
+  Area,
+  CartesianGrid,
+  Line,
+  ComposedChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
 import ExportActions from "../../components/ui/ExportActions";
+import ModuleState from "../../components/ui/ModuleState";
 
 import {
-  calculateBayes,
-} from "../../services/analytics.service";
+  getSalesForecast,
+} from "../../services/forecasting.service";
+
+import {
+  getBranches,
+} from "../../services/organization.service";
+
+import {
+  useApiResource,
+} from "../../hooks/useApiResource";
 
 import {
   createVisualPdfFile,
@@ -31,65 +55,70 @@ import {
 } from "../../utils/exporting";
 
 import type {
-  BayesResponse,
-} from "../../types/analytics";
+  SalesForecastResponse,
+} from "../../types/forecasting";
 
 import "./probabilidad-commercial.css";
 
 
-function formatPercent(
+function formatCurrency(
   value: number,
 ) {
   return new Intl.NumberFormat(
     "es-PE",
     {
-      style: "percent",
-      minimumFractionDigits: 0,
+      style: "currency",
+      currency: "PEN",
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     },
-  ).format(value);
+  ).format(
+    value,
+  );
 }
 
 
-function parsePercent(
-  raw: string,
-  label: string,
-  allowZero = true,
+function formatNumber(
+  value: number,
+  digits = 0,
 ) {
-  const value =
-    raw
-      .trim()
-      .replace(
-        ",",
-        ".",
-      );
+  return new Intl.NumberFormat(
+    "es-PE",
+    {
+      maximumFractionDigits:
+        digits,
+    },
+  ).format(
+    value,
+  );
+}
 
-  if (!value) {
-    throw new Error(
-      `Ingresa ${label}.`,
+
+function formatDate(
+  value: string,
+) {
+  const date =
+    new Date(
+      `${value}T00:00:00`,
     );
-  }
-
-  const parsed =
-    Number(value);
 
   if (
-    !Number.isFinite(parsed)
-    || parsed < 0
-    || parsed > 100
-    || (
-      !allowZero
-      && parsed === 0
+    Number.isNaN(
+      date.getTime(),
     )
   ) {
-    throw new Error(
-      allowZero
-        ? `${label} debe estar entre 0% y 100%.`
-        : `${label} debe ser mayor que 0% y como máximo 100%.`,
-    );
+    return value;
   }
 
-  return parsed / 100;
+  return new Intl.DateTimeFormat(
+    "es-PE",
+    {
+      day: "2-digit",
+      month: "short",
+    },
+  ).format(
+    date,
+  );
 }
 
 
@@ -99,50 +128,36 @@ export default function ProbabilidadPage() {
       null,
     );
 
+  const branchesResource =
+    useApiResource(
+      getBranches,
+    );
 
   const [
-    exportError,
-    setExportError,
-  ] =
-    useState("");
-
-
-  const [
-    eventA,
-    setEventA,
-  ] =
-    useState("");
-
-  const [
-    eventB,
-    setEventB,
+    branchId,
+    setBranchId,
   ] =
     useState("");
 
   const [
-    probabilityA,
-    setProbabilityA,
+    horizonDays,
+    setHorizonDays,
   ] =
-    useState("");
+    useState(30);
 
   const [
-    probabilityBGivenA,
-    setProbabilityBGivenA,
+    historyDays,
+    setHistoryDays,
   ] =
-    useState("");
+    useState(90);
 
   const [
-    probabilityB,
-    setProbabilityB,
-  ] =
-    useState("");
-
-  const [
-    result,
-    setResult,
+    forecast,
+    setForecast,
   ] =
     useState<
-      BayesResponse | null
+      SalesForecastResponse
+      | null
     >(null);
 
   const [
@@ -157,161 +172,254 @@ export default function ProbabilidadPage() {
   ] =
     useState("");
 
+  const [
+    exportError,
+    setExportError,
+  ] =
+    useState("");
 
-  async function handleSubmit(
-    event: FormEvent,
+
+  const branches =
+    useMemo(
+      () =>
+        (
+          branchesResource
+            .data
+          ?? []
+        ).filter(
+          (branch) =>
+            branch.status ===
+            "active",
+        ),
+      [
+        branchesResource.data,
+      ],
+    );
+
+
+  async function loadForecast(
+    selectedBranch =
+      branchId,
+
+    selectedHorizon =
+      horizonDays,
+
+    selectedHistory =
+      historyDays,
   ) {
-    event.preventDefault();
+    setLoading(
+      true,
+    );
 
     setError("");
-    setExportError("");
-    setResult(null);
-
-    const cleanEventA =
-      eventA.trim();
-
-    const cleanEventB =
-      eventB.trim();
-
-    if (
-      !cleanEventA
-      || !cleanEventB
-    ) {
-      setError(
-        "Define el evento A y la evidencia B.",
-      );
-
-      return;
-    }
-
-    let parsedA: number;
-    let parsedBGivenA: number;
-    let parsedB: number;
-
-    try {
-      parsedA =
-        parsePercent(
-          probabilityA,
-          "P(A)",
-        );
-
-      parsedBGivenA =
-        parsePercent(
-          probabilityBGivenA,
-          "P(B|A)",
-        );
-
-      parsedB =
-        parsePercent(
-          probabilityB,
-          "P(B)",
-          false,
-        );
-    } catch (
-      validationError
-    ) {
-      setError(
-        validationError
-          instanceof Error
-          ? validationError.message
-          : "Las probabilidades ingresadas no son válidas.",
-      );
-
-      return;
-    }
-
-    setLoading(true);
 
     try {
       const response =
-        await calculateBayes({
-          event_a:
-            cleanEventA,
+        await getSalesForecast({
+          horizonDays:
+            selectedHorizon,
 
-          event_b:
-            cleanEventB,
+          historyDays:
+            selectedHistory,
 
-          probability_a:
-            parsedA,
-
-          probability_b_given_a:
-            parsedBGivenA,
-
-          probability_b:
-            parsedB,
+          branchId:
+            selectedBranch
+            || undefined,
         });
 
-      setResult(
+      setForecast(
         response,
       );
     } catch (
-      requestError
+      currentError
     ) {
+      setForecast(
+        null,
+      );
+
       setError(
-        requestError
+        currentError
           instanceof Error
-          ? requestError.message
-          : "No se pudo ejecutar el cálculo de Bayes.",
+          ? currentError.message
+          : "No se pudo generar el pronóstico.",
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false,
+      );
     }
   }
 
 
-  function exportRows(): ExportRow[] {
-    if (!result) {
+  useEffect(
+    () => {
+      void loadForecast(
+        "",
+        30,
+        90,
+      );
+    },
+    [],
+  );
+
+
+  const chartData =
+    useMemo(
+      () => {
+        if (!forecast) {
+          return [];
+        }
+
+        const historical =
+          forecast.historical.map(
+            (point) => ({
+              date:
+                point.date,
+
+              label:
+                formatDate(
+                  point.date,
+                ),
+
+              actual:
+                point.revenue,
+
+              projected:
+                null as
+                  number
+                  | null,
+
+              type:
+                "history",
+            }),
+          );
+
+        const future =
+          forecast.forecast.map(
+            (point) => ({
+              date:
+                point.date,
+
+              label:
+                formatDate(
+                  point.date,
+                ),
+
+              actual:
+                null as
+                  number
+                  | null,
+
+              projected:
+                point.revenue,
+
+              type:
+                "forecast",
+            }),
+          );
+
+        if (
+          historical.length > 0
+          && future.length > 0
+        ) {
+          const last =
+            historical[
+              historical.length - 1
+            ];
+
+          future.unshift({
+            date:
+              last.date,
+
+            label:
+              last.label,
+
+            actual:
+              null,
+
+            projected:
+              last.actual,
+
+            type:
+              "bridge",
+          });
+        }
+
+        return [
+          ...historical,
+          ...future,
+        ];
+      },
+      [
+        forecast,
+      ],
+    );
+
+
+  const TrendIcon =
+    forecast
+      ?.trend_direction ===
+      "Crecimiento"
+      ? TrendingUp
+      : forecast
+          ?.trend_direction ===
+          "Descenso"
+        ? TrendingDown
+        : Activity;
+
+
+  const trendClass =
+    forecast
+      ?.trend_direction ===
+      "Crecimiento"
+      ? "positive"
+      : forecast
+          ?.trend_direction ===
+          "Descenso"
+        ? "negative"
+        : "neutral";
+
+
+  function exportRows():
+    ExportRow[] {
+    if (!forecast) {
       return [];
     }
 
+    return forecast.forecast.map(
+      (point) => ({
+        Fecha:
+          formatDate(
+            point.date,
+          ),
 
-    return [
-      {
-        "Evento A":
-          result.event_a,
+        Sucursal:
+          forecast.branch_name,
 
-        "Evidencia B":
-          result.event_b,
+        "Ingreso estimado":
+          point.revenue,
 
-        "P(A) %":
-          result.probability_a
-          * 100,
-
-        "P(B|A) %":
-          result.probability_b_given_a
-          * 100,
-
-        "P(B) %":
-          result.probability_b
-          * 100,
-
-        "P(A|B) %":
-          result.posterior_probability
-          * 100,
-
-        Interpretación:
-          result.interpretation,
-      },
-    ];
+        "Ventas estimadas":
+          point.sales,
+      }),
+    );
   }
 
 
   function exportFilename() {
-    return `probabilidad-${exportDateStamp()}`;
+    return `pronostico-${exportDateStamp()}`;
   }
 
 
   async function handlePdf() {
     if (
       !exportRef.current
-      || !result
+      || !forecast
     ) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       await downloadVisualPdf(
@@ -322,7 +430,8 @@ export default function ProbabilidadPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo generar el PDF.",
       );
@@ -331,13 +440,11 @@ export default function ProbabilidadPage() {
 
 
   function handleCsv() {
-    if (!result) {
+    if (!forecast) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       exportRowsToCsv(
@@ -348,7 +455,8 @@ export default function ProbabilidadPage() {
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
           : "No se pudo generar el CSV.",
       );
@@ -357,27 +465,26 @@ export default function ProbabilidadPage() {
 
 
   async function handleExcel() {
-    if (!result) {
+    if (!forecast) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       await exportRowsToExcel(
         exportFilename(),
-        "Probabilidad",
+        "Pronósticos",
         exportRows(),
       );
     } catch (
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
-          : "No se pudo generar el archivo Excel.",
+          : "No se pudo generar el Excel.",
       );
     }
   }
@@ -386,14 +493,12 @@ export default function ProbabilidadPage() {
   async function handleShare() {
     if (
       !exportRef.current
-      || !result
+      || !forecast
     ) {
       return;
     }
 
-
     setExportError("");
-
 
     try {
       const file =
@@ -402,564 +507,743 @@ export default function ProbabilidadPage() {
           exportFilename(),
         );
 
-
       await shareFile(
         file,
-        "Probabilidad - SalesIA Enterprise",
-        `Resultado probabilístico: ${result.event_a}.`,
+        "Pronóstico comercial - SalesIA",
+        "Proyección de ventas basada en el historial registrado.",
       );
     } catch (
       currentError
     ) {
       setExportError(
-        currentError instanceof Error
+        currentError
+          instanceof Error
           ? currentError.message
-          : "No se pudo compartir el resultado.",
+          : "No se pudo compartir el pronóstico.",
       );
     }
   }
 
 
-  function reset() {
-    setEventA("");
-    setEventB("");
-    setProbabilityA("");
-    setProbabilityBGivenA("");
-    setProbabilityB("");
-    setResult(null);
-    setError("");
-    setExportError("");
-  }
-
-
-  const posteriorPercent =
-    result
-      ? Math.min(
-          100,
-          Math.max(
-            0,
-            result
-              .posterior_probability
-              * 100,
-          ),
-        )
-      : 0;
-
-
   return (
-    <section className="probability-page">
-      <header className="probability-header">
+    <section
+      ref={exportRef}
+      className="forecast-page"
+    >
+      <header className="forecast-header">
         <div>
-          <div className="probability-eyebrow">
-            <BrainCircuit
-              size={14}
+          <div className="forecast-eyebrow">
+            <ChartNoAxesCombined
+              size={15}
             />
 
-            Análisis probabilístico
+            Inteligencia comercial
           </div>
 
           <h1>
-            Probabilidad
+            Pronósticos
           </h1>
 
           <p>
-            Evalúa escenarios mediante
-            el Teorema de Bayes y obtén
-            una probabilidad posterior.
+            Estima el comportamiento futuro de las ventas utilizando el historial real registrado en SalesIA.
           </p>
         </div>
 
-        {result && (
-          <div
-            className="probability-header-actions"
-            data-export-hide="true"
-          >
+        <div
+          className="forecast-header-actions"
+          data-export-hide="true"
+        >
+          {forecast && (
             <ExportActions
-              disabled={loading}
-              onPdf={handlePdf}
-              onCsv={handleCsv}
-              onExcel={handleExcel}
-              onShare={handleShare}
+              disabled={
+                loading
+              }
+              onPdf={
+                handlePdf
+              }
+              onCsv={
+                handleCsv
+              }
+              onExcel={
+                handleExcel
+              }
+              onShare={
+                handleShare
+              }
             />
-          </div>
-        )}
+          )}
+
+          <button
+            type="button"
+            className="forecast-refresh"
+            disabled={
+              loading
+            }
+            onClick={() =>
+              void loadForecast()
+            }
+          >
+            <RefreshCw
+              size={16}
+              className={
+                loading
+                  ? "forecast-spin"
+                  : ""
+              }
+            />
+
+            Actualizar
+          </button>
+        </div>
       </header>
 
 
-      {exportError && (
-        <div
-          className="probability-export-error"
-          data-export-hide="true"
+      <section
+        className="forecast-filters"
+        data-export-hide="true"
+      >
+        <label>
+          <span>
+            Sucursal
+          </span>
+
+          <select
+            value={
+              branchId
+            }
+            disabled={
+              branchesResource
+                .loading
+            }
+            onChange={(
+              event,
+            ) =>
+              setBranchId(
+                event.target.value,
+              )
+            }
+          >
+            <option value="">
+              Todas las sucursales
+            </option>
+
+            {branches.map(
+              (branch) => (
+                <option
+                  key={
+                    branch.id
+                  }
+                  value={
+                    branch.id
+                  }
+                >
+                  {branch.name}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+
+        <label>
+          <span>
+            Pronosticar
+          </span>
+
+          <select
+            value={
+              horizonDays
+            }
+            onChange={(
+              event,
+            ) =>
+              setHorizonDays(
+                Number(
+                  event.target
+                    .value,
+                ),
+              )
+            }
+          >
+            <option value={7}>
+              Próximos 7 días
+            </option>
+
+            <option value={30}>
+              Próximos 30 días
+            </option>
+
+            <option value={60}>
+              Próximos 60 días
+            </option>
+
+            <option value={90}>
+              Próximos 90 días
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span>
+            Historial usado
+          </span>
+
+          <select
+            value={
+              historyDays
+            }
+            onChange={(
+              event,
+            ) =>
+              setHistoryDays(
+                Number(
+                  event.target
+                    .value,
+                ),
+              )
+            }
+          >
+            <option value={30}>
+              Últimos 30 días
+            </option>
+
+            <option value={60}>
+              Últimos 60 días
+            </option>
+
+            <option value={90}>
+              Últimos 90 días
+            </option>
+
+            <option value={180}>
+              Últimos 180 días
+            </option>
+
+            <option value={365}>
+              Últimos 365 días
+            </option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          className="forecast-generate"
+          disabled={
+            loading
+          }
+          onClick={() =>
+            void loadForecast()
+          }
         >
+          <Sparkles
+            size={16}
+          />
+
+          {loading
+            ? "Calculando..."
+            : "Generar pronóstico"}
+        </button>
+      </section>
+
+
+      {error && (
+        <ModuleState
+          type="error"
+          title="No se pudo generar el pronóstico"
+          description={
+            error
+          }
+        />
+      )}
+
+      {exportError && (
+        <div className="forecast-error">
           {exportError}
         </div>
       )}
 
 
-      <div className="probability-workspace">
-        <form
-          className="probability-form-panel"
-          onSubmit={
-            handleSubmit
-          }
-        >
-          <header className="probability-panel-heading">
-            <div>
-              <span>
-                ESCENARIO
-              </span>
-
-              <h2>
-                Datos del análisis
-              </h2>
-
-              <p>
-                Define los eventos y sus
-                probabilidades conocidas.
-              </p>
-            </div>
-
-            <BrainCircuit
-              size={19}
-            />
-          </header>
-
-
-          <div className="probability-events">
-            <label className="probability-field">
-              <span>
-                Evento A
-              </span>
-
-              <input
-                type="text"
-                maxLength={200}
-                value={eventA}
-                onChange={(
-                  event,
-                ) =>
-                  setEventA(
-                    event
-                      .target
-                      .value,
-                  )
-                }
-                placeholder="Ej. Cliente realiza una compra"
-              />
-
-              <small>
-                Evento cuya probabilidad
-                deseas estimar.
-              </small>
-            </label>
-
-
-            <div className="probability-event-arrow">
-              <ArrowRight
-                size={18}
-              />
-            </div>
-
-
-            <label className="probability-field">
-              <span>
-                Evidencia B
-              </span>
-
-              <input
-                type="text"
-                maxLength={200}
-                value={eventB}
-                onChange={(
-                  event,
-                ) =>
-                  setEventB(
-                    event
-                      .target
-                      .value,
-                  )
-                }
-                placeholder="Ej. Cliente recibió una promoción"
-              />
-
-              <small>
-                Evidencia que ya conocemos.
-              </small>
-            </label>
-          </div>
-
-
-          <div className="probability-divider" />
-
-
-          <div className="probability-input-grid">
-            <label className="probability-number-field">
-              <div>
-                <span>
-                  P(A)
-                </span>
-
-                <small>
-                  Probabilidad inicial
-                </small>
-              </div>
-
-              <div className="probability-percent-input">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={
-                    probabilityA
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setProbabilityA(
-                      event
-                        .target
-                        .value,
-                    )
-                  }
-                  placeholder="0"
-                />
-
-                <span>
-                  %
-                </span>
-              </div>
-            </label>
-
-
-            <label className="probability-number-field featured">
-              <div>
-                <span>
-                  P(B|A)
-                </span>
-
-                <small>
-                  Evidencia dado A
-                </small>
-              </div>
-
-              <div className="probability-percent-input">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={
-                    probabilityBGivenA
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setProbabilityBGivenA(
-                      event
-                        .target
-                        .value,
-                    )
-                  }
-                  placeholder="0"
-                />
-
-                <span>
-                  %
-                </span>
-              </div>
-            </label>
-
-
-            <label className="probability-number-field">
-              <div>
-                <span>
-                  P(B)
-                </span>
-
-                <small>
-                  Probabilidad de evidencia
-                </small>
-              </div>
-
-              <div className="probability-percent-input">
-                <input
-                  type="number"
-                  min="0.01"
-                  max="100"
-                  step="0.01"
-                  value={
-                    probabilityB
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setProbabilityB(
-                      event
-                        .target
-                        .value,
-                    )
-                  }
-                  placeholder="0"
-                />
-
-                <span>
-                  %
-                </span>
-              </div>
-            </label>
-          </div>
-
-
-          <div className="probability-tip">
-            <Info
-              size={15}
-            />
-
-            <span>
-              Ingresa las probabilidades
-              como porcentajes entre
-              0 y 100.
-            </span>
-          </div>
-
-
-          {error && (
-            <div
-              className="probability-error"
-              role="alert"
-            >
-              <Percent
-                size={15}
-              />
-
-              <span>
-                {error}
-              </span>
-            </div>
-          )}
-
-
-          <div className="probability-actions">
-            <button
-              type="button"
-              className="probability-secondary-button"
-              disabled={loading}
-              onClick={reset}
-            >
-              <RotateCcw
-                size={15}
-              />
-
-              Limpiar
-            </button>
-
-            <button
-              type="submit"
-              className="probability-primary-button"
-              disabled={loading}
-            >
-              <Calculator
-                size={15}
-              />
-
-              {loading
-                ? "Calculando..."
-                : "Calcular probabilidad"}
-            </button>
-          </div>
-        </form>
-
-
-        <section
-          ref={exportRef}
-          className="probability-result-panel"
-        >
-          <header className="probability-panel-heading">
-            <div>
-              <span>
-                RESULTADO
-              </span>
-
-              <h2>
-                Probabilidad posterior
-              </h2>
-
-              <p>
-                Resultado del análisis
-                bayesiano.
-              </p>
-            </div>
-
-            <Percent
-              size={19}
-            />
-          </header>
-
-
-          {!result ? (
-            <div className="probability-empty">
-              <div className="probability-empty-icon">
-                <Percent
-                  size={27}
+      {loading &&
+      !forecast ? (
+        <ModuleState
+          type="loading"
+          title="Generando pronóstico"
+          description="Analizando el historial de ventas..."
+        />
+      ) : forecast ? (
+        <>
+          <section className="forecast-kpis">
+            <article>
+              <div className="forecast-kpi-icon">
+                <WalletCards
+                  size={18}
                 />
               </div>
+
+              <span>
+                Ingresos estimados
+              </span>
 
               <strong>
-                Esperando análisis
+                {formatCurrency(
+                  forecast
+                    .projected_revenue,
+                )}
               </strong>
 
+              <small>
+                Próximos{" "}
+                {
+                  forecast
+                    .horizon_days
+                }{" "}
+                días
+              </small>
+            </article>
+
+            <article>
+              <div className="forecast-kpi-icon">
+                <BarChart3
+                  size={18}
+                />
+              </div>
+
+              <span>
+                Ventas estimadas
+              </span>
+
+              <strong>
+                {formatNumber(
+                  forecast
+                    .projected_sales,
+                  1,
+                )}
+              </strong>
+
+              <small>
+                Operaciones aproximadas
+              </small>
+            </article>
+
+            <article>
+              <div className="forecast-kpi-icon">
+                <CalendarDays
+                  size={18}
+                />
+              </div>
+
+              <span>
+                Rango esperado
+              </span>
+
+              <strong className="forecast-range">
+                {formatCurrency(
+                  forecast
+                    .lower_bound,
+                )}
+                {" – "}
+                {formatCurrency(
+                  forecast
+                    .upper_bound,
+                )}
+              </strong>
+
+              <small>
+                Intervalo orientativo
+              </small>
+            </article>
+
+            <article>
+              <div className="forecast-kpi-icon">
+                <Activity
+                  size={18}
+                />
+              </div>
+
+              <span>
+                Confianza
+              </span>
+
+              <strong>
+                {
+                  forecast
+                    .confidence_label
+                }
+              </strong>
+
+              <small>
+                {formatNumber(
+                  forecast
+                    .confidence_score,
+                  1,
+                )}
+                % de calidad orientativa
+              </small>
+            </article>
+          </section>
+
+
+          <section className="forecast-summary">
+            <div className="forecast-summary-icon">
+              <TrendIcon
+                size={23}
+              />
+            </div>
+
+            <div>
+              <span>
+                LECTURA DEL PRONÓSTICO
+              </span>
+
+              <h2>
+                Tendencia{" "}
+                {
+                  forecast
+                    .trend_direction
+                    .toLowerCase()
+                }
+              </h2>
+
               <p>
-                Completa los datos del
-                escenario para obtener
-                P(A|B).
+                {
+                  forecast
+                    .interpretation
+                }
               </p>
             </div>
-          ) : (
-            <div className="probability-result-content">
-              <div className="probability-result-success">
-                <CheckCircle2
-                  size={15}
-                />
 
-                Cálculo completado
-              </div>
+            <div
+              className={`forecast-trend ${trendClass}`}
+            >
+              <TrendIcon
+                size={17}
+              />
 
+              <strong>
+                {forecast
+                  .trend_percent >
+                0
+                  ? "+"
+                  : ""}
+                {formatNumber(
+                  forecast
+                    .trend_percent,
+                  1,
+                )}
+                %
+              </strong>
 
-              <div className="probability-posterior">
-                <span>
-                  P(A|B)
-                </span>
-
-                <strong>
-                  {formatPercent(
-                    result
-                      .posterior_probability,
-                  )}
-                </strong>
-
-                <small>
-                  Probabilidad posterior
-                </small>
-              </div>
-
-
-              <div className="probability-gauge">
-                <div className="probability-gauge-track">
-                  <div
-                    className="probability-gauge-value"
-                    style={{
-                      width:
-                        `${posteriorPercent}%`,
-                    }}
-                  />
-                </div>
-
-                <div className="probability-gauge-scale">
-                  <span>
-                    0%
-                  </span>
-
-                  <span>
-                    50%
-                  </span>
-
-                  <span>
-                    100%
-                  </span>
-                </div>
-              </div>
-
-
-              <div className="probability-result-metrics">
-                <div>
-                  <span>
-                    P(A)
-                  </span>
-
-                  <strong>
-                    {formatPercent(
-                      result
-                        .probability_a,
-                    )}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    P(B|A)
-                  </span>
-
-                  <strong>
-                    {formatPercent(
-                      result
-                        .probability_b_given_a,
-                    )}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    P(B)
-                  </span>
-
-                  <strong>
-                    {formatPercent(
-                      result
-                        .probability_b,
-                    )}
-                  </strong>
-                </div>
-              </div>
-
-
-              <div className="probability-result-scenario">
-                <div>
-                  <span>
-                    Evento A
-                  </span>
-
-                  <strong>
-                    {
-                      result.event_a
-                    }
-                  </strong>
-                </div>
-
-                <ArrowRight
-                  size={15}
-                />
-
-                <div>
-                  <span>
-                    Evidencia B
-                  </span>
-
-                  <strong>
-                    {
-                      result.event_b
-                    }
-                  </strong>
-                </div>
-              </div>
-
-
-              <div className="probability-interpretation">
-                <span>
-                  Interpretación
-                </span>
-
-                <p>
-                  {
-                    result
-                      .interpretation
-                  }
-                </p>
-              </div>
+              <span>
+                vs. promedio histórico
+              </span>
             </div>
-          )}
-        </section>
-      </div>
+          </section>
+
+
+          <section className="forecast-main-grid">
+            <article className="forecast-panel">
+              <header className="forecast-panel-header">
+                <div>
+                  <span>
+                    PROYECCIÓN
+                  </span>
+
+                  <h2>
+                    Evolución esperada de ingresos
+                  </h2>
+
+                  <p>
+                    Datos históricos y estimación para los próximos días.
+                  </p>
+                </div>
+
+                <div className="forecast-legend">
+                  <span>
+                    <i className="actual" />
+                    Histórico
+                  </span>
+
+                  <span>
+                    <i className="future" />
+                    Pronóstico
+                  </span>
+                </div>
+              </header>
+
+              <div className="forecast-chart">
+                {chartData.length >
+                0 ? (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                  >
+                    <ComposedChart
+                      data={
+                        chartData
+                      }
+                      margin={{
+                        top: 12,
+                        right: 12,
+                        left: 4,
+                        bottom: 0,
+                      }}
+                    >
+                      <CartesianGrid
+                        vertical={
+                          false
+                        }
+                        stroke="#e8eef5"
+                        strokeDasharray="4 4"
+                      />
+
+                      <XAxis
+                        dataKey="label"
+                        axisLine={
+                          false
+                        }
+                        tickLine={
+                          false
+                        }
+                        minTickGap={
+                          24
+                        }
+                        tick={{
+                          fill:
+                            "#64748b",
+                          fontSize:
+                            10,
+                        }}
+                      />
+
+                      <YAxis
+                        axisLine={
+                          false
+                        }
+                        tickLine={
+                          false
+                        }
+                        width={70}
+                        tick={{
+                          fill:
+                            "#64748b",
+                          fontSize:
+                            10,
+                        }}
+                        tickFormatter={(
+                          value,
+                        ) =>
+                          `S/ ${formatNumber(
+                            value,
+                            0,
+                          )}`
+                        }
+                      />
+
+                      <Tooltip
+                        contentStyle={{
+                          border:
+                            "1px solid #dbe5ee",
+                          borderRadius:
+                            10,
+                          boxShadow:
+                            "0 10px 28px rgba(15,23,42,.08)",
+                        }}
+                        formatter={(
+                          value,
+                          name,
+                        ) => [
+                          formatCurrency(
+                            Number(
+                              value,
+                            ),
+                          ),
+
+                          name ===
+                          "actual"
+                            ? "Histórico"
+                            : "Pronóstico",
+                        ]}
+                      />
+
+                      <Area
+                        type="monotone"
+                        dataKey="actual"
+                        name="actual"
+                        stroke="#0b7184"
+                        fill="#eaf9fb"
+                        fillOpacity={
+                          0.45
+                        }
+                        strokeWidth={
+                          2.5
+                        }
+                        connectNulls={
+                          false
+                        }
+                      />
+
+                      <Line
+                        type="monotone"
+                        dataKey="projected"
+                        name="projected"
+                        stroke="#2563eb"
+                        strokeWidth={
+                          2.5
+                        }
+                        strokeDasharray="6 4"
+                        dot={
+                          false
+                        }
+                        connectNulls={
+                          true
+                        }
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="forecast-empty">
+                    Sin datos suficientes.
+                  </div>
+                )}
+              </div>
+            </article>
+
+
+            <aside className="forecast-panel forecast-reading">
+              <header className="forecast-panel-header">
+                <div>
+                  <span>
+                    BASE DEL CÁLCULO
+                  </span>
+
+                  <h2>
+                    Calidad de los datos
+                  </h2>
+                </div>
+
+                <CircleAlert
+                  size={19}
+                />
+              </header>
+
+              <div className="forecast-reading-list">
+                <div>
+                  <span>
+                    Sucursal
+                  </span>
+
+                  <strong>
+                    {
+                      forecast
+                        .branch_name
+                    }
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Días observados
+                  </span>
+
+                  <strong>
+                    {
+                      forecast
+                        .observed_days
+                    }
+                  </strong>
+
+                  <small>
+                    {
+                      forecast
+                        .active_days
+                    }{" "}
+                    con ventas
+                  </small>
+                </div>
+
+                <div>
+                  <span>
+                    Ventas históricas
+                  </span>
+
+                  <strong>
+                    {
+                      forecast
+                        .historical_sales
+                    }
+                  </strong>
+
+                  <small>
+                    {formatCurrency(
+                      forecast
+                        .historical_revenue,
+                    )}
+                    {" "}
+                    registrados
+                  </small>
+                </div>
+
+                <div>
+                  <span>
+                    Promedio diario
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      forecast
+                        .average_daily_revenue,
+                    )}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Ticket promedio
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      forecast
+                        .average_ticket,
+                    )}
+                  </strong>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+
+          <details className="forecast-method">
+            <summary>
+              ¿Cómo se calcula este pronóstico?
+            </summary>
+
+            <div>
+              <p>
+                SalesIA analiza los ingresos diarios registrados en el periodo histórico seleccionado y calcula una tendencia estadística lineal. Esa tendencia se proyecta hacia los días futuros.
+              </p>
+
+              <p>
+                <strong>
+                  Modelo:
+                </strong>
+                {" "}
+                {
+                  forecast
+                    .model_name
+                }.
+              </p>
+
+              <p>
+                El rango esperado se calcula considerando la variación observada en los datos históricos. La confianza mostrada es un indicador orientativo basado en cantidad de información, actividad y estabilidad del historial.
+              </p>
+
+              <p className="forecast-warning">
+                El pronóstico es una estimación estadística y no garantiza ventas futuras.
+              </p>
+            </div>
+          </details>
+        </>
+      ) : null}
     </section>
   );
 }

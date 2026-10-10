@@ -137,19 +137,19 @@ const menuSections: MenuSection[] = [
     title: "INTELIGENCIA",
     items: [
       {
-        label: "Analytics",
+        label: "Análisis",
         path: "/analytics",
         icon: BarChart3,
         roles: ANALYTICS_ROLES,
       },
       {
-        label: "Probabilidad",
-        path: "/probability",
+        label: "Pronósticos",
+        path: "/forecasts",
         icon: Percent,
         roles: ANALYTICS_ROLES,
       },
       {
-        label: "Varianza",
+        label: "Estadísticas",
         path: "/statistics",
         icon: Sigma,
         roles: ANALYTICS_ROLES,
