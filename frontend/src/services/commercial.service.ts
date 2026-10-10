@@ -196,9 +196,18 @@ export function getInventory() {
 }
 
 
-export function getSales() {
+export function getSales(
+  branchId?: string,
+) {
+  const query =
+    branchId
+      ? `?branch_id=${encodeURIComponent(
+          branchId,
+        )}`
+      : "";
+
   return apiFetch<SaleListItem[]>(
-    "/sales",
+    `/sales${query}`,
   );
 }
 

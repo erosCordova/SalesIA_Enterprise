@@ -6,6 +6,7 @@ import {
 
 import {
   Ban,
+  Building2,
   Eye,
   Plus,
   ReceiptText,
@@ -32,6 +33,10 @@ import {
   getSaleDetail,
   getSales,
 } from "../../services/commercial.service";
+
+import {
+  getBranches,
+} from "../../services/organization.service";
 
 import {
   useApiResource,
@@ -159,6 +164,16 @@ function VentasPage() {
       getSales,
     );
 
+  const branchesResource =
+    useApiResource(
+      getBranches,
+    );
+
+  const [
+    branchFilter,
+    setBranchFilter,
+  ] = useState("");
+
   const [
     search,
     setSearch,
@@ -224,6 +239,9 @@ function VentasPage() {
   const sales =
     data ?? [];
 
+  const branches =
+    branchesResource.data ?? [];
+
 
   const canCreate =
     user?.role === "Administrador"
@@ -244,14 +262,28 @@ const filteredSales =
             .trim()
             .toLowerCase();
 
-        if (!query) {
-          return sales;
-        }
-
         return sales.filter(
-          (sale) =>
-            [
+          (sale) => {
+            const matchesBranch =
+              !branchFilter
+              || (
+                branchFilter === "__none__"
+                  ? !sale.branch_id
+                  : sale.branch_id ===
+                    branchFilter
+              );
+
+            if (!matchesBranch) {
+              return false;
+            }
+
+            if (!query) {
+              return true;
+            }
+
+            return [
               sale.sale_number,
+              sale.branch_name,
               sale.customer_name,
               sale.status,
               sale.total,
@@ -264,12 +296,14 @@ const filteredSales =
                   .includes(
                     query,
                   ),
-            ),
+            );
+          },
         );
       },
       [
         sales,
         search,
+        branchFilter,
       ],
     );
 
@@ -311,6 +345,10 @@ const filteredSales =
           formatDate(
             sale.sale_date,
           ),
+
+        Sucursal:
+          sale.branch_name
+          || "Sin sucursal",
 
         Cliente:
           sale.customer_name
@@ -559,6 +597,22 @@ const filteredSales =
       },
 
       {
+        key: "branch",
+        label: "Sucursal",
+
+        render: (sale) => (
+          <span className="table-detail">
+            <Building2
+              size={13}
+            />
+
+            {sale.branch_name
+              || "Sin sucursal"}
+          </span>
+        ),
+      },
+
+      {
         key: "customer",
         label: "Cliente",
 
@@ -652,9 +706,15 @@ const filteredSales =
           <button
             type="button"
             className="secondary-button"
-            disabled={loading}
+            disabled={
+              loading
+              || branchesResource.loading
+            }
             onClick={() =>
-              void reload()
+              void Promise.all([
+                reload(),
+                branchesResource.reload(),
+              ])
             }
           >
             <RefreshCw
@@ -716,7 +776,56 @@ const filteredSales =
 
 
       <article className="panel enterprise-data-panel">
-        <div data-export-hide="true">
+        <div
+          className="sale-list-controls"
+          data-export-hide="true"
+        >
+          <label className="sale-branch-filter">
+            <span>Sucursal</span>
+
+            <select
+              value={branchFilter}
+              disabled={
+                branchesResource.loading
+              }
+              onChange={(event) => {
+                setBranchFilter(
+                  event.target.value,
+                );
+
+                setPage(1);
+              }}
+            >
+              <option value="">
+                {
+                  branchesResource.loading
+                    ? "Cargando sucursales..."
+                    : "Todas las sucursales"
+                }
+              </option>
+
+              {branches.map(
+                (branch) => (
+                  <option
+                    key={branch.id}
+                    value={branch.id}
+                  >
+                    {branch.name}
+                  </option>
+                ),
+              )}
+
+              {sales.some(
+                (sale) =>
+                  !sale.branch_id,
+              ) && (
+                <option value="__none__">
+                  Sin sucursal (ventas anteriores)
+                </option>
+              )}
+            </select>
+          </label>
+
           <TableToolbar
             search={search}
           onSearchChange={(
@@ -855,6 +964,15 @@ const filteredSales =
 
                 <strong>
                   {selectedSale.customer_name}
+                </strong>
+              </div>
+
+              <div>
+                <span>Sucursal</span>
+
+                <strong>
+                  {selectedSale.branch_name
+                    || "Sin sucursal"}
                 </strong>
               </div>
 

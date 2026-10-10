@@ -206,6 +206,8 @@ export interface SaleItemCreate {
 
 export interface SaleCreate {
 
+  branch_id: string;
+
   customer_id?: string | null;
 
   items: SaleItemCreate[];
@@ -244,6 +246,10 @@ export interface SaleCreated {
 
   sale_number: string;
 
+  branch_id: string;
+
+  branch_name: string;
+
   customer_id: string | null;
 
   subtotal: DecimalValue;
@@ -267,6 +273,10 @@ export interface SaleListItem {
   id: string;
 
   sale_number: string;
+
+  branch_id: string | null;
+
+  branch_name: string;
 
   customer_id: string | null;
 

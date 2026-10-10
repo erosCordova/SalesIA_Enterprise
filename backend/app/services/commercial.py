@@ -310,6 +310,7 @@ def get_inventory(
 
 def get_sales(
     current_user: dict,
+    branch_id: UUID | None = None,
 ) -> list[SaleListItem]:
     created_by = None
 
@@ -317,16 +318,32 @@ def get_sales(
         created_by = current_user["id"]
 
     with engine.connect() as connection:
+        if branch_id is not None:
+            branch = repository.get_branch_for_sale(
+                connection,
+                current_user["company_id"],
+                branch_id,
+            )
+
+            if not branch:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="La sucursal seleccionada no existe.",
+                )
+
         rows = repository.list_sales(
             connection,
             current_user["company_id"],
             created_by=created_by,
+            branch_id=branch_id,
         )
 
     return [
         SaleListItem(
             id=row["id"],
             sale_number=row["sale_number"],
+            branch_id=row["branch_id"],
+            branch_name=row["branch_name"],
             customer_id=row["customer_id"],
             customer_name=row["customer_name"],
             sale_date=row[
@@ -363,6 +380,24 @@ def create_sale(
         )
 
     with engine.begin() as connection:
+        branch = repository.get_branch_for_sale(
+            connection,
+            company_id,
+            data.branch_id,
+        )
+
+        if not branch:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="La sucursal seleccionada no existe.",
+            )
+
+        if branch["status"] != "active":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="La sucursal seleccionada se encuentra inactiva.",
+            )
+
         if data.customer_id is not None:
             customer = repository.get_customer(
                 connection,
@@ -502,6 +537,7 @@ def create_sale(
         sale = repository.insert_sale(
             connection,
             company_id=company_id,
+            branch_id=data.branch_id,
             customer_id=data.customer_id,
             created_by=user_id,
             sale_number=sale_number,
@@ -588,6 +624,8 @@ def create_sale(
     return SaleCreatedResponse(
         id=sale["id"],
         sale_number=sale["sale_number"],
+        branch_id=data.branch_id,
+        branch_name=branch["name"],
         customer_id=data.customer_id,
         subtotal=subtotal,
         discount=sale_discount,
@@ -1042,6 +1080,8 @@ def get_sale_detail(
     return SaleViewResponse(
         id=sale["id"],
         sale_number=sale["sale_number"],
+        branch_id=sale["branch_id"],
+        branch_name=sale["branch_name"],
         customer_id=sale["customer_id"],
         customer_name=sale[
             "customer_name"

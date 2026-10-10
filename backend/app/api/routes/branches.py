@@ -32,6 +32,7 @@ def list_company_branches(
         require_roles(
             "Administrador",
             "Gerente",
+            "Vendedor",
         )
     ),
 ):

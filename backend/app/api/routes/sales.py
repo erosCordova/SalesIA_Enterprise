@@ -33,6 +33,7 @@ router = APIRouter()
     summary="Consultar ventas",
 )
 def list_sales(
+    branch_id: UUID | None = None,
     current_user: dict = Depends(
         require_roles(
             "Administrador",
@@ -42,7 +43,8 @@ def list_sales(
     ),
 ):
     return get_sales(
-        current_user
+        current_user,
+        branch_id=branch_id,
     )
 
 

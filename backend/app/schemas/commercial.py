@@ -397,6 +397,8 @@ class SaleItemCreate(BaseModel):
 
 
 class SaleCreateRequest(BaseModel):
+    branch_id: UUID
+
     customer_id: UUID | None = None
 
     items: list[SaleItemCreate] = Field(
@@ -442,6 +444,9 @@ class SaleCreatedResponse(BaseModel):
     id: UUID
     sale_number: str
 
+    branch_id: UUID
+    branch_name: str
+
     customer_id: UUID | None
 
     subtotal: Decimal
@@ -458,6 +463,9 @@ class SaleCreatedResponse(BaseModel):
 class SaleListItem(BaseModel):
     id: UUID
     sale_number: str
+
+    branch_id: UUID | None
+    branch_name: str
 
     customer_id: UUID | None
     customer_name: str
@@ -484,6 +492,9 @@ class SalePaymentResponse(BaseModel):
 class SaleViewResponse(BaseModel):
     id: UUID
     sale_number: str
+
+    branch_id: UUID | None
+    branch_name: str
 
     customer_id: UUID | None
     customer_name: str

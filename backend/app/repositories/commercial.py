@@ -586,10 +586,34 @@ def get_product_inventory_for_sale(
     ).mappings().first()
 
 
+def get_branch_for_sale(
+    connection: Connection,
+    company_id: UUID,
+    branch_id: UUID,
+):
+    return connection.execute(
+        text("""
+            SELECT
+                id,
+                name,
+                status
+            FROM branches
+            WHERE id = :branch_id
+              AND company_id = :company_id
+            LIMIT 1
+        """),
+        {
+            "branch_id": branch_id,
+            "company_id": company_id,
+        },
+    ).mappings().first()
+
+
 def insert_sale(
     connection: Connection,
     *,
     company_id: UUID,
+    branch_id: UUID,
     customer_id: UUID | None,
     created_by: UUID,
     sale_number: str,
@@ -604,6 +628,7 @@ def insert_sale(
         text("""
             INSERT INTO sales (
                 company_id,
+                branch_id,
                 customer_id,
                 created_by,
                 sale_number,
@@ -617,6 +642,7 @@ def insert_sale(
             )
             VALUES (
                 :company_id,
+                :branch_id,
                 :customer_id,
                 :created_by,
                 :sale_number,
@@ -630,10 +656,12 @@ def insert_sale(
             )
             RETURNING
                 id,
-                sale_number
+                sale_number,
+                branch_id
         """),
         {
             "company_id": company_id,
+            "branch_id": branch_id,
             "customer_id": customer_id,
             "created_by": created_by,
             "sale_number": sale_number,
@@ -796,6 +824,7 @@ def list_sales(
     connection: Connection,
     company_id: UUID,
     created_by: UUID | None = None,
+    branch_id: UUID | None = None,
 ):
     filters = """
         WHERE s.company_id = :company_id
@@ -812,14 +841,35 @@ def list_sales(
 
         params["created_by"] = created_by
 
+    if branch_id is not None:
+        filters += """
+            AND s.branch_id = :branch_id
+        """
+
+        params["branch_id"] = branch_id
+
     return connection.execute(
         text(f"""
             SELECT
                 s.id,
                 s.sale_number,
-                s.customer_id,
+                s.branch_id,
+
                 COALESCE(
-                    NULLIF(c.business_name, ''),
+                    NULLIF(
+                        b.name,
+                        ''
+                    ),
+                    'Sin sucursal'
+                ) AS branch_name,
+
+                s.customer_id,
+
+                COALESCE(
+                    NULLIF(
+                        c.business_name,
+                        ''
+                    ),
                     NULLIF(
                         CONCAT_WS(
                             ' ',
@@ -830,17 +880,28 @@ def list_sales(
                     ),
                     'Cliente no especificado'
                 ) AS customer_name,
+
                 s.sale_date,
                 s.subtotal,
                 s.discount,
                 s.tax,
                 s.total,
                 s.status
+
             FROM sales s
+
+            LEFT JOIN branches b
+                ON b.id = s.branch_id
+               AND b.company_id = s.company_id
+
             LEFT JOIN customers c
                 ON c.id = s.customer_id
+
             {filters}
-            ORDER BY s.sale_date DESC
+
+            ORDER BY
+                s.sale_date DESC
+
             LIMIT 200
         """),
         params,
@@ -1127,10 +1188,23 @@ def get_sale_detail_header(
             SELECT
                 s.id,
                 s.sale_number,
+                s.branch_id,
+
+                COALESCE(
+                    NULLIF(
+                        b.name,
+                        ''
+                    ),
+                    'Sin sucursal'
+                ) AS branch_name,
+
                 s.customer_id,
 
                 COALESCE(
-                    NULLIF(c.business_name, ''),
+                    NULLIF(
+                        c.business_name,
+                        ''
+                    ),
                     NULLIF(
                         CONCAT_WS(
                             ' ',
@@ -1163,6 +1237,10 @@ def get_sale_detail_header(
                 s.notes
 
             FROM sales s
+
+            LEFT JOIN branches b
+                ON b.id = s.branch_id
+               AND b.company_id = s.company_id
 
             LEFT JOIN customers c
                 ON c.id = s.customer_id

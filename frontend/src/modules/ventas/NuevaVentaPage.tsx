@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Boxes,
+  Building2,
   CheckCircle2,
   CreditCard,
   PackageSearch,
@@ -23,6 +24,10 @@ import {
   getCustomers,
   getProducts,
 } from "../../services/commercial.service";
+
+import {
+  getBranches,
+} from "../../services/organization.service";
 
 import { useApiResource } from "../../hooks/useApiResource";
 
@@ -81,6 +86,10 @@ function NuevaVentaPage() {
 
   const customersResource = useApiResource(getCustomers);
 
+  const branchesResource = useApiResource(getBranches);
+
+  const [branchId, setBranchId] = useState("");
+
   const [customerId, setCustomerId] = useState("");
 
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -110,6 +119,17 @@ function NuevaVentaPage() {
   const products = productsResource.data ?? [];
 
   const customers = customersResource.data ?? [];
+
+  const branches = branchesResource.data ?? [];
+
+  const activeBranches = useMemo(
+    () =>
+      branches.filter(
+        (branch) =>
+          branch.status === "active",
+      ),
+    [branches],
+  );
 
   const activeProducts = useMemo(
     () =>
@@ -156,9 +176,15 @@ function NuevaVentaPage() {
 
   const total = roundMoney(taxableAmount + tax);
 
-  const loading = productsResource.loading || customersResource.loading;
+  const loading =
+    productsResource.loading
+    || customersResource.loading
+    || branchesResource.loading;
 
-  const loadError = productsResource.error || customersResource.error;
+  const loadError =
+    productsResource.error
+    || customersResource.error
+    || branchesResource.error;
 
   function addProduct() {
     setError("");
@@ -281,6 +307,7 @@ function NuevaVentaPage() {
   }
 
   function resetSale() {
+    setBranchId("");
     setCustomerId("");
     setSelectedProductId("");
     setSelectedQuantity(1);
@@ -297,6 +324,14 @@ function NuevaVentaPage() {
   async function submitSale() {
     setError("");
     setCreatedSale(null);
+
+    if (!branchId) {
+      setError(
+        "Selecciona la sucursal donde se registra la venta.",
+      );
+
+      return;
+    }
 
     if (items.length === 0) {
       setError("Agrega al menos un producto a la venta.");
@@ -350,6 +385,8 @@ function NuevaVentaPage() {
 
     try {
       const response = await createSale({
+        branch_id: branchId,
+
         customer_id: customerId || null,
 
         items: items.map((item) => ({
@@ -414,6 +451,7 @@ function NuevaVentaPage() {
               void Promise.all([
                 productsResource.reload(),
                 customersResource.reload(),
+                branchesResource.reload(),
               ]);
             }}
           >
@@ -495,6 +533,63 @@ function NuevaVentaPage() {
       <div className="sale-builder-grid">
         <div>
           <article className="panel sale-panel">
+            <div className="sale-section-title">
+              <Building2 size={20} />
+
+              <div>
+                <h2>Sucursal</h2>
+
+                <p>
+                  Selecciona dónde se registra esta operación.
+                </p>
+              </div>
+            </div>
+
+            {activeBranches.length === 0 ? (
+              <ModuleState
+                type="empty"
+                title="No hay sucursales activas"
+                description="Activa o registra una sucursal antes de crear una venta."
+              />
+            ) : (
+              <label className="sale-field">
+                <span>Sucursal</span>
+
+                <select
+                  value={branchId}
+                  onChange={(event) =>
+                    setBranchId(
+                      event.target.value,
+                    )
+                  }
+                >
+                  <option value="">
+                    Seleccionar sucursal
+                  </option>
+
+                  {activeBranches.map(
+                    (branch) => (
+                      <option
+                        key={branch.id}
+                        value={branch.id}
+                      >
+                        {branch.name}
+                        {" — "}
+                        {branch.code}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+            )}
+          </article>
+
+          <article
+            className="panel sale-panel"
+            style={{
+              marginTop: 20,
+            }}
+          >
             <div className="sale-section-title">
               <UserRound size={20} />
 
@@ -865,7 +960,12 @@ function NuevaVentaPage() {
           <button
             type="button"
             className="primary-button sale-submit-button"
-            disabled={saving || items.length === 0 || saleDiscount > subtotal}
+            disabled={
+              saving
+              || !branchId
+              || items.length === 0
+              || saleDiscount > subtotal
+            }
             onClick={() => {
               void submitSale();
             }}
