@@ -4,7 +4,6 @@ import {
   Boxes,
   Eye,
   EyeOff,
-  FileText,
   LockKeyhole,
   LogIn,
   ShieldCheck,
@@ -506,32 +505,7 @@ export default function LoginPage() {
             </button>
 
 
-            <button
-              type="button"
-              disabled={
-                !manualMap.has(
-                  "technical",
-                )
-              }
-              title={
-                manualMap.has(
-                  "technical",
-                )
-                  ? "Abrir manual técnico"
-                  : "Manual todavía no publicado"
-              }
-              onClick={() =>
-                setSelectedManual(
-                  "technical",
-                )
-              }
-            >
-              <FileText
-                size={15}
-              />
 
-              Manual técnico
-            </button>
           </div>
 
 
