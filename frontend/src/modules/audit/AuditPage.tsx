@@ -1,20 +1,40 @@
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 
 import {
+  Activity,
   AlertTriangle,
+  Database,
   Eye,
   FileClock,
+  LogIn,
+  MapPin,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
 import ExportActions from "../../components/ui/ExportActions";
-import PeruBranchMap from "../../components/maps/PeruBranchMap";
+import PeruAuditMap from "../../components/maps/PeruAuditMap";
 import Modal from "../../components/ui/Modal";
 
 import {
@@ -24,10 +44,6 @@ import {
 import {
   getAuditLogs,
 } from "../../services/audit.service";
-
-import {
-  getBranches,
-} from "../../services/organization.service";
 
 import {
   createVisualPdfFile,
@@ -43,14 +59,10 @@ import type {
   AuditLogItem,
 } from "../../types/audit";
 
-import type {
-  Branch,
-} from "../../types/organization";
-
 import "./audit-commercial.css";
 
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 
 function normalize(
@@ -90,13 +102,483 @@ function formatDate(
   return new Intl.DateTimeFormat(
     "es-PE",
     {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  ).format(date);
+}
+
+
+function formatShortDate(
+  value: string,
+) {
+  const date =
+    new Date(
+      `${value}T00:00:00`,
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-PE",
+    {
+      day: "2-digit",
+      month: "short",
+    },
+  ).format(date);
+}
+
+
+function formatOnlyDate(
+  value: string,
+) {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-PE",
+    {
       dateStyle:
         "medium",
 
-      timeStyle:
-        "short",
+      timeZone:
+        "America/Lima",
     },
   ).format(date);
+}
+
+
+function formatOnlyTime(
+  value: string,
+) {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-PE",
+    {
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
+
+      second:
+        "2-digit",
+
+      timeZone:
+        "America/Lima",
+    },
+  ).format(date);
+}
+
+
+function auditDataText(
+  item: AuditLogItem,
+  key: string,
+) {
+  const contextValue =
+    item.new_data?.[
+      "_audit_context"
+    ];
+
+  const context =
+    (
+      contextValue
+      && typeof contextValue ===
+        "object"
+      && !Array.isArray(
+        contextValue
+      )
+    )
+      ? contextValue as
+          Record<string, unknown>
+      : null;
+
+  const directValue =
+    item.new_data?.[
+      key
+    ];
+
+  const value =
+    directValue
+    ?? context?.[
+      key
+    ];
+
+  if (
+    value === null
+    || value === undefined
+  ) {
+    return "";
+  }
+
+  if (
+    typeof value ===
+      "string"
+    || typeof value ===
+      "number"
+  ) {
+    return String(
+      value,
+    ).trim();
+  }
+
+  return "";
+}
+
+
+function auditLocation(
+  item: AuditLogItem,
+) {
+  const city =
+    auditDataText(
+      item,
+      "city",
+    );
+
+  const department =
+    auditDataText(
+      item,
+      "department",
+    );
+
+  const country =
+    auditDataText(
+      item,
+      "country",
+    );
+
+
+  const values =
+    [
+      city,
+      department,
+      country,
+    ].filter(
+      Boolean,
+    );
+
+
+  const unique =
+    values.filter(
+      (
+        value,
+        index,
+      ) =>
+        values.findIndex(
+          (
+            current,
+          ) =>
+            normalize(
+              current,
+            )
+            ===
+            normalize(
+              value,
+            ),
+        )
+        === index,
+    );
+
+
+  if (
+    unique.length > 0
+  ) {
+    return unique.join(
+      ", ",
+    );
+  }
+
+
+  return "No disponible";
+}
+
+
+
+function auditCoordinates(
+  item: AuditLogItem,
+) {
+  const rawLatitude = auditDataText(item, "lat").trim();
+  const rawLongitude = auditDataText(item, "lng").trim();
+
+  if (
+    !rawLatitude ||
+    !rawLongitude
+  ) {
+    return null;
+  }
+
+  const latitude = Number(rawLatitude);
+  const longitude = Number(rawLongitude);
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180 ||
+    (latitude === 0 && longitude === 0)
+  ) {
+    return null;
+  }
+
+  return {
+    latitude,
+    longitude,
+  };
+}
+
+
+function auditMapUrl(
+  item: AuditLogItem,
+) {
+  const coordinates =
+    auditCoordinates(
+      item,
+    );
+
+
+  if (!coordinates) {
+    return "";
+  }
+
+
+  const {
+    latitude,
+    longitude,
+  } = coordinates;
+
+
+  const delta =
+    0.012;
+
+
+  const left =
+    longitude - delta;
+
+  const bottom =
+    latitude - delta;
+
+  const right =
+    longitude + delta;
+
+  const top =
+    latitude + delta;
+
+
+  const bbox =
+    [
+      left,
+      bottom,
+      right,
+      top,
+    ].join(
+      ",",
+    );
+
+
+  return (
+    "https://www.openstreetmap.org/export/embed.html"
+    + `?bbox=${encodeURIComponent(
+        bbox,
+      )}`
+    + "&layer=mapnik"
+    + `&marker=${encodeURIComponent(
+        `${latitude},${longitude}`,
+      )}`
+  );
+}
+
+
+function auditDevice(
+  item: AuditLogItem,
+) {
+  const userAgent =
+    item.user_agent
+    ?? "";
+
+  if (!userAgent) {
+    return "No disponible";
+  }
+
+
+  const normalized =
+    userAgent.toLowerCase();
+
+
+  let device =
+    "Computadora";
+
+
+  if (
+    normalized.includes(
+      "iphone",
+    )
+  ) {
+    device =
+      "iPhone";
+  } else if (
+    normalized.includes(
+      "ipad",
+    )
+  ) {
+    device =
+      "iPad";
+  } else if (
+    normalized.includes(
+      "android",
+    )
+  ) {
+    device =
+      normalized.includes(
+        "mobile",
+      )
+        ? "Android"
+        : "Tablet Android";
+  } else if (
+    normalized.includes(
+      "windows",
+    )
+  ) {
+    device =
+      "PC Windows";
+  } else if (
+    normalized.includes(
+      "macintosh",
+    )
+    || normalized.includes(
+      "mac os",
+    )
+  ) {
+    device =
+      "Mac";
+  } else if (
+    normalized.includes(
+      "linux",
+    )
+  ) {
+    device =
+      "PC Linux";
+  }
+
+
+  let browser =
+    "Navegador";
+
+
+  if (
+    normalized.includes(
+      "edg/",
+    )
+    || normalized.includes(
+      "edge/",
+    )
+  ) {
+    browser =
+      "Microsoft Edge";
+  } else if (
+    normalized.includes(
+      "opr/",
+    )
+    || normalized.includes(
+      "opera",
+    )
+  ) {
+    browser =
+      "Opera";
+  } else if (
+    normalized.includes(
+      "firefox/",
+    )
+  ) {
+    browser =
+      "Firefox";
+  } else if (
+    normalized.includes(
+      "chrome/",
+    )
+    || normalized.includes(
+      "crios/",
+    )
+  ) {
+    browser =
+      "Chrome";
+  } else if (
+    normalized.includes(
+      "safari/",
+    )
+  ) {
+    browser =
+      "Safari";
+  }
+
+
+  return `${device} · ${browser}`;
+}
+
+
+
+function localDateKey(
+  value: string,
+) {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value.slice(
+      0,
+      10,
+    );
+  }
+
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1,
+    ).padStart(
+      2,
+      "0",
+    );
+
+  const day =
+    String(
+      date.getDate(),
+    ).padStart(
+      2,
+      "0",
+    );
+
+  return `${year}-${month}-${day}`;
 }
 
 
@@ -186,31 +668,31 @@ function translateAction(
 
       "company.updated":
         "Empresa actualizada",
+
+      "product.image_updated":
+        "Imagen de producto actualizada",
+
+      "inventory.adjustment":
+        "Ajuste de inventario",
     };
 
-  if (
+  return (
     translations[
       normalized
     ]
-  ) {
-    return translations[
-      normalized
-    ];
-  }
-
-  return value
-    .replace(
-      /[._-]+/g,
-      " ",
-    )
-    .replace(
-      /\b\w/g,
-      (
-        letter,
-      ) =>
-        letter
-          .toUpperCase(),
-    );
+    ?? value
+      .replace(
+        /[._-]+/g,
+        " ",
+      )
+      .replace(
+        /\b\w/g,
+        (
+          letter,
+        ) =>
+          letter.toUpperCase(),
+      )
+  );
 }
 
 
@@ -222,9 +704,6 @@ function translateEntity(
   if (!value) {
     return "Sistema";
   }
-
-  const normalized =
-    normalize(value);
 
   const translations:
     Record<string, string> = {
@@ -280,6 +759,9 @@ function translateEntity(
         "Variables aleatorias",
     };
 
+  const normalized =
+    normalize(value);
+
   return (
     translations[
       normalized
@@ -294,8 +776,7 @@ function translateEntity(
         (
           letter,
         ) =>
-          letter
-            .toUpperCase(),
+          letter.toUpperCase(),
       )
   );
 }
@@ -359,6 +840,9 @@ function formatDataKey(
 
       customer_id:
         "Cliente",
+
+      branch_id:
+        "Sucursal",
     };
 
   return (
@@ -375,8 +859,7 @@ function formatDataKey(
         (
           letter,
         ) =>
-          letter
-            .toUpperCase(),
+          letter.toUpperCase(),
       )
   );
 }
@@ -394,7 +877,7 @@ function formatDataValue(
 
   if (
     typeof value ===
-      "boolean"
+    "boolean"
   ) {
     return value
       ? "Sí"
@@ -403,7 +886,7 @@ function formatDataValue(
 
   if (
     typeof value ===
-      "number"
+    "number"
   ) {
     return new Intl.NumberFormat(
       "es-PE",
@@ -416,7 +899,7 @@ function formatDataValue(
 
   if (
     typeof value ===
-      "object"
+    "object"
   ) {
     try {
       return JSON.stringify(
@@ -431,9 +914,6 @@ function formatDataValue(
 
   const text =
     String(value);
-
-  const normalized =
-    normalize(text);
 
   const translations:
     Record<string, string> = {
@@ -458,7 +938,7 @@ function formatDataValue(
 
   return (
     translations[
-      normalized
+      normalize(text)
     ]
     ?? text
   );
@@ -484,9 +964,66 @@ function dataToText(
           value,
         ],
       ) =>
-        `${formatDataKey(key)}: ${formatDataValue(value)}`,
+        `${formatDataKey(
+          key,
+        )}: ${formatDataValue(
+          value,
+        )}`,
     )
     .join("; ");
+}
+
+
+function actionLevel(
+  action: string,
+) {
+  const value =
+    normalize(action);
+
+  if (
+    value.includes(
+      "cancel",
+    )
+    || value.includes(
+      "delete",
+    )
+    || value.includes(
+      "deactiv",
+    )
+  ) {
+    return {
+      label:
+        "Alta",
+
+      className:
+        "high",
+    };
+  }
+
+  if (
+    value.includes(
+      "updated",
+    )
+    || value.includes(
+      "exit",
+    )
+  ) {
+    return {
+      label:
+        "Media",
+
+      className:
+        "medium",
+    };
+  }
+
+  return {
+    label:
+      "Informativa",
+
+    className:
+      "info",
+  };
 }
 
 
@@ -544,6 +1081,7 @@ function AuditPage() {
 
   const {
     data,
+    setData,
     loading,
     error,
     reload,
@@ -552,23 +1090,6 @@ function AuditPage() {
       AuditLogItem[]
     >(
       getAuditLogs,
-    );
-
-
-  const {
-    data:
-      branchData,
-    loading:
-      branchesLoading,
-    error:
-      branchesError,
-    reload:
-      reloadBranches,
-  } =
-    useApiResource<
-      Branch[]
-    >(
-      getBranches,
     );
 
 
@@ -623,12 +1144,110 @@ function AuditPage() {
     useState("");
 
 
+  const [
+    lastSyncAt,
+    setLastSyncAt,
+  ] =
+    useState<Date | null>(
+      null,
+    );
+
+
+  const [
+    liveSyncError,
+    setLiveSyncError,
+  ] =
+    useState("");
+
+
   const logs =
     data ?? [];
 
 
-  const branches =
-    branchData ?? [];
+  useEffect(
+    () => {
+      let mounted =
+        true;
+
+
+      async function syncAudit() {
+        try {
+          const freshLogs =
+            await getAuditLogs();
+
+          if (!mounted) {
+            return;
+          }
+
+          setData(
+            freshLogs,
+          );
+
+          setLastSyncAt(
+            new Date(),
+          );
+
+          setLiveSyncError(
+            "",
+          );
+        } catch {
+          if (!mounted) {
+            return;
+          }
+
+          setLiveSyncError(
+            "No se pudo actualizar en tiempo real.",
+          );
+        }
+      }
+
+
+      const intervalId =
+        window.setInterval(
+          () => {
+            void syncAudit();
+          },
+          5000,
+        );
+
+
+      function handleVisibility() {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          void syncAudit();
+        }
+      }
+
+
+      document.addEventListener(
+        "visibilitychange",
+        handleVisibility,
+      );
+
+
+      void syncAudit();
+
+
+      return () => {
+        mounted =
+          false;
+
+        window.clearInterval(
+          intervalId,
+        );
+
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibility,
+        );
+      };
+    },
+    [
+      setData,
+    ],
+  );
 
 
   const actionOptions =
@@ -782,14 +1401,11 @@ function AuditPage() {
                 createdAt.getTime(),
               )
             ) {
-              const start =
+              matchesFrom =
+                createdAt >=
                 new Date(
                   `${dateFrom}T00:00:00`,
                 );
-
-              matchesFrom =
-                createdAt >=
-                start;
             }
 
 
@@ -799,14 +1415,11 @@ function AuditPage() {
                 createdAt.getTime(),
               )
             ) {
-              const end =
+              matchesTo =
+                createdAt <=
                 new Date(
                   `${dateTo}T23:59:59.999`,
                 );
-
-              matchesTo =
-                createdAt <=
-                end;
             }
 
 
@@ -827,6 +1440,329 @@ function AuditPage() {
         entityFilter,
         dateFrom,
         dateTo,
+      ],
+    );
+
+
+  const summary =
+    useMemo(
+      () => {
+        const users =
+          new Set(
+            filteredLogs
+              .map(
+                (
+                  item,
+                ) =>
+                  item.user_name,
+              )
+              .filter(Boolean),
+          );
+
+
+        const logins =
+          filteredLogs.filter(
+            (
+              item,
+            ) =>
+              normalize(
+                item.action,
+              ) ===
+                "user.login",
+          ).length;
+
+
+        const sensitive =
+          filteredLogs.filter(
+            (
+              item,
+            ) =>
+              actionLevel(
+                item.action,
+              ).className ===
+                "high",
+          ).length;
+
+
+        const latest =
+          filteredLogs.reduce<
+            AuditLogItem | null
+          >(
+            (
+              current,
+              item,
+            ) => {
+              if (!current) {
+                return item;
+              }
+
+              return (
+                new Date(
+                  item.created_at,
+                ).getTime()
+                >
+                new Date(
+                  current.created_at,
+                ).getTime()
+              )
+                ? item
+                : current;
+            },
+            null,
+          );
+
+
+        return {
+          users:
+            users.size,
+
+          logins,
+          sensitive,
+          latest,
+        };
+      },
+      [
+        filteredLogs,
+      ],
+    );
+
+
+  const activityData =
+    useMemo(
+      () => {
+        const days =
+          new Map<
+            string,
+            {
+              events: number;
+              sensitive: number;
+            }
+          >();
+
+
+        filteredLogs.forEach(
+          (
+            item,
+          ) => {
+            const key =
+              localDateKey(
+                item.created_at,
+              );
+
+            const current =
+              days.get(
+                key,
+              )
+              ?? {
+                events: 0,
+                sensitive: 0,
+              };
+
+            current.events += 1;
+
+            if (
+              actionLevel(
+                item.action,
+              ).className ===
+              "high"
+            ) {
+              current.sensitive +=
+                1;
+            }
+
+            days.set(
+              key,
+              current,
+            );
+          },
+        );
+
+
+        return Array.from(
+          days.entries(),
+        )
+          .sort(
+            (
+              left,
+              right,
+            ) =>
+              left[0]
+                .localeCompare(
+                  right[0],
+                ),
+          )
+          .slice(-14)
+          .map(
+            (
+              [
+                date,
+                values,
+              ],
+            ) => ({
+              date:
+                formatShortDate(
+                  date,
+                ),
+
+              events:
+                values.events,
+
+              sensitive:
+                values.sensitive,
+            }),
+          );
+      },
+      [
+        filteredLogs,
+      ],
+    );
+
+
+  const moduleData =
+    useMemo(
+      () => {
+        const modules =
+          new Map<
+            string,
+            number
+          >();
+
+
+        filteredLogs.forEach(
+          (
+            item,
+          ) => {
+            const label =
+              translateEntity(
+                item.table_name,
+              );
+
+            modules.set(
+              label,
+              (
+                modules.get(
+                  label,
+                )
+                ?? 0
+              ) + 1,
+            );
+          },
+        );
+
+
+        return Array.from(
+          modules.entries(),
+        )
+          .map(
+            (
+              [
+                module,
+                events,
+              ],
+            ) => ({
+              module,
+              events,
+            }),
+          )
+          .sort(
+            (
+              left,
+              right,
+            ) =>
+              right.events
+              - left.events,
+          )
+          .slice(
+            0,
+            7,
+          );
+      },
+      [
+        filteredLogs,
+      ],
+    );
+
+
+  const topActions =
+    useMemo(
+      () => {
+        const actions =
+          new Map<
+            string,
+            number
+          >();
+
+
+        filteredLogs.forEach(
+          (
+            item,
+          ) => {
+            actions.set(
+              item.action,
+              (
+                actions.get(
+                  item.action,
+                )
+                ?? 0
+              ) + 1,
+            );
+          },
+        );
+
+
+        return Array.from(
+          actions.entries(),
+        )
+          .map(
+            (
+              [
+                action,
+                total,
+              ],
+            ) => ({
+              action,
+              total,
+            }),
+          )
+          .sort(
+            (
+              left,
+              right,
+            ) =>
+              right.total
+              - left.total,
+          )
+          .slice(
+            0,
+            5,
+          );
+      },
+      [
+        filteredLogs,
+      ],
+    );
+
+
+  const latestLocatedLogin =
+    useMemo(
+      () =>
+        filteredLogs.find(
+          (
+            item,
+          ) =>
+            normalize(
+              item.action,
+            ) ===
+              "user.login"
+            && Boolean(
+              auditCoordinates(
+                item,
+              ),
+            ),
+        )
+        ?? null,
+      [
+        filteredLogs,
       ],
     );
 
@@ -865,6 +1801,20 @@ function AuditPage() {
   }
 
 
+  function clearFilters() {
+    setSearch("");
+    setActionFilter(
+      "all",
+    );
+    setEntityFilter(
+      "all",
+    );
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  }
+
+
   function exportRows():
     ExportRow[] {
     return filteredLogs.map(
@@ -872,34 +1822,51 @@ function AuditPage() {
         item,
       ) => ({
         Fecha:
-          formatDate(
+          formatOnlyDate(
+            item.created_at,
+          ),
+
+        Hora:
+          formatOnlyTime(
             item.created_at,
           ),
 
         Usuario:
-          item.user_name,
+          item.user_name
+          || "Sistema",
 
         Rol:
           item.user_role
-          ?? "—",
+          ?? "Sistema",
 
         Acción:
           translateAction(
             item.action,
           ),
 
-        Área:
+        Módulo:
           translateEntity(
             item.table_name,
           ),
+
+        "Nivel de atención":
+          actionLevel(
+            item.action,
+          ).label,
 
         "ID del registro":
           item.record_id
           ?? "",
 
-        IP:
-          item.ip_address
-          ?? "",
+        Dirección:
+          auditLocation(
+            item,
+          ),
+
+        Dispositivo:
+          auditDevice(
+            item,
+          ),
 
         "Datos anteriores":
           dataToText(
@@ -1033,7 +2000,7 @@ function AuditPage() {
       await shareFile(
         file,
         "Auditoría - SalesIA Enterprise",
-        "Registros de auditoría de SalesIA Enterprise.",
+        "Registro de actividad y trazabilidad de SalesIA Enterprise.",
       );
     } catch (
       currentError
@@ -1051,10 +2018,11 @@ function AuditPage() {
   async function handleReload() {
     setExportError("");
 
-    await Promise.all([
-      reload(),
-      reloadBranches(),
-    ]);
+    await reload();
+
+    setLastSyncAt(
+      new Date(),
+    );
   }
 
 
@@ -1062,6 +2030,11 @@ function AuditPage() {
     selected?.old_data
       ? Object.entries(
           selected.old_data,
+        ).filter(
+          ([key]) =>
+            !key.startsWith(
+              "_audit_"
+            ),
         )
       : [];
 
@@ -1070,6 +2043,11 @@ function AuditPage() {
     selected?.new_data
       ? Object.entries(
           selected.new_data,
+        ).filter(
+          ([key]) =>
+            !key.startsWith(
+              "_audit_"
+            ),
         )
       : [];
 
@@ -1087,7 +2065,7 @@ function AuditPage() {
                 size={14}
               />
 
-              Control y trazabilidad
+              CONTROL Y TRAZABILIDAD
             </div>
 
             <h1>
@@ -1095,9 +2073,9 @@ function AuditPage() {
             </h1>
 
             <p>
-              Consulta la actividad registrada
-              y los cambios realizados dentro
-              del sistema.
+              Supervisa accesos, operaciones
+              y cambios realizados dentro
+              de SalesIA Enterprise.
             </p>
           </div>
 
@@ -1156,17 +2134,535 @@ function AuditPage() {
         )}
 
 
-        <PeruBranchMap
-          branches={
-            branches
-          }
-          loading={
-            branchesLoading
-          }
-          error={
-            branchesError
-          }
-        />
+        {!loading
+        && !error
+        && (
+          <section className="audit-kpi-grid">
+            <article>
+              <div className="audit-kpi-icon">
+                <Activity
+                  size={17}
+                />
+              </div>
+
+              <div>
+                <span>
+                  Eventos registrados
+                </span>
+
+                <strong>
+                  {filteredLogs.length}
+                </strong>
+
+                <small>
+                  de {logs.length} disponibles
+                </small>
+              </div>
+            </article>
+
+
+            <article>
+              <div className="audit-kpi-icon">
+                <Users
+                  size={17}
+                />
+              </div>
+
+              <div>
+                <span>
+                  Usuarios activos
+                </span>
+
+                <strong>
+                  {summary.users}
+                </strong>
+
+                <small>
+                  usuarios con actividad
+                </small>
+              </div>
+            </article>
+
+
+            <article>
+              <div className="audit-kpi-icon">
+                <LogIn
+                  size={17}
+                />
+              </div>
+
+              <div>
+                <span>
+                  Inicios de sesión
+                </span>
+
+                <strong>
+                  {summary.logins}
+                </strong>
+
+                <small>
+                  accesos registrados
+                </small>
+              </div>
+            </article>
+
+
+            <article>
+              <div className="audit-kpi-icon warning">
+                <AlertTriangle
+                  size={17}
+                />
+              </div>
+
+              <div>
+                <span>
+                  Eventos sensibles
+                </span>
+
+                <strong>
+                  {summary.sensitive}
+                </strong>
+
+                <small>
+                  anulaciones o desactivaciones
+                </small>
+              </div>
+            </article>
+          </section>
+        )}
+
+
+        {!loading
+        && !error
+        && filteredLogs.length > 0
+        && (
+          <section className="audit-dashboard-grid">
+            <article className="audit-chart-panel audit-activity-panel">
+              <header className="audit-card-heading">
+                <div>
+                  <span>
+                    ACTIVIDAD
+                  </span>
+
+                  <h2>
+                    Eventos por día
+                  </h2>
+
+                  <p>
+                    Comportamiento de los últimos
+                    días dentro del periodo filtrado.
+                  </p>
+                </div>
+
+                <Activity
+                  size={18}
+                />
+              </header>
+
+              <div className="audit-chart">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
+                  <AreaChart
+                    data={
+                      activityData
+                    }
+                    margin={{
+                      top: 10,
+                      right: 16,
+                      left: -20,
+                      bottom: 0,
+                    }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="auditEvents"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#0ea5b7"
+                          stopOpacity={0.26}
+                        />
+
+                        <stop
+                          offset="95%"
+                          stopColor="#0ea5b7"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+
+                    <CartesianGrid
+                      vertical={
+                        false
+                      }
+                      stroke="#edf2f5"
+                      strokeDasharray="3 3"
+                    />
+
+                    <XAxis
+                      dataKey="date"
+                      tickLine={
+                        false
+                      }
+                      axisLine={
+                        false
+                      }
+                      fontSize={9}
+                    />
+
+                    <YAxis
+                      allowDecimals={
+                        false
+                      }
+                      tickLine={
+                        false
+                      }
+                      axisLine={
+                        false
+                      }
+                      fontSize={9}
+                    />
+
+                    <Tooltip />
+
+                    <Legend />
+
+                    <Area
+                      type="monotone"
+                      dataKey="events"
+                      name="Eventos"
+                      stroke="#0ea5b7"
+                      strokeWidth={2}
+                      fill="url(#auditEvents)"
+                    />
+
+                    <Area
+                      type="monotone"
+                      dataKey="sensitive"
+                      name="Sensibles"
+                      stroke="#dc2626"
+                      strokeWidth={2}
+                      fillOpacity={0}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </article>
+
+
+            <article className="audit-chart-panel">
+              <header className="audit-card-heading">
+                <div>
+                  <span>
+                    MÓDULOS
+                  </span>
+
+                  <h2>
+                    Actividad por módulo
+                  </h2>
+
+                  <p>
+                    Áreas con mayor cantidad
+                    de eventos registrados.
+                  </p>
+                </div>
+
+                <Database
+                  size={18}
+                />
+              </header>
+
+              <div className="audit-chart">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
+                  <BarChart
+                    data={
+                      moduleData
+                    }
+                    layout="vertical"
+                    margin={{
+                      top: 8,
+                      right: 20,
+                      left: 20,
+                      bottom: 0,
+                    }}
+                  >
+                    <CartesianGrid
+                      horizontal={
+                        false
+                      }
+                      stroke="#edf2f5"
+                      strokeDasharray="3 3"
+                    />
+
+                    <XAxis
+                      type="number"
+                      allowDecimals={
+                        false
+                      }
+                      tickLine={
+                        false
+                      }
+                      axisLine={
+                        false
+                      }
+                      fontSize={9}
+                    />
+
+                    <YAxis
+                      type="category"
+                      dataKey="module"
+                      width={82}
+                      tickLine={
+                        false
+                      }
+                      axisLine={
+                        false
+                      }
+                      fontSize={9}
+                    />
+
+                    <Tooltip />
+
+                    <Bar
+                      dataKey="events"
+                      name="Eventos"
+                      fill="#2563eb"
+                      radius={[
+                        0,
+                        5,
+                        5,
+                        0,
+                      ]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </article>
+
+
+            <aside className="audit-summary-panel">
+              <header className="audit-card-heading">
+                <div>
+                  <span>
+                    RESUMEN
+                  </span>
+
+                  <h2>
+                    Acciones frecuentes
+                  </h2>
+                </div>
+
+                <FileClock
+                  size={18}
+                />
+              </header>
+
+
+              <div className="audit-action-ranking">
+                {topActions.map(
+                  (
+                    item,
+                    index,
+                  ) => (
+                    <div
+                      key={
+                        item.action
+                      }
+                    >
+                      <span className="audit-rank">
+                        {index + 1}
+                      </span>
+
+                      <div>
+                        <strong>
+                          {translateAction(
+                            item.action,
+                          )}
+                        </strong>
+
+                        <small>
+                          {item.total}
+                          {" "}
+                          evento
+                          {item.total ===
+                          1
+                            ? ""
+                            : "s"}
+                        </small>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+
+
+              <div className="audit-latest">
+                <span>
+                  ÚLTIMA ACTIVIDAD
+                </span>
+
+                <strong>
+                  {summary.latest
+                    ? translateAction(
+                        summary.latest.action,
+                      )
+                    : "Sin actividad"}
+                </strong>
+
+                <small>
+                  {summary.latest
+                    ? formatDate(
+                        summary.latest.created_at,
+                      )
+                    : "—"}
+                </small>
+              </div>
+            </aside>
+          </section>
+        )}
+
+
+        <section className="audit-location-map-panel">
+
+
+
+          {true ? (
+            <div className="audit-map-layout">
+              <div className="audit-map-frame">
+                <PeruAuditMap
+  branches={filteredLogs
+    .filter(
+      (item) => auditDataText(item, "location_source") === "ip" && Boolean(item.new_data?._audit_context)
+    )
+    .flatMap((item) => {
+      const point = auditCoordinates(item);
+
+      if (!point) return [];
+
+      // Mostrar únicamente coordenadas dentro
+      // del entorno geográfico del Perú.
+      if (
+        point.latitude < -19 ||
+        point.latitude > 1.5 ||
+        point.longitude < -82 ||
+        point.longitude > -68
+      ) {
+        return [];
+      }
+
+      return [{
+        id: item.id,
+        company_id: item.company_id ?? "",
+        code: item.action,
+        name: item.user_name || "Usuario",
+        address: item.user_agent,
+        city: auditDataText(item, "city") || null,
+        department: auditDataText(item, "department") || null,
+        province: null,
+        district: null,
+        latitude: point.latitude,
+        longitude: point.longitude,
+        country: auditDataText(item, "country") || null,
+        phone: null,
+        email: null,
+        status: "active",
+        created_at: item.created_at,
+        updated_at: item.created_at,
+      }];
+    })}
+/>
+              </div>
+
+              {latestLocatedLogin && <aside className="audit-map-info">
+                <span>
+                  ÚLTIMA CONEXIÓN
+                </span>
+
+                <strong>
+                  {latestLocatedLogin?.user_name
+                    || "Sistema"}
+                </strong>
+
+                <p>
+                  {auditLocation(
+                    latestLocatedLogin,
+                  )}
+                </p>
+
+                <dl>
+                  <div>
+                    <dt>
+                      Fecha
+                    </dt>
+
+                    <dd>
+                      {formatOnlyDate(
+                        latestLocatedLogin.created_at,
+                      )}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>
+                      Hora
+                    </dt>
+
+                    <dd>
+                      {formatOnlyTime(
+                        latestLocatedLogin.created_at,
+                      )}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>
+                      Dispositivo
+                    </dt>
+
+                    <dd>
+                      {auditDevice(
+                        latestLocatedLogin,
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+
+                <small>
+                  La ubicación mostrada es
+                  aproximada y corresponde
+                  únicamente a los datos
+                  registrados por el evento.
+                </small>
+              </aside>}
+            </div>
+          ) : (
+            <div className="audit-map-empty">
+              <MapPin
+                size={24}
+              />
+
+              <strong>
+                Ubicación no disponible
+              </strong>
+
+              <p>
+                Los eventos actuales no contienen
+                coordenadas válidas. En localhost
+                esto puede ocurrir porque el servidor
+                no recibe una IP pública geolocalizable.
+              </p>
+            </div>
+          )}
+        </section>
 
 
         <section className="audit-panel">
@@ -1193,7 +2689,7 @@ function AuditPage() {
 
                   resetPage();
                 }}
-                placeholder="Buscar usuario, acción, área o registro..."
+                placeholder="Buscar usuario, acción, módulo, IP o registro..."
               />
             </div>
 
@@ -1252,7 +2748,7 @@ function AuditPage() {
               }}
             >
               <option value="all">
-                Todas las áreas
+                Todos los módulos
               </option>
 
               {entityOptions.map(
@@ -1310,6 +2806,21 @@ function AuditPage() {
               }}
               aria-label="Fecha final"
             />
+
+
+            <button
+              type="button"
+              className="audit-clear-button"
+              onClick={
+                clearFilters
+              }
+            >
+              <RotateCcw
+                size={14}
+              />
+
+              Limpiar
+            </button>
           </div>
 
 
@@ -1327,11 +2838,62 @@ function AuditPage() {
                 <span>
                   {filteredLogs.length}
                   {" "}
-                  registro
+                  evento
                   {filteredLogs.length ===
                   1
                     ? ""
                     : "s"}
+                  {" "}
+                  encontrados
+                </span>
+              </div>
+            </div>
+
+            <div
+              className={
+                liveSyncError
+                  ? "audit-live-status error"
+                  : "audit-live-status"
+              }
+              title={
+                liveSyncError
+                  || "La auditoría consulta nuevos eventos cada 5 segundos."
+              }
+            >
+              <i />
+
+              <div>
+                <strong>
+                  {liveSyncError
+                    ? "Sin conexión"
+                    : "En vivo"}
+                </strong>
+
+                <span>
+                  {liveSyncError
+                    ? liveSyncError
+                    : (
+                      lastSyncAt
+                        ? `Actualizado ${new Intl.DateTimeFormat(
+                            "es-PE",
+                            {
+                              hour:
+                                "2-digit",
+
+                              minute:
+                                "2-digit",
+
+                              second:
+                                "2-digit",
+
+                              timeZone:
+                                "America/Lima",
+                            },
+                          ).format(
+                            lastSyncAt,
+                          )}`
+                        : "Sincronizando..."
+                    )}
                 </span>
               </div>
             </div>
@@ -1345,6 +2907,10 @@ function AuditPage() {
               <strong>
                 Cargando auditoría
               </strong>
+
+              <p>
+                Consultando registros del sistema.
+              </p>
             </div>
           ) : error ? (
             <div
@@ -1375,9 +2941,8 @@ function AuditPage() {
               </strong>
 
               <p>
-                No existen registros que
-                coincidan con los filtros
-                seleccionados.
+                No existen eventos que
+                coincidan con los filtros.
               </p>
             </div>
           ) : (
@@ -1391,6 +2956,10 @@ function AuditPage() {
                       </th>
 
                       <th>
+                        Hora
+                      </th>
+
+                      <th>
                         Usuario
                       </th>
 
@@ -1399,11 +2968,19 @@ function AuditPage() {
                       </th>
 
                       <th>
-                        Área
+                        Módulo
                       </th>
 
                       <th>
-                        IP
+                        Atención
+                      </th>
+
+                      <th>
+                        Dirección / ubicación
+                      </th>
+
+                      <th>
+                        Dispositivo
                       </th>
 
                       <th
@@ -1418,81 +2995,125 @@ function AuditPage() {
                     {paginatedLogs.map(
                       (
                         item,
-                      ) => (
-                        <tr
-                          key={
-                            item.id
-                          }
-                        >
-                          <td>
-                            <span className="audit-date">
-                              {formatDate(
-                                item.created_at,
-                              )}
-                            </span>
-                          </td>
+                      ) => {
+                        const level =
+                          actionLevel(
+                            item.action,
+                          );
 
-                          <td>
-                            <div className="audit-user">
-                              <strong>
-                                {item.user_name}
-                              </strong>
-
-                              <span>
-                                {item.user_role
-                                  ?? "Sistema"}
-                              </span>
-                            </div>
-                          </td>
-
-                          <td>
-                            <span
-                              className={
-                                actionClass(
-                                  item.action,
-                                )
-                              }
-                            >
-                              {translateAction(
-                                item.action,
-                              )}
-                            </span>
-                          </td>
-
-                          <td>
-                            {translateEntity(
-                              item.table_name,
-                            )}
-                          </td>
-
-                          <td>
-                            <span className="audit-ip">
-                              {item.ip_address
-                                ?? "—"}
-                            </span>
-                          </td>
-
-                          <td
-                            data-export-hide="true"
+                        return (
+                          <tr
+                            key={
+                              item.id
+                            }
                           >
-                            <button
-                              type="button"
-                              className="audit-detail-button"
-                              onClick={() =>
-                                setSelected(
-                                  item,
-                                )
-                              }
-                            >
-                              <Eye
-                                size={14}
-                              />
+                            <td>
+                              <span className="audit-date">
+                                {formatOnlyDate(
+                                  item.created_at,
+                                )}
+                              </span>
+                            </td>
 
-                              Ver
-                            </button>
-                          </td>
-                        </tr>
-                      ),
+                            <td>
+                              <span className="audit-time">
+                                {formatOnlyTime(
+                                  item.created_at,
+                                )}
+                              </span>
+                            </td>
+
+                            <td>
+                              <div className="audit-user">
+                                <strong>
+                                  {item.user_name
+                                    || "Sistema"}
+                                </strong>
+
+                                <span>
+                                  {item.user_role
+                                    ?? "Sistema"}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td>
+                              <span
+                                className={
+                                  actionClass(
+                                    item.action,
+                                  )
+                                }
+                              >
+                                {translateAction(
+                                  item.action,
+                                )}
+                              </span>
+                            </td>
+
+                            <td>
+                              {translateEntity(
+                                item.table_name,
+                              )}
+                            </td>
+
+                            <td>
+                              <span
+                                className={
+                                  `audit-level ${level.className}`
+                                }
+                              >
+                                {level.label}
+                              </span>
+                            </td>
+
+                            <td>
+                              <div className="audit-location">
+                                <strong>
+                                  {auditLocation(
+                                    item,
+                                  )}
+                                </strong>
+
+                                {item.action ===
+                                  "user.login" && (
+                                  <span>
+                                    Ubicación aproximada
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td>
+                              <span className="audit-device">
+                                {auditDevice(
+                                  item,
+                                )}
+                              </span>
+                            </td>
+
+                            <td
+                              data-export-hide="true"
+                            >
+                              <button
+                                type="button"
+                                className="audit-detail-button"
+                                onClick={() =>
+                                  setSelected(
+                                    item,
+                                  )
+                                }
+                              >
+                                <Eye
+                                  size={14}
+                                />
+
+                                Ver
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      },
                     )}
                   </tbody>
                 </table>
@@ -1503,57 +3124,77 @@ function AuditPage() {
                 className="audit-pagination"
                 data-export-hide="true"
               >
-                <button
-                  type="button"
-                  disabled={
-                    currentPage <=
-                    1
-                  }
-                  onClick={() =>
-                    setPage(
-                      (
-                        current,
-                      ) =>
-                        Math.max(
-                          1,
-                          current - 1,
-                        ),
-                    )
-                  }
-                >
-                  Anterior
-                </button>
-
                 <span>
-                  Página
+                  Mostrando
                   {" "}
-                  {currentPage}
+                  {(
+                    currentPage - 1
+                  )
+                  * PAGE_SIZE
+                  + 1}
+                  {" "}
+                  a
+                  {" "}
+                  {Math.min(
+                    currentPage
+                    * PAGE_SIZE,
+                    filteredLogs.length,
+                  )}
                   {" "}
                   de
                   {" "}
-                  {pageCount}
+                  {filteredLogs.length}
                 </span>
 
-                <button
-                  type="button"
-                  disabled={
-                    currentPage >=
-                    pageCount
-                  }
-                  onClick={() =>
-                    setPage(
-                      (
-                        current,
-                      ) =>
-                        Math.min(
-                          pageCount,
-                          current + 1,
-                        ),
-                    )
-                  }
-                >
-                  Siguiente
-                </button>
+                <div>
+                  <button
+                    type="button"
+                    disabled={
+                      currentPage <=
+                      1
+                    }
+                    onClick={() =>
+                      setPage(
+                        (
+                          current,
+                        ) =>
+                          Math.max(
+                            1,
+                            current - 1,
+                          ),
+                      )
+                    }
+                  >
+                    Anterior
+                  </button>
+
+                  <strong>
+                    {currentPage}
+                    {" / "}
+                    {pageCount}
+                  </strong>
+
+                  <button
+                    type="button"
+                    disabled={
+                      currentPage >=
+                      pageCount
+                    }
+                    onClick={() =>
+                      setPage(
+                        (
+                          current,
+                        ) =>
+                          Math.min(
+                            pageCount,
+                            current + 1,
+                          ),
+                      )
+                    }
+                  >
+                    Siguiente
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -1592,7 +3233,8 @@ function AuditPage() {
                 </span>
 
                 <strong>
-                  {selected.user_name}
+                  {selected.user_name
+                    || "Sistema"}
                 </strong>
               </div>
 
@@ -1621,7 +3263,7 @@ function AuditPage() {
 
               <div>
                 <span>
-                  Área
+                  Módulo
                 </span>
 
                 <strong>
@@ -1633,124 +3275,227 @@ function AuditPage() {
 
               <div>
                 <span>
-                  IP
+                  Dirección / ubicación
                 </span>
 
                 <strong>
-                  {selected.ip_address
-                    ?? "—"}
+                  {auditLocation(
+                    selected,
+                  )}
                 </strong>
               </div>
 
               <div>
                 <span>
-                  Registro
+                  Hora
                 </span>
 
-                <strong className="audit-detail-id">
-                  {selected.record_id
-                    ?? "—"}
+                <strong>
+                  {formatOnlyTime(
+                    selected.created_at,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Dispositivo
+                </span>
+
+                <strong>
+                  {auditDevice(
+                    selected,
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Nivel de atención
+                </span>
+
+                <strong>
+                  {actionLevel(
+                    selected.action,
+                  ).label}
                 </strong>
               </div>
             </div>
 
 
-            <section className="audit-change-section">
-              <h3>
-                Datos anteriores
-              </h3>
+            <div className="audit-record-box">
+              <span>
+                ID del registro afectado
+              </span>
 
-              {oldEntries.length ===
-              0 ? (
-                <p className="audit-no-data">
-                  No se registraron datos
-                  anteriores.
-                </p>
-              ) : (
-                <div className="audit-change-list">
-                  {oldEntries.map(
-                    (
-                      [
-                        key,
-                        value,
-                      ],
-                    ) => (
-                      <div
-                        key={
-                          key
-                        }
-                      >
-                        <span>
-                          {formatDataKey(
-                            key,
-                          )}
-                        </span>
+              <strong>
+                {selected.record_id
+                  ?? "No aplica"}
+              </strong>
+            </div>
 
-                        <strong>
-                          {formatDataValue(
-                            value,
-                          )}
-                        </strong>
-                      </div>
-                    ),
-                  )}
+
+            {auditCoordinates(
+              selected,
+            ) ? (
+              <section className="audit-detail-map">
+                <div className="audit-detail-map-heading">
+                  <div>
+                    <span>
+                      UBICACIÓN DE LA CONEXIÓN
+                    </span>
+
+                    <strong>
+                      {auditLocation(
+                        selected,
+                      )}
+                    </strong>
+                  </div>
+
+                  <MapPin
+                    size={18}
+                  />
                 </div>
-              )}
-            </section>
 
-
-            <section className="audit-change-section">
-              <h3>
-                Datos nuevos
-              </h3>
-
-              {newEntries.length ===
-              0 ? (
-                <p className="audit-no-data">
-                  No se registraron datos
-                  nuevos.
-                </p>
-              ) : (
-                <div className="audit-change-list">
-                  {newEntries.map(
-                    (
-                      [
-                        key,
-                        value,
-                      ],
-                    ) => (
-                      <div
-                        key={
-                          key
-                        }
-                      >
-                        <span>
-                          {formatDataKey(
-                            key,
-                          )}
-                        </span>
-
-                        <strong>
-                          {formatDataValue(
-                            value,
-                          )}
-                        </strong>
-                      </div>
-                    ),
-                  )}
+                <div className="audit-detail-map-frame">
+                  <iframe
+                    title="Ubicación de la conexión"
+                    src={
+                      auditMapUrl(
+                        selected,
+                      )
+                    }
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
                 </div>
-              )}
-            </section>
+              </section>
+            ) : (
+              <section className="audit-detail-map unavailable">
+                <MapPin
+                  size={18}
+                />
+
+                <div>
+                  <strong>
+                    Ubicación no disponible
+                  </strong>
+
+                  <span>
+                    Este evento no contiene
+                    coordenadas registradas.
+                  </span>
+                </div>
+              </section>
+            )}
+
+
+            <div className="audit-change-grid">
+              <section className="audit-change-section before">
+                <h3>
+                  Datos anteriores
+                </h3>
+
+                {oldEntries.length ===
+                0 ? (
+                  <p className="audit-no-data">
+                    No se registraron datos
+                    anteriores.
+                  </p>
+                ) : (
+                  <div className="audit-change-list">
+                    {oldEntries.map(
+                      (
+                        [
+                          key,
+                          value,
+                        ],
+                      ) => (
+                        <div
+                          key={
+                            key
+                          }
+                        >
+                          <span>
+                            {formatDataKey(
+                              key,
+                            )}
+                          </span>
+
+                          <strong>
+                            {formatDataValue(
+                              value,
+                            )}
+                          </strong>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+              </section>
+
+
+              <section className="audit-change-section after">
+                <h3>
+                  Datos nuevos
+                </h3>
+
+                {newEntries.length ===
+                0 ? (
+                  <p className="audit-no-data">
+                    No se registraron datos
+                    nuevos.
+                  </p>
+                ) : (
+                  <div className="audit-change-list">
+                    {newEntries.map(
+                      (
+                        [
+                          key,
+                          value,
+                        ],
+                      ) => (
+                        <div
+                          key={
+                            key
+                          }
+                        >
+                          <span>
+                            {formatDataKey(
+                              key,
+                            )}
+                          </span>
+
+                          <strong>
+                            {formatDataValue(
+                              value,
+                            )}
+                          </strong>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+              </section>
+            </div>
 
 
             {selected.user_agent && (
               <section className="audit-browser">
                 <span>
-                  Navegador / dispositivo
+                  Información del dispositivo
                 </span>
 
+                <strong>
+                  {auditDevice(
+                    selected,
+                  )}
+                </strong>
+
                 <p>
-                  {selected.user_agent}
+                  Identificado a partir de la
+                  información técnica registrada
+                  durante el acceso.
                 </p>
               </section>
             )}
