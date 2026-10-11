@@ -3,7 +3,15 @@
    SIDEBAR EJECUTIVO
    Referencia visual: dashboard empresarial predictivo
    ========================================================= */
-
+.sidebar-logo-img {
+  height: 50px; /* Ajusta según el tamaño que prefieras */
+  width: auto;
+  object-fit: contain;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
 .sidebar.salesia-sidebar {
   width: 272px;
 

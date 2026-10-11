@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   ShoppingCart,
   Sigma,
-  Sparkles,
   X,
 } from "lucide-react";
 
@@ -29,6 +28,9 @@ import type {
 } from "../types/auth";
 
 import "../styles/sidebar-reference.css";
+
+// 1. IMPORTA TU LOGO AQUÍ (Ajusta la ruta según la ubicación de tu archivo)
+import logoImg from "../../assets/logo.png";
 
 
 interface SidebarProps {
@@ -246,9 +248,13 @@ function Sidebar({
         }`}
       >
         <div className="sidebar-header">
-          <div className="brand-icon">
-            <Sparkles size={20} />
-          </div>
+          
+          {/* 2. REEMPLAZAMOS EL DIV CON SPARKLES POR TU IMAGEN DIRECTA */}
+          <img 
+            src={logoImg} 
+            alt="SalesIA Enterprise Logo" 
+            className="sidebar-logo-img" 
+          />
 
           <div className="brand-text">
             <strong>SalesIA</strong>

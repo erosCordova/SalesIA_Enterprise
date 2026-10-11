@@ -7,7 +7,6 @@ import {
   LockKeyhole,
   LogIn,
   ShieldCheck,
-  Sparkles,
   UserRound,
   X,
 } from "lucide-react";
@@ -39,6 +38,8 @@ import type {
 
 import "./login.css";
 
+// 1. IMPORTA TU LOGO AQUÍ (Ajusta la ruta según la ubicación de tu archivo)
+import logoImg from "../../../assets/logo.png"; 
 
 export default function LoginPage() {
   const navigate =
@@ -223,22 +224,19 @@ export default function LoginPage() {
     <main className="salesia-login">
       <section className="salesia-login-brand-panel">
         <div className="salesia-login-brand">
-          <div className="salesia-login-logo">
-            <Sparkles
-              size={24}
-            />
-          </div>
+  {/* El logo va directo, sin el div contenedor que hacía de cuadro */}
+  <img src={logoImg} alt="SalesIA Enterprise Logo" className="salesia-login-logo-img" />
 
-          <div>
-            <strong>
-              SalesIA
-            </strong>
+  <div>
+    <strong>
+      SalesIA
+    </strong>
 
-            <span>
-              ENTERPRISE
-            </span>
-          </div>
-        </div>
+    <span>
+      ENTERPRISE
+    </span>
+  </div>
+</div>
 
 
         <div className="salesia-login-presentation">

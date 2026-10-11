@@ -7,7 +7,11 @@
   color: #172033;
   background: #f5f7f9;
 }
-
+.salesia-login-logo-img {
+  height: 50px; /* Ajusta la altura a tu preferencia */
+  width: auto;
+  object-fit: contain;
+}
 
 .salesia-login-brand-panel {
   position: relative;

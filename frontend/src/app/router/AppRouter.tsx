@@ -25,6 +25,7 @@ import ClientePortalPage from "../../modules/cliente/ClientePortalPage";
 import ClientesPage from "../../modules/clientes/ClientesPage";
 import DashboardPage from "../../modules/dashboard/DashboardPage";
 import EmpresaPage from "../../modules/empresa/EmpresaPage";
+import LandingPage from "../../modules/home/LandingPage";
 import InsightsPage from "../../modules/insights/InsightsPage";
 import InventoryPage from "../../modules/inventory/InventoryPage";
 import KardexPage from "../../modules/kardex/KardexPage";
@@ -240,6 +241,14 @@ function LoginRoute() {
 export default function AppRouter() {
   return (
     <Routes>
+      {/* ================================================
+          LANDING PAGE PÚBLICA (Raíz "/")
+          ================================================ */}
+      <Route
+        path="/"
+        element={<LandingPage />}
+      />
+
       <Route
         path="/login"
         element={<LoginRoute />}
@@ -462,22 +471,12 @@ export default function AppRouter() {
         </Route>
       </Route>
 
-
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to="/dashboard"
-            replace
-          />
-        }
-      />
-
+      {/* Ruta comodín para cualquier otra URL no existente redirige a la Landing Page */}
       <Route
         path="*"
         element={
           <Navigate
-            to="/dashboard"
+            to="/"
             replace
           />
         }
