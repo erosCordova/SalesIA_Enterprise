@@ -42,6 +42,7 @@ from app.services.commercial import (
     get_customers,
 
     update_customer,
+    set_customer_archived,
 
 )
 
@@ -71,6 +72,7 @@ router = APIRouter()
 
 def list_customers(
     search: str | None = None,
+    archived: bool = False,
     current_user: dict = Depends(
         require_roles(
             "Administrador",
@@ -82,6 +84,7 @@ def list_customers(
     return get_customers(
         current_user,
         search,
+        archived=archived,
     )
 
 
@@ -322,4 +325,18 @@ def remove_customer(
         new_data=snapshot(result),
     )
 
+    return result
+
+@router.patch("/{customer_id}/archive", response_model=CustomerResponse, summary="Archivar cliente")
+def archive_customer_endpoint(request: Request, customer_id: UUID, current_user: dict = Depends(require_roles("Administrador", "Gerente"))):
+    before = get_customer(customer_id, current_user)
+    result = set_customer_archived(customer_id, True, current_user)
+    record_audit_event(action="customer.archived", table_name="customers", record_id=customer_id, current_user=current_user, request=request, old_data=snapshot(before), new_data=snapshot(result))
+    return result
+
+@router.patch("/{customer_id}/restore", response_model=CustomerResponse, summary="Restaurar cliente")
+def restore_customer_endpoint(request: Request, customer_id: UUID, current_user: dict = Depends(require_roles("Administrador", "Gerente"))):
+    before = get_customer(customer_id, current_user)
+    result = set_customer_archived(customer_id, False, current_user)
+    record_audit_event(action="customer.restored", table_name="customers", record_id=customer_id, current_user=current_user, request=request, old_data=snapshot(before), new_data=snapshot(result))
     return result

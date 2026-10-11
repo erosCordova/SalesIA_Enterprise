@@ -36,6 +36,7 @@ export interface Customer {
 
   city: string | null;
 
+  archived_at?: string | null;
   status: string;
 
 }

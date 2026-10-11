@@ -41,6 +41,8 @@ class Customer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
 
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
 
 class Category(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "categories"

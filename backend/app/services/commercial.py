@@ -51,12 +51,14 @@ def clean_optional(
 def get_customers(
     current_user: dict,
     search: str | None = None,
+    archived: bool = False,
 ) -> list[CustomerResponse]:
     with engine.connect() as connection:
         rows = repository.list_customers(
             connection,
             current_user["company_id"],
             search=search,
+            archived=archived,
         )
 
     return [
@@ -413,6 +415,9 @@ def create_sale(
                     ),
                 )
 
+            if customer["archived_at"] is not None:
+                raise HTTPException(status_code=409, detail="No se puede vender a un cliente archivado.")
+
         details: list[dict] = []
         subtotal = Decimal("0")
 
@@ -679,6 +684,9 @@ def update_customer(
                 detail="Cliente no encontrado.",
             )
 
+        if customer["archived_at"] is not None:
+            raise HTTPException(status_code=409, detail="Restaura el cliente antes de editarlo.")
+
         existing = repository.find_customer_by_document(
             connection,
             company_id,
@@ -726,6 +734,9 @@ def delete_customer(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Cliente no encontrado.",
             )
+
+        if customer["archived_at"] is not None:
+            raise HTTPException(status_code=409, detail="Restaura el cliente antes de desactivarlo.")
 
         repository.update_customer(
             connection,
@@ -1212,3 +1223,15 @@ def cancel_sale(
         sale_id,
         current_user,
     )
+
+
+def set_customer_archived(customer_id: UUID, archived: bool, current_user: dict) -> CustomerResponse:
+    company_id = current_user["company_id"]
+    with engine.begin() as connection:
+        old = repository.get_customer(connection, company_id, customer_id)
+        if old is None:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+        if (old["archived_at"] is not None) == archived:
+            raise HTTPException(status_code=409, detail="El cliente ya tiene ese estado.")
+        row = repository.set_customer_archive(connection, company_id, customer_id, archived)
+    return CustomerResponse(**dict(row))

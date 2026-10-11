@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
@@ -113,6 +114,7 @@ class CustomerResponse(BaseModel):
     city: str | None
 
     status: str
+    archived_at: datetime | None = None
 
 
 class CustomerUpdateRequest(BaseModel):

@@ -6,6 +6,8 @@ import {
 } from "react";
 
 import {
+  Archive,
+  ArchiveRestore,
   Eye,
   History,
   Mail,
@@ -28,10 +30,13 @@ import ModuleState from "../../components/ui/ModuleState";
 import Pagination from "../../components/ui/Pagination";
 
 import {
+  archiveCustomer,
   createCustomer,
   deleteCustomer,
+  restoreCustomer,
   getCustomerHistory,
   getCustomers,
+  getArchivedCustomers,
   updateCustomer,
 } from "../../services/commercial.service";
 
@@ -306,6 +311,9 @@ export default function ClientesPage() {
     );
 
 
+  const { data: archivedData, loading: archivedLoading, error: archivedError, reload: reloadArchived } = useApiResource(getArchivedCustomers);
+  const [view, setView] = useState<"current" | "archived">("current");
+
   const [
     search,
     setSearch,
@@ -421,8 +429,10 @@ export default function ClientesPage() {
     useState("");
 
 
-  const customers =
-    data ?? [];
+  const customers = view === "archived" ? (archivedData ?? []) : (data ?? []);
+  const viewLoading = view === "archived" ? archivedLoading : loading;
+  const viewError = view === "archived" ? archivedError : error;
+  const reloadView = view === "archived" ? reloadArchived : reload;
 
 
   const filteredCustomers =
@@ -939,6 +949,25 @@ export default function ClientesPage() {
   }
 
 
+  async function handleArchiveToggle(customer: Customer) {
+    const restoring = view === "archived";
+    const verb = restoring ? "restaurar" : "archivar";
+    if (!window.confirm(`¿Deseas ${verb} a ${customerName(customer)}?`)) return;
+    setExportError("");
+    try {
+      if (restoring) {
+        await restoreCustomer(customer.id);
+      } else {
+        await archiveCustomer(customer.id);
+      }
+      await Promise.all([reload(), reloadArchived()]);
+      setSuccessMessage(restoring ? "Cliente restaurado correctamente." : "Cliente archivado correctamente.");
+    } catch (err) {
+      setSuccessMessage("");
+      setExportError(err instanceof Error ? err.message : "No se pudo actualizar el cliente.");
+    }
+  }
+
   async function handleHistory(
     customer:
       Customer,
@@ -1174,6 +1203,11 @@ export default function ClientesPage() {
       )}
 
 
+      <div data-export-hide="true" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <button type="button" className={view === "current" ? "primary-button" : "secondary-button"} onClick={() => { setView("current"); setPage(1); setSearch(""); setStatusFilter("all"); }}>Clientes</button>
+        <button type="button" className={view === "archived" ? "primary-button" : "secondary-button"} onClick={() => { setView("archived"); setPage(1); setSearch(""); setStatusFilter("all"); }}>Clientes archivados ({archivedData?.length ?? 0})</button>
+      </div>
+
       <div
         className="customers-toolbar"
         data-export-hide="true"
@@ -1264,6 +1298,7 @@ export default function ClientesPage() {
           <button
             type="button"
             className="primary-button customers-new-button"
+             style={{ display: view === "archived" ? "none" : undefined }}
             onClick={
               openCreate
             }
@@ -1279,13 +1314,13 @@ export default function ClientesPage() {
 
 
       <article className="customers-table-panel">
-        {loading ? (
+        {viewLoading ? (
           <ModuleState
             type="loading"
             title="Cargando clientes"
             description="Consultando clientes registrados."
           />
-        ) : error ? (
+        ) : viewError ? (
           <div>
             <ModuleState
               type="error"
@@ -1303,7 +1338,7 @@ export default function ClientesPage() {
                 type="button"
                 className="secondary-button"
                 onClick={() =>
-                  void reload()
+                  void reloadView()
                 }
               >
                 Reintentar
@@ -1364,6 +1399,7 @@ export default function ClientesPage() {
                   </button>
 
 
+                  {view === "current" && (
                   <button
                     type="button"
                     className="icon-button"
@@ -1378,8 +1414,10 @@ export default function ClientesPage() {
                       size={15}
                     />
                   </button>
+                  )}
 
 
+                  {view === "current" && (
                   <button
                     type="button"
                     className="icon-button"
@@ -1398,7 +1436,18 @@ export default function ClientesPage() {
                       size={15}
                     />
                   </button>
+                  )}
 
+
+                  <button
+                    type="button"
+                    className="icon-button"
+                    title={view === "archived" ? "Restaurar cliente" : "Archivar cliente"}
+                    aria-label={view === "archived" ? "Restaurar cliente" : "Archivar cliente"}
+                    onClick={() => void handleArchiveToggle(customer)}
+                  >
+                    {view === "archived" ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                  </button>
 
                   <button
                     type="button"

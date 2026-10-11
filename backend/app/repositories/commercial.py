@@ -8,6 +8,7 @@ def list_customers(
     connection: Connection,
     company_id: UUID,
     search: str | None = None,
+    archived: bool = False,
 ):
     search_value = (
         f"%{search.strip()}%"
@@ -28,9 +29,11 @@ def list_customers(
                 phone,
                 address,
                 city,
-                status
+                status,
+                archived_at
             FROM customers
             WHERE company_id = :company_id
+                AND (archived_at IS NOT NULL) = :archived
                 AND (
                     CAST(:search AS TEXT) IS NULL
                     OR CAST(:search AS TEXT) = ''
@@ -53,6 +56,7 @@ def list_customers(
         {
             "company_id": company_id,
             "search": search_value,
+            "archived": archived,
         },
     ).mappings().all()
 
@@ -95,7 +99,8 @@ def get_customer(
         phone,
         address,
         city,
-        status
+        status,
+        archived_at
         FROM customers
         WHERE id = :customer_id
         AND company_id = :company_id
@@ -1500,3 +1505,11 @@ def mark_sale_cancelled(
                 "Anulación: " + reason,
         },
     )
+
+
+def set_customer_archive(connection: Connection, company_id: UUID, customer_id: UUID, archived: bool):
+    connection.execute(
+        text("UPDATE customers SET archived_at = CASE WHEN :archived THEN NOW() ELSE NULL END, updated_at = NOW() WHERE company_id = :company_id AND id = :customer_id"),
+        {"archived": archived, "company_id": company_id, "customer_id": customer_id},
+    )
+    return get_customer(connection, company_id, customer_id)

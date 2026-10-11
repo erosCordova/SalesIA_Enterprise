@@ -252,3 +252,19 @@ export function cancelSale(
     },
   );
 }
+
+export function getArchivedCustomers() {
+  return apiFetch<Customer[]>("/customers?archived=true");
+}
+
+export function archiveCustomer(id: string) {
+  return apiFetch<Customer>(`/customers/${id}/archive`, {
+    method: "PATCH",
+  });
+}
+
+export function restoreCustomer(id: string) {
+  return apiFetch<Customer>(`/customers/${id}/restore`, {
+    method: "PATCH",
+  });
+}
