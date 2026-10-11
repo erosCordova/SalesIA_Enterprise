@@ -13,6 +13,8 @@ def get_summary(
     sales_user_id: UUID | None = None,
     include_sales: bool = True,
 ):
+    connection.execute(text("SET LOCAL TIME ZONE 'America/Lima'"))
+
     params = {
         "company_id": company_id,
         "sales_user_id": sales_user_id,
